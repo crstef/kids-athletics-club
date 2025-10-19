@@ -7,7 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
-import { MagnifyingGlass, SortAscending, Trophy, SignOut, UserCircle, Envelope, ChatCircleDots, ShieldCheck, Target } from '@phosphor-icons/react'
+import { Card } from '@/components/ui/card'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { MagnifyingGlass, SortAscending, Trophy, SignOut, UserCircle, Envelope, ChatCircleDots, ShieldCheck, Target, Users } from '@phosphor-icons/react'
 import { AuthProvider, useAuth } from '@/lib/auth-context'
 import { AuthDialog } from '@/components/AuthDialog'
 import { AddAthleteDialog } from '@/components/AddAthleteDialog'
@@ -911,19 +913,32 @@ function AppContent() {
 
   if (!currentUser) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 flex items-center justify-center p-4">
         <Toaster position="top-right" richColors />
-        <div className="text-center space-y-6 p-8">
-          <Trophy size={80} weight="fill" className="text-accent mx-auto" />
-          <div>
-            <h1 className="text-4xl font-bold mb-2" style={{ fontFamily: 'Outfit', letterSpacing: '-0.02em' }}>
+        <div className="text-center space-y-8 p-8 max-w-md w-full">
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 blur-3xl rounded-full" />
+            <Trophy size={80} weight="fill" className="text-accent mx-auto relative animate-in zoom-in duration-500" />
+          </div>
+          <div className="space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <h1 className="text-5xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent" style={{ fontFamily: 'Outfit', letterSpacing: '-0.02em' }}>
               Club Atletism
             </h1>
-            <p className="text-muted-foreground mb-6">Management Atleți Juniori</p>
+            <p className="text-lg text-muted-foreground">Management Atleți Juniori</p>
+            <p className="text-sm text-muted-foreground/80 max-w-sm mx-auto">
+              Sistem profesional pentru monitorizarea progresului sportivilor
+            </p>
           </div>
-          <Button size="lg" onClick={() => setAuthDialogOpen(true)}>
-            <UserCircle size={20} className="mr-2" />
-            Autentificare / Înregistrare
+          <Button 
+            size="lg" 
+            onClick={() => setAuthDialogOpen(true)}
+            className="group relative overflow-hidden"
+          >
+            <span className="relative z-10 flex items-center gap-2">
+              <UserCircle size={20} />
+              Autentificare / Înregistrare
+            </span>
+            <div className="absolute inset-0 bg-gradient-to-r from-primary to-accent opacity-0 group-hover:opacity-100 transition-opacity" />
           </Button>
         </div>
         <AuthDialog
@@ -940,25 +955,31 @@ function AppContent() {
       <div className="min-h-screen bg-background">
         <Toaster position="top-right" richColors />
         
-        <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+        <header className="border-b bg-gradient-to-r from-card via-card/80 to-card backdrop-blur-md sticky top-0 z-10 shadow-sm">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Trophy size={32} weight="fill" className="text-accent" />
+                <div className="p-2 bg-gradient-to-br from-accent/10 to-accent/5 rounded-xl">
+                  <Trophy size={28} weight="fill" className="text-accent" />
+                </div>
                 <div>
                   <h1 className="text-2xl font-bold" style={{ fontFamily: 'Outfit', letterSpacing: '-0.02em' }}>
                     Club Atletism
                   </h1>
-                  <p className="text-sm text-muted-foreground">Panou Părinte</p>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+                    Panou Părinte
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <Badge variant="secondary" className="hidden sm:flex">
-                  {currentUser.firstName} {currentUser.lastName}
-                </Badge>
-                <Button variant="outline" size="sm" onClick={logout}>
-                  <SignOut size={16} className="mr-2" />
-                  Deconectare
+                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-secondary/10 rounded-full">
+                  <div className="w-2 h-2 rounded-full bg-secondary" />
+                  <span className="text-sm font-medium">{currentUser.firstName} {currentUser.lastName}</span>
+                </div>
+                <Button variant="outline" size="sm" onClick={logout} className="gap-2">
+                  <SignOut size={16} />
+                  <span className="hidden sm:inline">Deconectare</span>
                 </Button>
               </div>
             </div>
@@ -996,25 +1017,31 @@ function AppContent() {
       <div className="min-h-screen bg-background">
         <Toaster position="top-right" richColors />
         
-        <header className="border-b bg-gradient-to-r from-primary/10 to-accent/10 backdrop-blur-sm sticky top-0 z-10">
+        <header className="border-b bg-gradient-to-r from-primary/10 via-primary/5 to-accent/10 backdrop-blur-md sticky top-0 z-10 shadow-sm">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <ShieldCheck size={32} weight="fill" className="text-primary" />
+                <div className="p-2 bg-gradient-to-br from-primary/20 to-primary/10 rounded-xl">
+                  <ShieldCheck size={28} weight="fill" className="text-primary" />
+                </div>
                 <div>
                   <h1 className="text-2xl font-bold" style={{ fontFamily: 'Outfit', letterSpacing: '-0.02em' }}>
                     Club Atletism
                   </h1>
-                  <p className="text-sm text-muted-foreground">Panou SuperAdmin</p>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                    Panou SuperAdmin
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <Badge variant="default" className="hidden sm:flex">
-                  {currentUser.firstName} {currentUser.lastName}
-                </Badge>
-                <Button variant="outline" size="sm" onClick={logout}>
-                  <SignOut size={16} className="mr-2" />
-                  Deconectare
+                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-full">
+                  <ShieldCheck size={16} weight="fill" className="text-primary" />
+                  <span className="text-sm font-medium">{currentUser.firstName} {currentUser.lastName}</span>
+                </div>
+                <Button variant="outline" size="sm" onClick={logout} className="gap-2">
+                  <SignOut size={16} />
+                  <span className="hidden sm:inline">Deconectare</span>
                 </Button>
               </div>
             </div>
@@ -1023,23 +1050,23 @@ function AppContent() {
 
         <main className="container mx-auto px-4 py-8">
           <Tabs defaultValue="dashboard" className="space-y-6">
-            <TabsList className="grid w-full max-w-6xl grid-cols-9">
-              <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-              <TabsTrigger value="approvals" className="gap-2">
+            <TabsList className="grid w-full max-w-6xl grid-cols-9 bg-muted/50 p-1.5 rounded-xl">
+              <TabsTrigger value="dashboard" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Dashboard</TabsTrigger>
+              <TabsTrigger value="approvals" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
                 Aprobări
                 {pendingRequestsCount > 0 && (
-                  <Badge variant="destructive" className="ml-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
+                  <Badge variant="destructive" className="ml-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs animate-pulse">
                     {pendingRequestsCount}
                   </Badge>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="users">Utilizatori</TabsTrigger>
-              <TabsTrigger value="roles">Roluri</TabsTrigger>
-              <TabsTrigger value="permissions">Permisiuni</TabsTrigger>
-              <TabsTrigger value="categories">Categorii</TabsTrigger>
-              <TabsTrigger value="groups">Probe</TabsTrigger>
-              <TabsTrigger value="events">Evenimente</TabsTrigger>
-              <TabsTrigger value="athletes">Atleți</TabsTrigger>
+              <TabsTrigger value="users" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Utilizatori</TabsTrigger>
+              <TabsTrigger value="roles" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Roluri</TabsTrigger>
+              <TabsTrigger value="permissions" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Permisiuni</TabsTrigger>
+              <TabsTrigger value="categories" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Categorii</TabsTrigger>
+              <TabsTrigger value="groups" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Probe</TabsTrigger>
+              <TabsTrigger value="events" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Evenimente</TabsTrigger>
+              <TabsTrigger value="athletes" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Atleți</TabsTrigger>
             </TabsList>
 
             <TabsContent value="dashboard">
@@ -1203,25 +1230,31 @@ function AppContent() {
       <div className="min-h-screen bg-background">
         <Toaster position="top-right" richColors />
         
-        <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+        <header className="border-b bg-gradient-to-r from-card via-card/80 to-card backdrop-blur-md sticky top-0 z-10 shadow-sm">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Trophy size={32} weight="fill" className="text-accent" />
+                <div className="p-2 bg-gradient-to-br from-accent/10 to-accent/5 rounded-xl">
+                  <Trophy size={28} weight="fill" className="text-accent" />
+                </div>
                 <div>
                   <h1 className="text-2xl font-bold" style={{ fontFamily: 'Outfit', letterSpacing: '-0.02em' }}>
                     Club Atletism
                   </h1>
-                  <p className="text-sm text-muted-foreground">Panou Atlet</p>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+                    Panou Atlet
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <Badge variant="secondary" className="hidden sm:flex">
-                  {currentUser.firstName} {currentUser.lastName}
-                </Badge>
-                <Button variant="outline" size="sm" onClick={logout}>
-                  <SignOut size={16} className="mr-2" />
-                  Deconectare
+                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-accent/10 rounded-full">
+                  <Trophy size={16} weight="fill" className="text-accent" />
+                  <span className="text-sm font-medium">{currentUser.firstName} {currentUser.lastName}</span>
+                </div>
+                <Button variant="outline" size="sm" onClick={logout} className="gap-2">
+                  <SignOut size={16} />
+                  <span className="hidden sm:inline">Deconectare</span>
                 </Button>
               </div>
             </div>
@@ -1243,32 +1276,36 @@ function AppContent() {
     <div className="min-h-screen bg-background">
       <Toaster position="top-right" richColors />
       
-        <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+        <header className="border-b bg-gradient-to-r from-card via-card/80 to-card backdrop-blur-md sticky top-0 z-10 shadow-sm">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Trophy size={32} weight="fill" className="text-accent" />
+                <div className="p-2 bg-gradient-to-br from-secondary/10 to-secondary/5 rounded-xl">
+                  <Trophy size={28} weight="fill" className="text-secondary" />
+                </div>
                 <div>
                   <h1 className="text-2xl font-bold" style={{ fontFamily: 'Outfit', letterSpacing: '-0.02em' }}>
                     Club Atletism
                   </h1>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse" />
                     {isCoach ? 'Panou Antrenor' : 'Management Atleți Juniori'}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <div className="hidden sm:flex flex-col items-end">
-                  <Badge variant="secondary">
-                    {currentUser.firstName} {currentUser.lastName}
-                  </Badge>
-                  <span className="text-xs text-muted-foreground mt-0.5">
-                    {isCoach ? 'Antrenor' : 'Administrator'}
-                  </span>
+                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-secondary/10 rounded-full">
+                  <div className="w-2 h-2 rounded-full bg-secondary" />
+                  <div className="flex flex-col items-end">
+                    <span className="text-sm font-medium leading-none">{currentUser.firstName} {currentUser.lastName}</span>
+                    <span className="text-xs text-muted-foreground leading-none mt-0.5">
+                      {isCoach ? 'Antrenor' : 'Administrator'}
+                    </span>
+                  </div>
                 </div>
-                <Button variant="outline" size="sm" onClick={logout}>
-                  <SignOut size={16} className="mr-2" />
-                  Ieșire
+                <Button variant="outline" size="sm" onClick={logout} className="gap-2">
+                  <SignOut size={16} />
+                  <span className="hidden sm:inline">Deconectare</span>
                 </Button>
               </div>
             </div>
@@ -1277,25 +1314,25 @@ function AppContent() {
 
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className={`grid w-full max-w-2xl ${isCoach ? 'grid-cols-4' : 'grid-cols-3'}`}>
-            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-            <TabsTrigger value="athletes">Atleți</TabsTrigger>
-            {!isCoach && <TabsTrigger value="coaches">Antrenori</TabsTrigger>}
-            <TabsTrigger value="requests" className="gap-2">
+          <TabsList className={`grid w-full max-w-2xl ${isCoach ? 'grid-cols-4' : 'grid-cols-3'} bg-muted/50 p-1.5 rounded-xl`}>
+            <TabsTrigger value="dashboard" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Dashboard</TabsTrigger>
+            <TabsTrigger value="athletes" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Atleți</TabsTrigger>
+            {!isCoach && <TabsTrigger value="coaches" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Antrenori</TabsTrigger>}
+            <TabsTrigger value="requests" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <Envelope size={16} />
               Cereri
               {isCoach && pendingRequestsCount > 0 && (
-                <Badge variant="destructive" className="ml-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
+                <Badge variant="destructive" className="ml-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs animate-pulse">
                   {pendingRequestsCount}
                 </Badge>
               )}
             </TabsTrigger>
             {isCoach && (
-              <TabsTrigger value="messages" className="gap-2">
+              <TabsTrigger value="messages" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
                 <ChatCircleDots size={16} />
                 Mesaje
                 {unreadMessagesCount > 0 && (
-                  <Badge variant="destructive" className="ml-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
+                  <Badge variant="destructive" className="ml-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs animate-pulse">
                     {unreadMessagesCount}
                   </Badge>
                 )}
@@ -1319,15 +1356,18 @@ function AppContent() {
                 <DashboardStats athletes={myAthletes} results={results || []} />
 
                 {myAthletes.length === 0 ? (
-                  <div className="text-center py-12 space-y-4">
-                    <Trophy size={64} weight="duotone" className="text-muted-foreground mx-auto" />
-                    <div>
-                      <h3 className="text-xl font-semibold mb-2">Bine ai venit!</h3>
-                      <p className="text-muted-foreground mb-4">
-                        Începe prin a adăuga primul atlet în baza de date
-                      </p>
-                      <AddAthleteDialog onAdd={handleAddAthlete} coaches={coaches} />
+                  <div className="text-center py-16 space-y-6">
+                    <div className="relative inline-block">
+                      <div className="absolute inset-0 bg-gradient-to-r from-accent/20 to-primary/20 blur-3xl" />
+                      <Trophy size={80} weight="duotone" className="text-muted-foreground/50 mx-auto relative animate-in zoom-in duration-500" />
                     </div>
+                    <div className="space-y-3">
+                      <h3 className="text-2xl font-semibold" style={{ fontFamily: 'Outfit' }}>Bine ai venit!</h3>
+                      <p className="text-muted-foreground max-w-md mx-auto">
+                        Începe prin a adăuga primul atlet în baza de date pentru a urmări progresul și rezultatele acestuia
+                      </p>
+                    </div>
+                    <AddAthleteDialog onAdd={handleAddAthlete} coaches={coaches} />
                   </div>
                 ) : (
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -1388,10 +1428,21 @@ function AppContent() {
             </div>
 
             {filteredAndSortedAthletes.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                {searchQuery || categoryFilter !== 'all'
-                  ? 'Niciun atlet găsit cu filtrele curente'
-                  : 'Niciun atlet adăugat încă'}
+              <div className="text-center py-16 border border-dashed rounded-lg">
+                <div className="space-y-4">
+                  <div className="relative inline-block">
+                    <div className="absolute inset-0 bg-gradient-to-r from-muted/20 to-muted/10 blur-2xl" />
+                    <Trophy size={64} weight="duotone" className="text-muted-foreground/40 mx-auto relative" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg mb-1">Niciun atlet găsit</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {searchQuery || categoryFilter !== 'all'
+                        ? 'Încearcă să ajustezi filtrele pentru a vedea rezultate'
+                        : 'Adaugă primul atlet pentru a începe'}
+                    </p>
+                  </div>
+                </div>
               </div>
             ) : (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -1410,12 +1461,27 @@ function AppContent() {
 
           {!isCoach && (
             <TabsContent value="coaches" className="space-y-6">
-              <div className="flex justify-end">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-lg font-semibold">Antrenori</h3>
+                  <p className="text-sm text-muted-foreground">Membrii echipei de coaching</p>
+                </div>
                 <AddCoachDialog probes={probes || []} onAdd={handleAddCoach} />
               </div>
               {coaches.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  Niciun antrenor adăugat încă
+                <div className="text-center py-16 border border-dashed rounded-lg">
+                  <div className="space-y-4">
+                    <div className="relative inline-block">
+                      <div className="absolute inset-0 bg-gradient-to-r from-secondary/20 to-secondary/10 blur-2xl" />
+                      <Users size={64} weight="duotone" className="text-muted-foreground/40 mx-auto relative" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-lg mb-1">Niciun antrenor</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Adaugă primul antrenor pentru a începe managementul echipei
+                      </p>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -1424,18 +1490,30 @@ function AppContent() {
                     const coachData = coach as Coach
                     const coachProbe = coachData.probeId ? (probes || []).find(p => p.id === coachData.probeId) : null
                     return (
-                      <div key={coach.id} className="p-6 border rounded-lg space-y-2">
-                        <div className="font-semibold text-lg">
-                          {coach.firstName} {coach.lastName}
+                      <Card key={coach.id} className="p-6 space-y-3 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-secondary/50">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-12 w-12 ring-2 ring-background">
+                              <AvatarFallback className="bg-gradient-to-br from-secondary to-secondary/70 text-white font-semibold">
+                                {coach.firstName[0]}{coach.lastName[0]}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <div className="font-semibold text-base">
+                                {coach.firstName} {coach.lastName}
+                              </div>
+                              <div className="text-xs text-muted-foreground">{coach.email}</div>
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-sm text-muted-foreground">{coach.email}</div>
                         {coachProbe && (
-                          <Badge variant="secondary">{coachProbe.name}</Badge>
+                          <Badge variant="secondary" className="w-fit">{coachProbe.name}</Badge>
                         )}
-                        <div className="text-sm text-muted-foreground pt-2">
-                          Atleți: {coachAthletes.length}
+                        <div className="pt-2 border-t flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">Atleți:</span>
+                          <Badge variant="outline" className="font-semibold">{coachAthletes.length}</Badge>
                         </div>
-                      </div>
+                      </Card>
                     )
                   })}
                 </div>

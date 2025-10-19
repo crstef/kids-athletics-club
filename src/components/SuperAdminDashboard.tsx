@@ -164,8 +164,11 @@ export function SuperAdminDashboard({ users, athletes, events, permissions }: Su
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold mb-2">Dashboard SuperAdmin</h2>
+      <div className="relative">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-primary/5 to-accent/10 blur-3xl -z-10" />
+        <h2 className="text-3xl font-bold mb-2 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent" style={{ fontFamily: 'Outfit', letterSpacing: '-0.02em' }}>
+          Dashboard SuperAdmin
+        </h2>
         <p className="text-muted-foreground">
           Statistici generale și management sistem
         </p>
@@ -175,49 +178,54 @@ export function SuperAdminDashboard({ users, athletes, events, permissions }: Su
         <StatWidget
           title="Utilizatori"
           value={stats.totalUsers}
-          icon={<Users size={20} weight="fill" />}
+          icon={<Users size={24} weight="fill" />}
           iconColor="text-primary"
-          subtitle={`${stats.activeUsers} activi`}
+          subtitle={`${stats.activeUsers} ${stats.activeUsers === 1 ? 'activ' : 'activi'}`}
           detailsContent={usersDetails}
         />
 
         <StatWidget
           title="Atleți Înregistrați"
           value={stats.athletes}
-          icon={<Trophy size={20} weight="fill" />}
+          icon={<Trophy size={24} weight="fill" />}
           iconColor="text-accent"
-          subtitle="Copii în sistem"
+          subtitle={`${stats.athletes} ${stats.athletes === 1 ? 'copil în sistem' : 'copii în sistem'}`}
           detailsContent={athletesDetails}
         />
 
         <StatWidget
           title="Probe Sportive"
           value={stats.events}
-          icon={<Target size={20} weight="fill" />}
+          icon={<Target size={24} weight="fill" />}
           iconColor="text-secondary"
-          subtitle="Probe configurate"
+          subtitle={`${stats.events} ${stats.events === 1 ? 'probă configurată' : 'probe configurate'}`}
           detailsContent={eventsDetails}
         />
 
         <StatWidget
           title="Permisiuni Active"
           value={stats.permissions}
-          icon={<ShieldCheck size={20} weight="fill" />}
+          icon={<ShieldCheck size={24} weight="fill" />}
           iconColor="text-green-500"
-          subtitle="Drepturi acordate"
+          subtitle={`${stats.permissions} ${stats.permissions === 1 ? 'drept acordat' : 'drepturi acordate'}`}
           detailsContent={permissionsDetails}
         />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Card className="p-6">
-          <h3 className="font-semibold mb-4">Utilizatori Recenți</h3>
+        <Card className="p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+          <h3 className="font-semibold mb-4 flex items-center gap-2">
+            <div className="p-1.5 bg-primary/10 rounded-lg">
+              <Users size={18} weight="fill" className="text-primary" />
+            </div>
+            Utilizatori Recenți
+          </h3>
           <div className="space-y-3">
             {users
               .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
               .slice(0, 5)
               .map((user) => (
-                <div key={user.id} className="flex items-center justify-between">
+                <div key={user.id} className="flex items-center justify-between p-3 border rounded-lg hover:border-primary/50 transition-colors">
                   <div>
                     <div className="font-medium text-sm">
                       {user.firstName} {user.lastName}
@@ -226,30 +234,35 @@ export function SuperAdminDashboard({ users, athletes, events, permissions }: Su
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge variant="outline" className="text-xs">
-                      {user.role === 'coach' ? 'Antrenor' : user.role === 'parent' ? 'Părinte' : 'Atlet'}
+                      {user.role === 'coach' ? 'Antrenor' : user.role === 'parent' ? 'Părinte' : user.role === 'athlete' ? 'Atlet' : 'Admin'}
                     </Badge>
                     {user.needsApproval && (
-                      <Badge variant="destructive" className="text-xs">Pending</Badge>
+                      <Badge variant="destructive" className="text-xs animate-pulse">Pending</Badge>
                     )}
                   </div>
                 </div>
               ))}
             {users.length === 0 && (
-              <div className="text-sm text-muted-foreground text-center py-4">
+              <div className="text-sm text-muted-foreground text-center py-8 border border-dashed rounded-lg">
                 Niciun utilizator înregistrat
               </div>
             )}
           </div>
         </Card>
 
-        <Card className="p-6">
-          <h3 className="font-semibold mb-4">Probe Recente</h3>
+        <Card className="p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+          <h3 className="font-semibold mb-4 flex items-center gap-2">
+            <div className="p-1.5 bg-secondary/10 rounded-lg">
+              <Target size={18} weight="fill" className="text-secondary" />
+            </div>
+            Probe Recente
+          </h3>
           <div className="space-y-3">
             {events
               .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
               .slice(0, 5)
               .map((event) => (
-                <div key={event.id} className="flex items-center justify-between">
+                <div key={event.id} className="flex items-center justify-between p-3 border rounded-lg hover:border-secondary/50 transition-colors">
                   <div className="font-medium text-sm">{event.name}</div>
                   <div className="flex gap-2">
                     <Badge variant="secondary" className="text-xs">
@@ -262,7 +275,7 @@ export function SuperAdminDashboard({ users, athletes, events, permissions }: Su
                 </div>
               ))}
             {events.length === 0 && (
-              <div className="text-sm text-muted-foreground text-center py-4">
+              <div className="text-sm text-muted-foreground text-center py-8 border border-dashed rounded-lg">
                 Nicio probă configurată
               </div>
             )}

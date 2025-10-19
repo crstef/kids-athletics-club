@@ -157,36 +157,36 @@ export function DashboardStats({ athletes, results }: DashboardStatsProps) {
       <StatWidget
         title="Total Atleți"
         value={totalAthletes}
-        icon={<Users size={20} weight="fill" />}
+        icon={<Users size={24} weight="fill" />}
         iconColor="text-primary"
-        subtitle={`${categoryBreakdown.length} categorii`}
+        subtitle={`${categoryBreakdown.length} ${categoryBreakdown.length === 1 ? 'categorie' : 'categorii'}`}
         detailsContent={totalAthletesDetails}
       />
 
       <StatWidget
         title="Atleți Activi"
         value={activeAthletes}
-        icon={<TrendUp size={20} weight="fill" />}
+        icon={<TrendUp size={24} weight="fill" />}
         iconColor="text-secondary"
-        subtitle={`${((activeAthletes / totalAthletes) * 100).toFixed(0)}% din total`}
+        subtitle={totalAthletes > 0 ? `${((activeAthletes / totalAthletes) * 100).toFixed(0)}% din total` : '0% din total'}
         detailsContent={activeAthletesDetails}
       />
 
       <StatWidget
         title="Total Rezultate"
         value={totalResults}
-        icon={<ListNumbers size={20} weight="fill" />}
+        icon={<ListNumbers size={24} weight="fill" />}
         iconColor="text-accent"
-        subtitle={totalAthletes > 0 ? `${(totalResults / totalAthletes).toFixed(1)} / atlet` : '0 / atlet'}
+        subtitle={totalAthletes > 0 ? `${(totalResults / totalAthletes).toFixed(1)} per atlet` : '0 per atlet'}
         detailsContent={totalResultsDetails}
       />
 
       <StatWidget
         title="Probe Active"
         value={activeProbes}
-        icon={<Trophy size={20} weight="fill" />}
+        icon={<Trophy size={24} weight="fill" />}
         iconColor="text-purple-500"
-        subtitle="Discipline diferite"
+        subtitle={`${activeProbes} ${activeProbes === 1 ? 'disciplină' : 'discipline'}`}
         detailsContent={probesDetails}
       />
     </div>

@@ -60,37 +60,45 @@ export function StatWidget({
   return (
     <>
       <motion.div
-        whileHover={isClickable ? { scale: 1.02, y: -2 } : {}}
+        whileHover={isClickable ? { scale: 1.02, y: -4 } : {}}
         whileTap={isClickable ? { scale: 0.98 } : {}}
-        transition={{ duration: 0.2 }}
+        transition={{ duration: 0.2, ease: 'easeOut' }}
       >
         <Card
           className={`${className} ${
-            isClickable ? 'cursor-pointer hover:shadow-lg transition-all' : ''
-          }`}
+            isClickable ? 'cursor-pointer hover:shadow-xl hover:border-primary/30 transition-all duration-300' : ''
+          } relative overflow-hidden group`}
           onClick={handleClick}
         >
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               {title}
             </CardTitle>
-            <div className={iconColor}>{icon}</div>
+            <div className={`${iconColor} p-2 rounded-lg bg-gradient-to-br from-muted/50 to-muted/30 group-hover:scale-110 transition-transform duration-300`}>
+              {icon}
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold mb-1" style={{ fontFamily: 'Outfit' }}>
+          <CardContent className="relative z-10">
+            <div className="text-4xl font-bold mb-1 bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text" style={{ fontFamily: 'Outfit', letterSpacing: '-0.02em' }}>
               {value}
             </div>
             {subtitle && (
-              <p className="text-xs text-muted-foreground mb-2">{subtitle}</p>
+              <p className="text-xs text-muted-foreground/80 mb-2 font-medium">{subtitle}</p>
             )}
             {trend && (
               <Badge
                 variant="secondary"
-                className={`${getTrendColor()} text-xs gap-1 border-0`}
+                className={`${getTrendColor()} text-xs gap-1 border-0 font-semibold`}
               >
                 {getTrendIcon()}
                 {Math.abs(trend.value)}% {trend.label}
               </Badge>
+            )}
+            {isClickable && detailsContent && (
+              <p className="text-xs text-primary/60 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                Click pentru detalii →
+              </p>
             )}
           </CardContent>
         </Card>
@@ -100,8 +108,10 @@ export function StatWidget({
         <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
           <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <div className={iconColor}>{icon}</div>
+              <DialogTitle className="flex items-center gap-3 text-xl">
+                <div className={`${iconColor} p-2 rounded-lg bg-gradient-to-br from-muted/50 to-muted/30`}>
+                  {icon}
+                </div>
                 {title}
               </DialogTitle>
             </DialogHeader>
