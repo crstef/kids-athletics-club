@@ -106,9 +106,12 @@ export function getFilteredResults<T extends { date: string }>(
 }
 
 export function getAvailableYears<T extends { date: string }>(results: T[]): number[] {
-  const years = new Set<number>()
-  results.forEach(result => {
-    years.add(new Date(result.date).getFullYear())
-  })
-  return Array.from(years).sort((a, b) => b - a)
+  const currentYear = new Date().getFullYear()
+  const years: number[] = []
+  
+  for (let i = 0; i <= 10; i++) {
+    years.push(currentYear - i)
+  }
+  
+  return years
 }

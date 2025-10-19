@@ -115,17 +115,20 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
     const dayInMs = 24 * 60 * 60 * 1000
     const rangeInDays = dateRange / dayInMs
     
+    const uniqueYears = new Set(sortedData.map(d => new Date(d.date).getFullYear()))
+    const hasMultipleYears = uniqueYears.size > 1
+    
     let dateFormatString = '%d/%m/%Y'
     if (isMobile) {
-      if (rangeInDays > 365) {
-        dateFormatString = '%m/%Y'
+      if (rangeInDays > 365 || hasMultipleYears) {
+        dateFormatString = '%m/%y'
       } else if (rangeInDays > 90) {
         dateFormatString = '%d/%m/%y'
       } else {
-        dateFormatString = '%d/%m'
+        dateFormatString = '%d/%m/%y'
       }
     } else {
-      if (rangeInDays > 365) {
+      if (rangeInDays > 365 || hasMultipleYears) {
         dateFormatString = '%b %Y'
       } else {
         dateFormatString = '%d/%m/%Y'
