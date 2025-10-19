@@ -3,11 +3,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
-import { Trophy, ChartLine, ChatCircleDots, Envelope } from '@phosphor-icons/react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Trophy, ChartLine, ChatCircleDots, Envelope, TrendUp, Medal, Target, Calendar, ListNumbers } from '@phosphor-icons/react'
 import { AthleteCard } from './AthleteCard'
 import { ParentAccessRequest } from './ParentAccessRequest'
 import { MessagingPanel } from './MessagingPanel'
+import { StatWidget } from './StatWidget'
+import { ProgressStats } from './ProgressStats'
+import { PerformanceChart } from './PerformanceChart'
 import type { Athlete, Result, AccessRequest, User, Message } from '@/lib/types'
+import { formatResult } from '@/lib/constants'
 
 interface ParentDashboardProps {
   parentId: string
@@ -35,6 +40,7 @@ export function ParentDashboard({
   onViewAthleteDetails
 }: ParentDashboardProps) {
   const [selectedCoachId, setSelectedCoachId] = useState<string>('')
+  const [selectedAthleteId, setSelectedAthleteId] = useState<string>('')
 
   const approvedAthletes = useMemo(() => {
     const approvedAthleteIds = accessRequests
@@ -54,8 +60,65 @@ export function ParentDashboard({
     return coaches.filter(c => coachIds.has(c.id))
   }, [coaches, accessRequests, parentId])
 
+  const allChildrenResults = useMemo(() => {
+    const athleteIds = new Set(approvedAthletes.map(a => a.id))
+    return results.filter(r => athleteIds.has(r.athleteId))
+  }, [approvedAthletes, results])
+
+  const stats = useMemo(() => {
+    const totalResults = allChildrenResults.length
+    const totalEvents = new Set(allChildrenResults.map(r => r.eventType)).size
+    
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+    const recentResults = allChildrenResults.filter(r => new Date(r.date) >= thirtyDaysAgo).length
+
+    const improvements = approvedAthletes.map(athlete => {
+      const athleteResults = allChildrenResults.filter(r => r.athleteId === athlete.id)
+      const eventGroups = athleteResults.reduce((acc, result) => {
+        if (!acc[result.eventType]) acc[result.eventType] = []
+        acc[result.eventType].push(result)
+        return acc
+      }, {} as Record<string, Result[]>)
+
+      let improvementCount = 0
+      Object.values(eventGroups).forEach(eventResults => {
+        if (eventResults.length >= 2) {
+          const sorted = [...eventResults].sort((a, b) => 
+            new Date(a.date).getTime() - new Date(b.date).getTime()
+          )
+          const first = sorted[0]
+          const last = sorted[sorted.length - 1]
+          
+          const hasImproved = first.unit === 'seconds'
+            ? last.value < first.value
+            : last.value > first.value
+          
+          if (hasImproved) improvementCount++
+        }
+      })
+      return improvementCount
+    }).reduce((sum, count) => sum + count, 0)
+
+    return {
+      totalResults,
+      totalEvents,
+      recentResults,
+      improvements
+    }
+  }, [approvedAthletes, allChildrenResults])
+
   const getAthleteResultsCount = (athleteId: string): number => {
     return results.filter(r => r.athleteId === athleteId).length
+  }
+
+  const getAthleteStats = (athleteId: string) => {
+    const athleteResults = allChildrenResults.filter(r => r.athleteId === athleteId)
+    const recentResults = athleteResults
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 5)
+    
+    return { athleteResults, recentResults }
   }
 
   const unreadMessagesCount = useMemo(() => {
@@ -64,9 +127,108 @@ export function ParentDashboard({
 
   const selectedCoach = coaches.find(c => c.id === selectedCoachId)
   const selectedCoachAthlete = approvedAthletes.find(a => a.coachId === selectedCoachId)
+  const selectedAthlete = approvedAthletes.find(a => a.id === selectedAthleteId)
+
+  const totalResultsDetails = (
+    <div className="space-y-4">
+      <p className="text-muted-foreground">
+        Număr total de rezultate înregistrate pentru toți copiii tăi
+      </p>
+      <div className="space-y-3">
+        {approvedAthletes.map(athlete => {
+          const athleteResults = allChildrenResults.filter(r => r.athleteId === athlete.id)
+          return (
+            <div key={athlete.id} className="flex items-center justify-between p-3 border rounded-lg">
+              <div>
+                <div className="font-medium">{athlete.firstName} {athlete.lastName}</div>
+                <div className="text-sm text-muted-foreground">Categoria {athlete.category}</div>
+              </div>
+              <Badge variant="secondary" className="text-lg px-3 py-1">
+                {athleteResults.length}
+              </Badge>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+
+  const recentActivityDetails = (
+    <div className="space-y-4">
+      <p className="text-muted-foreground">
+        Rezultate înregistrate în ultimele 30 de zile
+      </p>
+      <div className="space-y-2">
+        {allChildrenResults
+          .filter(r => {
+            const thirtyDaysAgo = new Date()
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+            return new Date(r.date) >= thirtyDaysAgo
+          })
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+          .slice(0, 10)
+          .map(result => {
+            const athlete = approvedAthletes.find(a => a.id === result.athleteId)
+            return (
+              <div key={result.id} className="flex items-center justify-between p-3 border rounded-lg">
+                <div>
+                  <div className="font-medium">{athlete?.firstName} {athlete?.lastName}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {result.eventType} • {new Date(result.date).toLocaleDateString('ro-RO')}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="font-bold text-primary">
+                    {formatResult(result.value, result.unit)}
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+      </div>
+    </div>
+  )
 
   return (
     <div className="space-y-6">
+      {approvedAthletes.length > 0 && (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <StatWidget
+            title="Total Rezultate"
+            value={stats.totalResults}
+            icon={<ListNumbers size={20} weight="fill" />}
+            iconColor="text-primary"
+            subtitle={`${approvedAthletes.length} ${approvedAthletes.length === 1 ? 'copil' : 'copii'}`}
+            detailsContent={totalResultsDetails}
+          />
+          
+          <StatWidget
+            title="Probe Practicate"
+            value={stats.totalEvents}
+            icon={<Trophy size={20} weight="fill" />}
+            iconColor="text-accent"
+            subtitle="Diferite discipline"
+          />
+          
+          <StatWidget
+            title="Ultima Lună"
+            value={stats.recentResults}
+            icon={<Calendar size={20} weight="fill" />}
+            iconColor="text-secondary"
+            subtitle="Rezultate noi"
+            detailsContent={recentActivityDetails}
+          />
+          
+          <StatWidget
+            title="Îmbunătățiri"
+            value={stats.improvements}
+            icon={<TrendUp size={20} weight="fill" />}
+            iconColor="text-green-600"
+            subtitle="Probe în progres"
+          />
+        </div>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -84,14 +246,24 @@ export function ParentDashboard({
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {approvedAthletes.map((athlete) => (
-                <AthleteCard
-                  key={athlete.id}
-                  athlete={athlete}
-                  resultsCount={getAthleteResultsCount(athlete.id)}
-                  onViewDetails={onViewAthleteDetails}
-                  onDelete={() => {}}
-                  hideDelete
-                />
+                <div key={athlete.id} className="space-y-2">
+                  <AthleteCard
+                    athlete={athlete}
+                    resultsCount={getAthleteResultsCount(athlete.id)}
+                    onViewDetails={onViewAthleteDetails}
+                    onDelete={() => {}}
+                    hideDelete
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => setSelectedAthleteId(athlete.id)}
+                  >
+                    <ChartLine size={16} className="mr-2" />
+                    Vezi Statistici Detaliate
+                  </Button>
+                </div>
               ))}
             </div>
           )}
@@ -180,6 +352,25 @@ export function ParentDashboard({
           </div>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={!!selectedAthleteId} onOpenChange={() => setSelectedAthleteId('')}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Trophy size={24} className="text-accent" weight="fill" />
+              Statistici Detaliate - {selectedAthlete?.firstName} {selectedAthlete?.lastName}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            {selectedAthlete && (
+              <ProgressStats
+                athleteName={`${selectedAthlete.firstName} ${selectedAthlete.lastName}`}
+                results={getAthleteStats(selectedAthlete.id).athleteResults}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -1,9 +1,12 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Trophy, TrendUp, Calendar, Medal } from '@phosphor-icons/react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Trophy, TrendUp, Calendar, Medal, Target, ChartLine } from '@phosphor-icons/react'
 import { PerformanceChart } from './PerformanceChart'
+import { StatWidget } from './StatWidget'
+import { ProgressStats } from './ProgressStats'
 import type { Athlete, Result, EventType, User } from '@/lib/types'
 import { formatResult } from '@/lib/constants'
 
@@ -14,6 +17,9 @@ interface AthleteDashboardProps {
 }
 
 export function AthleteDashboard({ athlete, results, coaches }: AthleteDashboardProps) {
+  const [detailsOpen, setDetailsOpen] = useState(false)
+  const [selectedEvent, setSelectedEvent] = useState<string>('')
+
   const athleteResults = useMemo(() => {
     if (!athlete) return []
     return results.filter(r => r.athleteId === athlete.id)
@@ -27,11 +33,72 @@ export function AthleteDashboard({ athlete, results, coaches }: AthleteDashboard
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       .slice(0, 5)
 
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+    const recentActivity = athleteResults.filter(r => new Date(r.date) >= thirtyDaysAgo).length
+
+    const eventProgress = athleteResults.reduce((acc, result) => {
+      if (!acc[result.eventType]) acc[result.eventType] = []
+      acc[result.eventType].push(result)
+      return acc
+    }, {} as Record<string, Result[]>)
+
+    let improvements = 0
+    Object.values(eventProgress).forEach(eventResults => {
+      if (eventResults.length >= 2) {
+        const sorted = [...eventResults].sort((a, b) => 
+          new Date(a.date).getTime() - new Date(b.date).getTime()
+        )
+        const first = sorted[0]
+        const last = sorted[sorted.length - 1]
+        
+        const hasImproved = first.unit === 'seconds'
+          ? last.value < first.value
+          : last.value > first.value
+        
+        if (hasImproved) improvements++
+      }
+    })
+
     return {
       totalResults,
       eventTypes,
-      recentResults
+      recentResults,
+      recentActivity,
+      improvements
     }
+  }, [athleteResults])
+
+  const eventStats = useMemo(() => {
+    const eventGroups = athleteResults.reduce((acc, result) => {
+      if (!acc[result.eventType]) {
+        acc[result.eventType] = []
+      }
+      acc[result.eventType].push(result)
+      return acc
+    }, {} as Record<string, Result[]>)
+
+    return Object.entries(eventGroups).map(([eventType, eventResults]) => {
+      const sorted = [...eventResults].sort(
+        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+      )
+      
+      const bestResult = sorted.reduce((best, current) => {
+        if (current.unit === 'seconds') {
+          return current.value < best.value ? current : best
+        } else {
+          return current.value > best.value ? current : best
+        }
+      }, sorted[0])
+
+      return {
+        eventType,
+        count: eventResults.length,
+        bestResult: bestResult.value,
+        unit: eventResults[0].unit,
+        results: sorted
+      }
+    }).sort((a, b) => b.count - a.count)
   }, [athleteResults])
 
   const coach = athlete?.coachId ? coaches.find(c => c.id === athlete.coachId) : null
@@ -49,6 +116,69 @@ export function AthleteDashboard({ athlete, results, coaches }: AthleteDashboard
       </div>
     )
   }
+
+  const allResultsDetails = (
+    <div className="space-y-4">
+      <p className="text-muted-foreground">
+        Istoricul complet al rezultatelor tale
+      </p>
+      <div className="space-y-2">
+        {athleteResults
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+          .map((result) => (
+            <div key={result.id} className="flex items-center justify-between p-3 border rounded-lg">
+              <div>
+                <div className="font-medium">{result.eventType}</div>
+                <div className="text-sm text-muted-foreground">
+                  {new Date(result.date).toLocaleDateString('ro-RO')}
+                </div>
+                {result.notes && (
+                  <div className="text-xs text-muted-foreground mt-1">{result.notes}</div>
+                )}
+              </div>
+              <div className="text-lg font-bold text-primary">
+                {formatResult(result.value, result.unit)}
+              </div>
+            </div>
+          ))}
+      </div>
+    </div>
+  )
+
+  const recentActivityDetails = (
+    <div className="space-y-4">
+      <p className="text-muted-foreground">
+        Rezultate înregistrate în ultimele 30 de zile
+      </p>
+      <div className="space-y-2">
+        {athleteResults
+          .filter(r => {
+            const thirtyDaysAgo = new Date()
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+            return new Date(r.date) >= thirtyDaysAgo
+          })
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+          .map((result) => (
+            <div key={result.id} className="flex items-center justify-between p-3 border rounded-lg">
+              <div>
+                <div className="font-medium">{result.eventType}</div>
+                <div className="text-sm text-muted-foreground">
+                  {new Date(result.date).toLocaleDateString('ro-RO')}
+                </div>
+              </div>
+              <div className="text-lg font-bold text-primary">
+                {formatResult(result.value, result.unit)}
+              </div>
+            </div>
+          ))}
+        {stats.recentActivity === 0 && (
+          <div className="text-center py-4 text-muted-foreground text-sm">
+            Niciun rezultat în ultimele 30 de zile
+          </div>
+        )}
+      </div>
+    </div>
+  )
 
   return (
     <div className="space-y-6">
@@ -76,47 +206,83 @@ export function AthleteDashboard({ athlete, results, coaches }: AthleteDashboard
         </div>
       </Card>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-sm font-medium text-muted-foreground">Rezultate Totale</div>
-            <Medal size={20} className="text-primary" weight="duotone" />
-          </div>
-          <div className="text-3xl font-bold">{stats.totalResults}</div>
-        </Card>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <StatWidget
+          title="Rezultate Totale"
+          value={stats.totalResults}
+          icon={<Medal size={20} weight="fill" />}
+          iconColor="text-primary"
+          detailsContent={allResultsDetails}
+        />
 
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-sm font-medium text-muted-foreground">Probe Practicate</div>
-            <TrendUp size={20} className="text-secondary" weight="duotone" />
-          </div>
-          <div className="text-3xl font-bold">{stats.eventTypes}</div>
-        </Card>
+        <StatWidget
+          title="Probe Practicate"
+          value={stats.eventTypes}
+          icon={<Target size={20} weight="fill" />}
+          iconColor="text-secondary"
+          subtitle="Discipline diferite"
+        />
 
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-sm font-medium text-muted-foreground">Membru din</div>
-            <Calendar size={20} className="text-accent" weight="duotone" />
-          </div>
-          <div className="text-lg font-bold">
-            {new Date(athlete.dateJoined).toLocaleDateString('ro-RO', {
-              month: 'short',
-              year: 'numeric'
-            })}
-          </div>
-        </Card>
+        <StatWidget
+          title="Ultima Lună"
+          value={stats.recentActivity}
+          icon={<Calendar size={20} weight="fill" />}
+          iconColor="text-accent"
+          subtitle="Rezultate noi"
+          detailsContent={recentActivityDetails}
+        />
+
+        <StatWidget
+          title="Îmbunătățiri"
+          value={stats.improvements}
+          icon={<TrendUp size={20} weight="fill" />}
+          iconColor="text-green-600"
+          subtitle="Probe în progres"
+        />
       </div>
 
-      <Card className="p-6">
-        <h3 className="font-semibold mb-4 flex items-center gap-2">
-          <TrendUp size={20} />
-          Rezultate Recente
-        </h3>
-        {stats.recentResults.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            Niciun rezultat înregistrat încă
-          </div>
-        ) : (
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold">Evoluția Ta</h3>
+        <Button onClick={() => setDetailsOpen(true)} variant="outline">
+          <ChartLine size={16} className="mr-2" />
+          Vezi Statistici Detaliate
+        </Button>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {eventStats.map((event) => (
+          <Card 
+            key={event.eventType} 
+            className="cursor-pointer hover:shadow-lg transition-all"
+            onClick={() => setSelectedEvent(event.eventType)}
+          >
+            <div className="p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <div className="font-semibold text-lg">{event.eventType}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {event.count} rezultat{event.count !== 1 ? 'e' : ''}
+                  </div>
+                </div>
+                <Trophy size={24} className="text-accent" weight="fill" />
+              </div>
+              <div className="space-y-1">
+                <div className="text-xs text-muted-foreground">Cel mai bun rezultat</div>
+                <div className="text-2xl font-bold text-accent">
+                  {formatResult(event.bestResult, event.unit)}
+                </div>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {stats.recentResults.length > 0 && (
+        <Card className="p-6">
+          <h3 className="font-semibold mb-4 flex items-center gap-2">
+            <TrendUp size={20} />
+            Rezultate Recente
+          </h3>
           <div className="space-y-3">
             {stats.recentResults.map((result) => (
               <div
@@ -140,19 +306,97 @@ export function AthleteDashboard({ athlete, results, coaches }: AthleteDashboard
               </div>
             ))}
           </div>
-        )}
-      </Card>
-
-      {athleteResults.length > 0 && (
-        <Card className="p-6">
-          <h3 className="font-semibold mb-4">Evoluție Performanță</h3>
-          <PerformanceChart
-            data={athleteResults.map(r => ({ date: r.date, value: r.value }))}
-            eventType={athleteResults[0]?.eventType as EventType}
-            unit={athleteResults[0]?.unit || 'seconds'}
-          />
         </Card>
       )}
+
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ChartLine size={24} className="text-primary" weight="fill" />
+              Statistici Detaliate - {athlete.firstName} {athlete.lastName}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <ProgressStats
+              athleteName={`${athlete.firstName} ${athlete.lastName}`}
+              results={athleteResults}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!selectedEvent} onOpenChange={() => setSelectedEvent('')}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Trophy size={24} className="text-accent" weight="fill" />
+              {selectedEvent} - Evoluție Performanță
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            {selectedEvent && (() => {
+              const event = eventStats.find(e => e.eventType === selectedEvent)
+              if (!event) return null
+              
+              return (
+                <div className="space-y-6">
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <Card className="p-4">
+                      <div className="text-sm text-muted-foreground mb-1">Total Rezultate</div>
+                      <div className="text-2xl font-bold">{event.count}</div>
+                    </Card>
+                    <Card className="p-4">
+                      <div className="text-sm text-muted-foreground mb-1">Cel mai bun</div>
+                      <div className="text-2xl font-bold text-accent">
+                        {formatResult(event.bestResult, event.unit)}
+                      </div>
+                    </Card>
+                    <Card className="p-4">
+                      <div className="text-sm text-muted-foreground mb-1">Ultima Dată</div>
+                      <div className="text-lg font-semibold">
+                        {new Date(event.results[event.results.length - 1].date).toLocaleDateString('ro-RO')}
+                      </div>
+                    </Card>
+                  </div>
+
+                  <Card className="p-6">
+                    <h4 className="font-semibold mb-4">Grafic Evoluție</h4>
+                    <PerformanceChart
+                      data={event.results.map(r => ({ date: r.date, value: r.value }))}
+                      eventType={event.eventType as EventType}
+                      unit={event.unit}
+                    />
+                  </Card>
+
+                  <Card className="p-6">
+                    <h4 className="font-semibold mb-4">Istoric Complet</h4>
+                    <div className="space-y-2">
+                      {event.results
+                        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                        .map((result) => (
+                          <div key={result.id} className="flex items-center justify-between p-3 border rounded-lg">
+                            <div>
+                              <div className="text-sm text-muted-foreground">
+                                {new Date(result.date).toLocaleDateString('ro-RO')}
+                              </div>
+                              {result.notes && (
+                                <div className="text-xs text-muted-foreground mt-1">{result.notes}</div>
+                              )}
+                            </div>
+                            <div className="text-lg font-bold text-primary">
+                              {formatResult(result.value, result.unit)}
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </Card>
+                </div>
+              )
+            })()}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
