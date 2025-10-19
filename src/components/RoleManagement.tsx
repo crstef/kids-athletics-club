@@ -62,10 +62,6 @@ export function RoleManagement({
   }
 
   const handleOpenEdit = (role: Role) => {
-    if (role.isSystem) {
-      toast.error('Rolurile de sistem nu pot fi editate')
-      return
-    }
     setEditingRole(role)
     setFormData({
       name: role.name,
@@ -137,6 +133,14 @@ export function RoleManagement({
 
   const handleDelete = () => {
     if (!deleteRoleId) return
+    
+    const role = roles.find(r => r.id === deleteRoleId)
+    if (role?.name === 'superadmin') {
+      toast.error('Rolul SuperAdmin nu poate fi șters')
+      setDeleteRoleId(null)
+      return
+    }
+    
     onDeleteRole(deleteRoleId)
     setDeleteRoleId(null)
     toast.success('Rol șters cu succes')
@@ -211,33 +215,31 @@ export function RoleManagement({
                 </div>
               </div>
 
-              {!role.isSystem && (
-                <div className="flex gap-2 pt-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => handleOpenEdit(role)}
-                    className="flex-1"
-                  >
-                    <Pencil size={14} className="mr-1" />
-                    Editează
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => setDeleteRoleId(role.id)}
-                    className="flex-1"
-                  >
-                    <Trash size={14} className="mr-1" />
-                    Șterge
-                  </Button>
-                </div>
-              )}
+              <div className="flex gap-2 pt-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => handleOpenEdit(role)}
+                  className="flex-1"
+                >
+                  <Pencil size={14} className="mr-1" />
+                  Editează
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setDeleteRoleId(role.id)}
+                  className="flex-1"
+                >
+                  <Trash size={14} className="mr-1" />
+                  Șterge
+                </Button>
+              </div>
               
               {role.isSystem && (
                 <div className="flex items-center gap-2 pt-2 text-xs text-muted-foreground">
                   <ShieldCheck size={14} />
-                  Rol de sistem (protejat)
+                  Rol de sistem
                 </div>
               )}
             </CardContent>
@@ -250,10 +252,18 @@ export function RoleManagement({
           <DialogHeader>
             <DialogTitle>
               {editingRole ? 'Editare Rol' : 'Rol Nou'}
+              {editingRole?.isSystem && (
+                <Badge variant="outline" className="ml-2">
+                  <ShieldCheck size={12} className="mr-1" />
+                  Sistem
+                </Badge>
+              )}
             </DialogTitle>
             <DialogDescription>
               {editingRole 
-                ? 'Modifică setările și permisiunile rolului' 
+                ? (editingRole.isSystem 
+                    ? 'Modifică setările și permisiunile acestui rol de sistem. Atenție: modificările ar putea afecta funcționalitatea aplicației.' 
+                    : 'Modifică setările și permisiunile rolului')
                 : 'Creează un rol nou cu permisiunile dorite'}
             </DialogDescription>
           </DialogHeader>
@@ -269,6 +279,11 @@ export function RoleManagement({
                   placeholder="ex: manager_atleți"
                   disabled={!!editingRole}
                 />
+                {editingRole && (
+                  <p className="text-xs text-muted-foreground">
+                    Numele intern nu poate fi modificat
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="displayName">Nume Afișat *</Label>
@@ -377,9 +392,20 @@ export function RoleManagement({
             <AlertDialogTitle>Confirmare ștergere</AlertDialogTitle>
             <AlertDialogDescription>
               Ești sigur că vrei să ștergi rolul <strong>{deleteRole?.displayName}</strong>?
-              <span className="block mt-2 text-destructive">
-                Atenție: Utilizatorii cu acest rol ar putea pierde accesul la anumite funcționalități.
-              </span>
+              {deleteRole?.name === 'superadmin' ? (
+                <span className="block mt-2 text-destructive font-semibold">
+                  Atenție: Rolul SuperAdmin este esențial pentru funcționarea sistemului și nu poate fi șters.
+                </span>
+              ) : (
+                <span className="block mt-2 text-muted-foreground">
+                  Utilizatorii cu acest rol ar putea pierde accesul la anumite funcționalități.
+                  {deleteRole?.isSystem && (
+                    <span className="block mt-1 text-destructive">
+                      Acesta este un rol de sistem și ștergerea lui ar putea afecta funcționalitatea aplicației.
+                    </span>
+                  )}
+                </span>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

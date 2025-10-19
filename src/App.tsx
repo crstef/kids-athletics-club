@@ -271,8 +271,8 @@ function AppContent() {
 
   const handleDeleteRole = (roleId: string) => {
     const role = (roles || []).find(r => r.id === roleId)
-    if (role?.isSystem) {
-      toast.error('Rolurile de sistem nu pot fi șterse')
+    if (role?.name === 'superadmin') {
+      toast.error('Rolul SuperAdmin nu poate fi șters')
       return
     }
     setRoles((current) => (current || []).filter(r => r.id !== roleId))
