@@ -993,6 +993,28 @@ function AppContent() {
           onDeleteResult={handleDeleteResult}
           defaultTab={selectedAthleteTab}
         />
+
+        <AlertDialog open={!!deleteAthleteId} onOpenChange={() => setDeleteAthleteId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmare ștergere</AlertDialogTitle>
+              <AlertDialogDescription>
+                Ești sigur că vrei să ștergi atleta/atletul <strong>{deleteAthleteName}</strong>?
+                {athleteResultsCount > 0 && (
+                  <span className="block mt-2 text-destructive">
+                    Atenție: Se vor șterge și {athleteResultsCount} rezultat(e) asociat(e).
+                  </span>
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Anulează</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDeleteAthlete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Șterge
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     )
   }
