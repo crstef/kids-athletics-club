@@ -3,23 +3,27 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Plus, Eye, EyeSlash } from '@phosphor-icons/react'
 import { hashPassword } from '@/lib/crypto'
 import { toast } from 'sonner'
-import type { Coach } from '@/lib/types'
+import type { Coach, CoachGroup } from '@/lib/types'
 
 interface AddCoachDialogProps {
+  groups: CoachGroup[]
   onAdd: (coach: Omit<Coach, 'id' | 'createdAt'>) => void
 }
 
-export function AddCoachDialog({ onAdd }: AddCoachDialogProps) {
+export function AddCoachDialog({ groups, onAdd }: AddCoachDialogProps) {
   const [open, setOpen] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
-  const [specialization, setSpecialization] = useState('')
+  const [groupId, setGroupId] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  
+  const activeGroups = groups.filter(g => g.isActive)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -42,7 +46,7 @@ export function AddCoachDialog({ onAdd }: AddCoachDialogProps) {
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       role: 'coach',
-      specialization: specialization.trim() || undefined,
+      groupId: groupId || undefined,
       isActive: true,
       needsApproval: false
     })
@@ -51,7 +55,7 @@ export function AddCoachDialog({ onAdd }: AddCoachDialogProps) {
     setPassword('')
     setFirstName('')
     setLastName('')
-    setSpecialization('')
+    setGroupId('')
     setShowPassword(false)
     setOpen(false)
   }
@@ -128,13 +132,20 @@ export function AddCoachDialog({ onAdd }: AddCoachDialogProps) {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="coach-specialization">Specializare (opțional)</Label>
-            <Input
-              id="coach-specialization"
-              value={specialization}
-              onChange={(e) => setSpecialization(e.target.value)}
-              placeholder="ex: Sprint, Sărituri"
-            />
+            <Label htmlFor="coach-group">Grupă (opțional)</Label>
+            <Select value={groupId} onValueChange={setGroupId}>
+              <SelectTrigger id="coach-group">
+                <SelectValue placeholder="Selectează grupa" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Fără grupă</SelectItem>
+                {activeGroups.map((group) => (
+                  <SelectItem key={group.id} value={group.id}>
+                    {group.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>

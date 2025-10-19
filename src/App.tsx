@@ -28,9 +28,10 @@ import { PermissionsSystem } from '@/components/PermissionsSystem'
 import { UserPermissionsManagement } from '@/components/UserPermissionsManagement'
 import { RoleManagement } from '@/components/RoleManagement'
 import { AgeCategoryManagement } from '@/components/AgeCategoryManagement'
+import { GroupManagement } from '@/components/GroupManagement'
 import { hashPassword } from '@/lib/crypto'
 import { DEFAULT_PERMISSIONS, DEFAULT_ROLES } from '@/lib/permissions'
-import type { Athlete, Result, AgeCategory, User, Coach, AccessRequest, Message, EventTypeCustom, Permission, UserPermission, AccountApprovalRequest, Role, AgeCategoryCustom } from '@/lib/types'
+import type { Athlete, Result, AgeCategory, User, Coach, AccessRequest, Message, EventTypeCustom, Permission, UserPermission, AccountApprovalRequest, Role, AgeCategoryCustom, CoachGroup } from '@/lib/types'
 
 function AppContent() {
   const { currentUser, setCurrentUser, isCoach, isParent, isSuperAdmin, isAthlete, logout } = useAuth()
@@ -45,6 +46,7 @@ function AppContent() {
   const [approvalRequests, setApprovalRequests] = useKV<AccountApprovalRequest[]>('approval-requests', [])
   const [roles, setRoles] = useKV<Role[]>('roles', [])
   const [ageCategories, setAgeCategories] = useKV<AgeCategoryCustom[]>('age-categories', [])
+  const [groups, setGroups] = useKV<CoachGroup[]>('coach-groups', [])
   const [selectedAthlete, setSelectedAthlete] = useState<Athlete | null>(null)
   const [deleteAthleteId, setDeleteAthleteId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -55,6 +57,45 @@ function AppContent() {
 
   useEffect(() => {
     const initSuperAdmin = async () => {
+      const existingGroups = groups || []
+      if (existingGroups.length === 0) {
+        const defaultGroups: CoachGroup[] = [
+          {
+            id: `group-${Date.now()}-1`,
+            name: 'Sprint',
+            description: 'Antrenori specializați în alergări de viteză',
+            isActive: true,
+            createdAt: new Date().toISOString(),
+            createdBy: 'system'
+          },
+          {
+            id: `group-${Date.now()}-2`,
+            name: 'Sărituri',
+            description: 'Antrenori specializați în sărituri (lungime, înălțime)',
+            isActive: true,
+            createdAt: new Date().toISOString(),
+            createdBy: 'system'
+          },
+          {
+            id: `group-${Date.now()}-3`,
+            name: 'Alergări Lungi',
+            description: 'Antrenori specializați în alergări de semifond și fond',
+            isActive: true,
+            createdAt: new Date().toISOString(),
+            createdBy: 'system'
+          },
+          {
+            id: `group-${Date.now()}-4`,
+            name: 'Aruncări',
+            description: 'Antrenori specializați în aruncări (disc, suliță, greutate)',
+            isActive: true,
+            createdAt: new Date().toISOString(),
+            createdBy: 'system'
+          }
+        ]
+        setGroups(defaultGroups)
+      }
+
       const existingUsers = users || []
       const hasSuperAdmin = existingUsers.some(u => u.role === 'superadmin')
       
@@ -77,6 +118,11 @@ function AppContent() {
       const hasCoaches = existingUsers.some(u => u.role === 'coach')
       if (!hasCoaches) {
         const coachPassword = await hashPassword('coach123')
+        const currentGroups = groups || []
+        const sprintGroup = currentGroups.find(g => g.name === 'Sprint')
+        const jumpGroup = currentGroups.find(g => g.name === 'Sărituri')
+        const longRunGroup = currentGroups.find(g => g.name === 'Alergări Lungi')
+        
         const testCoaches: User[] = [
           {
             id: 'coach-1',
@@ -85,7 +131,7 @@ function AppContent() {
             firstName: 'Ion',
             lastName: 'Popescu',
             role: 'coach',
-            specialization: 'Sprint',
+            groupId: sprintGroup?.id,
             createdAt: new Date().toISOString(),
             isActive: true,
             needsApproval: false
@@ -97,7 +143,7 @@ function AppContent() {
             firstName: 'Maria',
             lastName: 'Ionescu',
             role: 'coach',
-            specialization: 'Sărituri',
+            groupId: jumpGroup?.id,
             createdAt: new Date().toISOString(),
             isActive: true,
             needsApproval: false
@@ -109,7 +155,7 @@ function AppContent() {
             firstName: 'Andrei',
             lastName: 'Matei',
             role: 'coach',
-            specialization: 'Alergări Lungi',
+            groupId: longRunGroup?.id,
             createdAt: new Date().toISOString(),
             isActive: true,
             needsApproval: false
@@ -619,6 +665,31 @@ function AppContent() {
     setAgeCategories((current) => (current || []).filter(c => c.id !== categoryId))
   }
 
+  const handleAddGroup = (groupData: Omit<CoachGroup, 'id' | 'createdAt' | 'createdBy'>) => {
+    setGroups((current) => [
+      ...(current || []),
+      {
+        ...groupData,
+        id: `group-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        createdAt: new Date().toISOString(),
+        createdBy: currentUser?.id || 'system'
+      }
+    ])
+  }
+
+  const handleUpdateGroup = (groupId: string, updates: Partial<CoachGroup>) => {
+    setGroups((current) =>
+      (current || []).map(g => g.id === groupId ? { ...g, ...updates } : g)
+    )
+  }
+
+  const handleDeleteGroup = (groupId: string) => {
+    setGroups((current) => (current || []).filter(g => g.id !== groupId))
+    setUsers((current) =>
+      (current || []).map(u => (u as Coach).groupId === groupId ? { ...u, groupId: undefined } : u)
+    )
+  }
+
   const handleApproveAccount = (requestId: string) => {
     const request = (approvalRequests || []).find(r => r.id === requestId)
     if (!request) {
@@ -936,13 +1007,14 @@ function AppContent() {
 
         <main className="container mx-auto px-4 py-8">
           <Tabs defaultValue="dashboard" className="space-y-6">
-            <TabsList className="grid w-full max-w-6xl grid-cols-8">
+            <TabsList className="grid w-full max-w-6xl grid-cols-9">
               <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
               <TabsTrigger value="approvals">Aprobări</TabsTrigger>
               <TabsTrigger value="users">Utilizatori</TabsTrigger>
               <TabsTrigger value="roles">Roluri</TabsTrigger>
               <TabsTrigger value="permissions">Permisiuni</TabsTrigger>
               <TabsTrigger value="categories">Categorii</TabsTrigger>
+              <TabsTrigger value="groups">Grupe</TabsTrigger>
               <TabsTrigger value="events">Probe</TabsTrigger>
               <TabsTrigger value="athletes">Atleți</TabsTrigger>
             </TabsList>
@@ -1010,6 +1082,16 @@ function AppContent() {
                 onAddCategory={handleAddAgeCategory}
                 onUpdateCategory={handleUpdateAgeCategory}
                 onDeleteCategory={handleDeleteAgeCategory}
+              />
+            </TabsContent>
+
+            <TabsContent value="groups">
+              <GroupManagement
+                groups={groups || []}
+                currentUserId={currentUser.id}
+                onAddGroup={handleAddGroup}
+                onUpdateGroup={handleUpdateGroup}
+                onDeleteGroup={handleDeleteGroup}
               />
             </TabsContent>
 
@@ -1293,7 +1375,7 @@ function AppContent() {
           {!isCoach && (
             <TabsContent value="coaches" className="space-y-6">
               <div className="flex justify-end">
-                <AddCoachDialog onAdd={handleAddCoach} />
+                <AddCoachDialog groups={groups || []} onAdd={handleAddCoach} />
               </div>
               {coaches.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
@@ -1303,14 +1385,16 @@ function AppContent() {
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {coaches.map((coach) => {
                     const coachAthletes = (athletes || []).filter(a => a.coachId === coach.id)
+                    const coachData = coach as Coach
+                    const coachGroup = coachData.groupId ? (groups || []).find(g => g.id === coachData.groupId) : null
                     return (
                       <div key={coach.id} className="p-6 border rounded-lg space-y-2">
                         <div className="font-semibold text-lg">
                           {coach.firstName} {coach.lastName}
                         </div>
                         <div className="text-sm text-muted-foreground">{coach.email}</div>
-                        {(coach as Coach).specialization && (
-                          <Badge variant="secondary">{(coach as Coach).specialization}</Badge>
+                        {coachGroup && (
+                          <Badge variant="secondary">{coachGroup.name}</Badge>
                         )}
                         <div className="text-sm text-muted-foreground pt-2">
                           Atleți: {coachAthletes.length}

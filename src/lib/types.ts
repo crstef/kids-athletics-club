@@ -110,7 +110,19 @@ export interface SuperAdmin extends User {
 export interface Coach extends User {
   role: 'coach'
   specialization?: string
+  groupId?: string
   permissions?: PermissionType
+}
+
+export interface CoachGroup {
+  id: string
+  name: string
+  description?: string
+  isActive: boolean
+  createdAt: string
+  createdBy: string
+  updatedAt?: string
+  updatedBy?: string
 }
 
 export interface Parent extends User {
