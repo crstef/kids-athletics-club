@@ -278,16 +278,6 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
           </TabsContent>
 
           <TabsContent value="signup">
-            <div className="bg-accent/10 border border-accent/20 rounded-lg p-4 mb-4">
-              <div className="font-semibold text-sm mb-2 text-accent-foreground">💡 Înregistrare Părinte:</div>
-              <div className="text-sm text-foreground space-y-1">
-                <p>• Selectează antrenorul copilului tău din listă</p>
-                <p>• Apoi selectează copilul din lista antrenorului</p>
-                <p>• Cererea va fi trimisă la antrenor pentru aprobare</p>
-                <p className="text-xs italic mt-2 text-muted-foreground">Există 3 antrenori de test cu 8 atleți în sistem pentru testare</p>
-              </div>
-            </div>
-            
             <form onSubmit={handleSignup} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="signup-role">Tip Cont *</Label>
@@ -306,7 +296,7 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
               {signupRole === 'parent' && (
                 <>
                   <div className="bg-accent/10 border border-accent/20 rounded-lg p-4 space-y-2">
-                    <div className="font-semibold text-sm text-accent-foreground">ℹ️ Informații Părinte:</div>
+                    <div className="font-semibold text-sm text-foreground">ℹ️ Informații Părinte:</div>
                     <div className="text-sm text-foreground space-y-1">
                       <p>• Selectează antrenorul copilului tău din listă</p>
                       <p>• Apoi selectează copilul din lista antrenorului</p>
@@ -368,7 +358,7 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
 
               {signupRole === 'athlete' && (
                 <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 space-y-2">
-                  <div className="font-semibold text-sm text-primary">ℹ️ Informații Atlet:</div>
+                  <div className="font-semibold text-sm text-foreground">ℹ️ Informații Atlet:</div>
                   <div className="text-sm text-foreground space-y-1">
                     <p>• Contul necesită aprobare de la antrenor</p>
                     <p>• Antrenorul va asocia profilul tău la profilul din sistem</p>
@@ -379,7 +369,7 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
 
               {signupRole === 'coach' && (
                 <div className="bg-secondary/10 border border-secondary/20 rounded-lg p-4 space-y-2">
-                  <div className="font-semibold text-sm text-secondary-foreground">ℹ️ Informații Antrenor:</div>
+                  <div className="font-semibold text-sm text-foreground">ℹ️ Informații Antrenor:</div>
                   <div className="text-sm text-foreground space-y-1">
                     <p>• Contul necesită aprobare de la administrator</p>
                     <p>• După aprobare vei putea gestiona atleți</p>
