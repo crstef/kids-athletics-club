@@ -10,11 +10,12 @@ interface AthleteCardProps {
   athlete: Athlete
   resultsCount: number
   onViewDetails: (athlete: Athlete) => void
+  onViewChart: (athlete: Athlete) => void
   onDelete: (id: string) => void
   hideDelete?: boolean
 }
 
-export function AthleteCard({ athlete, resultsCount, onViewDetails, onDelete, hideDelete }: AthleteCardProps) {
+export function AthleteCard({ athlete, resultsCount, onViewDetails, onViewChart, onDelete, hideDelete }: AthleteCardProps) {
   const avatarColor = getAvatarColor(athlete.id)
   
   return (
@@ -61,12 +62,13 @@ export function AthleteCard({ athlete, resultsCount, onViewDetails, onDelete, hi
               variant="ghost"
               onClick={(e) => {
                 e.stopPropagation()
-                onViewDetails(athlete)
+                onViewChart(athlete)
               }}
-              className="gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+              className="gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-primary/10 hover:text-primary"
+              title="Vezi grafic evoluție"
             >
               <ChartLine size={16} />
-              <span className="sr-only">Detalii</span>
+              <span className="sr-only">Vezi grafic</span>
             </Button>
             {!hideDelete && (
               <Button
@@ -77,6 +79,7 @@ export function AthleteCard({ athlete, resultsCount, onViewDetails, onDelete, hi
                   onDelete(athlete.id)
                 }}
                 className="text-destructive hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                title="Șterge atlet"
               >
                 <Trash size={16} />
               </Button>

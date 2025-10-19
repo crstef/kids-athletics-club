@@ -50,6 +50,7 @@ function AppContent() {
   const [ageCategories, setAgeCategories] = useKV<AgeCategoryCustom[]>('age-categories', [])
   const [probes, setProbes] = useKV<CoachProbe[]>('coach-probes', [])
   const [selectedAthlete, setSelectedAthlete] = useState<Athlete | null>(null)
+  const [selectedAthleteTab, setSelectedAthleteTab] = useState<'results' | 'evolution'>('results')
   const [deleteAthleteId, setDeleteAthleteId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<AgeCategory | 'all'>('all')
@@ -657,6 +658,21 @@ function AppContent() {
     return (athletes || []).find(a => a.id === (currentUser as any).athleteId) || null
   }, [isAthlete, currentUser, athletes])
 
+  const handleViewAthleteDetails = (athlete: Athlete) => {
+    setSelectedAthlete(athlete)
+    setSelectedAthleteTab('results')
+  }
+
+  const handleViewAthleteChart = (athlete: Athlete) => {
+    setSelectedAthlete(athlete)
+    setSelectedAthleteTab('evolution')
+  }
+
+  const handleCloseAthleteDialog = () => {
+    setSelectedAthlete(null)
+    setSelectedAthleteTab('results')
+  }
+
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 flex items-center justify-center p-4">
@@ -750,9 +766,10 @@ function AppContent() {
         <AthleteDetailsDialog
           athlete={selectedAthlete}
           results={results || []}
-          onClose={() => setSelectedAthlete(null)}
+          onClose={handleCloseAthleteDialog}
           onAddResult={handleAddResult}
           onDeleteResult={handleDeleteResult}
+          defaultTab={selectedAthleteTab}
         />
       </div>
     )
@@ -825,7 +842,7 @@ function AppContent() {
                 permissions={permissions || []}
                 onNavigateToTab={setSuperAdminActiveTab}
                 onViewAthleteDetails={(athlete) => {
-                  setSelectedAthlete(athlete)
+                  handleViewAthleteDetails(athlete)
                   setSuperAdminActiveTab('athletes')
                 }}
               />
@@ -957,7 +974,8 @@ function AppContent() {
                       key={athlete.id}
                       athlete={athlete}
                       resultsCount={getAthleteResultsCount(athlete.id)}
-                      onViewDetails={setSelectedAthlete}
+                      onViewDetails={handleViewAthleteDetails}
+                      onViewChart={handleViewAthleteChart}
                       onDelete={handleDeleteAthlete}
                     />
                   ))}
@@ -970,9 +988,10 @@ function AppContent() {
         <AthleteDetailsDialog
           athlete={selectedAthlete}
           results={results || []}
-          onClose={() => setSelectedAthlete(null)}
+          onClose={handleCloseAthleteDialog}
           onAddResult={handleAddResult}
           onDeleteResult={handleDeleteResult}
+          defaultTab={selectedAthleteTab}
         />
       </div>
     )
@@ -1136,7 +1155,8 @@ function AppContent() {
                         key={athlete.id}
                         athlete={athlete}
                         resultsCount={getAthleteResultsCount(athlete.id)}
-                        onViewDetails={setSelectedAthlete}
+                        onViewDetails={handleViewAthleteDetails}
+                        onViewChart={handleViewAthleteChart}
                         onDelete={handleDeleteAthlete}
                       />
                     ))}
@@ -1211,7 +1231,8 @@ function AppContent() {
                     key={athlete.id}
                     athlete={athlete}
                     resultsCount={getAthleteResultsCount(athlete.id)}
-                    onViewDetails={setSelectedAthlete}
+                    onViewDetails={handleViewAthleteDetails}
+                    onViewChart={handleViewAthleteChart}
                     onDelete={handleDeleteAthlete}
                   />
                 ))}
@@ -1364,9 +1385,10 @@ function AppContent() {
       <AthleteDetailsDialog
         athlete={selectedAthlete}
         results={results || []}
-        onClose={() => setSelectedAthlete(null)}
+        onClose={handleCloseAthleteDialog}
         onAddResult={handleAddResult}
         onDeleteResult={handleDeleteResult}
+        defaultTab={selectedAthleteTab}
       />
 
       <AlertDialog open={!!deleteAthleteId} onOpenChange={() => setDeleteAthleteId(null)}>

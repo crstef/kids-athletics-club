@@ -334,6 +334,7 @@ export function ParentDashboard({
                     athlete={athlete}
                     resultsCount={getAthleteResultsCount(athlete.id)}
                     onViewDetails={onViewAthleteDetails}
+                    onViewChart={onViewAthleteDetails}
                     onDelete={() => {}}
                     hideDelete
                   />

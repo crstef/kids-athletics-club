@@ -18,6 +18,7 @@ interface AthleteDetailsDialogProps {
   onClose: () => void
   onAddResult: (result: Omit<Result, 'id'>) => void
   onDeleteResult: (id: string) => void
+  defaultTab?: 'results' | 'evolution'
 }
 
 export function AthleteDetailsDialog({ 
@@ -25,7 +26,8 @@ export function AthleteDetailsDialog({
   results, 
   onClose, 
   onAddResult,
-  onDeleteResult 
+  onDeleteResult,
+  defaultTab = 'results'
 }: AthleteDetailsDialogProps) {
   const [selectedEvent, setSelectedEvent] = useState<EventType | 'all'>('all')
 
@@ -78,7 +80,7 @@ export function AthleteDetailsDialog({
           </div>
         </DialogHeader>
 
-        <Tabs defaultValue="results" className="mt-4 sm:mt-6">
+        <Tabs defaultValue={defaultTab} className="mt-4 sm:mt-6">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="results" className="text-xs sm:text-sm">Rezultate</TabsTrigger>
             <TabsTrigger value="evolution" className="text-xs sm:text-sm">Evoluție</TabsTrigger>
