@@ -63,6 +63,12 @@ export function MessagingPanel({
     e.preventDefault()
     
     if (!newMessage.trim()) {
+      toast.error('Mesajul nu poate fi gol')
+      return
+    }
+
+    if (!otherUserId) {
+      toast.error('Selectează un destinatar')
       return
     }
 
@@ -75,7 +81,6 @@ export function MessagingPanel({
     })
 
     setNewMessage('')
-    toast.success('Mesaj trimis!')
   }
 
   if (!otherUser) {
@@ -159,7 +164,7 @@ export function MessagingPanel({
             <Textarea
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Scrie un mesaj..."
+              placeholder="Scrie un mesaj... (Enter pentru trimitere, Shift+Enter pentru linie nouă)"
               rows={2}
               className="resize-none"
               onKeyDown={(e) => {
@@ -169,10 +174,13 @@ export function MessagingPanel({
                 }
               }}
             />
-            <Button type="submit" size="icon" className="shrink-0">
-              <PaperPlaneRight size={20} />
+            <Button type="submit" size="icon" className="shrink-0" disabled={!newMessage.trim()}>
+              <PaperPlaneRight size={20} weight="fill" />
             </Button>
           </div>
+          <p className="text-xs text-muted-foreground mt-1.5">
+            Apasă Enter pentru trimitere • Shift+Enter pentru linie nouă
+          </p>
         </form>
       </CardContent>
     </Card>

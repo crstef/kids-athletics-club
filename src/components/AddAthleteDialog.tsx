@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Plus } from '@phosphor-icons/react'
+import { toast } from 'sonner'
 import { AGE_CATEGORIES } from '@/lib/constants'
 import type { Athlete, AgeCategory, User } from '@/lib/types'
 
@@ -25,13 +26,20 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
     e.preventDefault()
     
     if (!firstName.trim() || !lastName.trim() || !age) {
+      toast.error('Completează toate câmpurile obligatorii')
+      return
+    }
+
+    const athleteAge = parseInt(age)
+    if (athleteAge < 6 || athleteAge > 18) {
+      toast.error('Vârsta trebuie să fie între 6 și 18 ani')
       return
     }
 
     onAdd({
       firstName: firstName.trim(),
       lastName: lastName.trim(),
-      age: parseInt(age),
+      age: athleteAge,
       category,
       dateJoined: new Date().toISOString(),
       coachId: coachId || undefined
@@ -56,10 +64,13 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Adaugă Atlet Nou</DialogTitle>
+          <DialogDescription>
+            Completează datele atletului pentru a-l adăuga în sistem
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-4">
           <div className="space-y-2">
-            <Label htmlFor="firstName">Prenume</Label>
+            <Label htmlFor="firstName">Prenume *</Label>
             <Input
               id="firstName"
               value={firstName}
@@ -69,7 +80,7 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="lastName">Nume</Label>
+            <Label htmlFor="lastName">Nume *</Label>
             <Input
               id="lastName"
               value={lastName}
@@ -79,7 +90,7 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="age">Vârstă</Label>
+            <Label htmlFor="age">Vârstă *</Label>
             <Input
               id="age"
               type="number"
@@ -92,7 +103,7 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="category">Categorie</Label>
+            <Label htmlFor="category">Categorie *</Label>
             <Select value={category} onValueChange={(v) => setCategory(v as AgeCategory)}>
               <SelectTrigger id="category">
                 <SelectValue />

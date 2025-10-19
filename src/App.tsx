@@ -474,7 +474,7 @@ function AppContent() {
         id: `athlete-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
       }
     ])
-    toast.success('Atlet adăugat cu succes!')
+    toast.success(`Atlet adăugat: ${athleteData.firstName} ${athleteData.lastName}`)
   }
 
   const handleAddCoach = (coachData: Omit<Coach, 'id' | 'createdAt'>) => {
@@ -502,10 +502,13 @@ function AppContent() {
   const confirmDeleteAthlete = () => {
     if (!deleteAthleteId) return
 
+    const athlete = (athletes || []).find(a => a.id === deleteAthleteId)
+    const athleteName = athlete ? `${athlete.firstName} ${athlete.lastName}` : 'Atletul'
+
     setAthletes((current) => (current || []).filter(a => a.id !== deleteAthleteId))
     setResults((current) => (current || []).filter(r => r.athleteId !== deleteAthleteId))
     setDeleteAthleteId(null)
-    toast.success('Atlet șters cu succes!')
+    toast.success(`${athleteName} a fost șters din sistem`)
   }
 
   const handleAddResult = (resultData: Omit<Result, 'id'>) => {
@@ -761,7 +764,7 @@ function AppContent() {
       }
     }
 
-    toast.success('Cont aprobat cu succes!')
+    toast.success(`Contul lui ${user.firstName} ${user.lastName} a fost aprobat!`)
   }
 
   const handleRejectAccount = (requestId: string, reason?: string) => {
@@ -889,7 +892,9 @@ function AppContent() {
   const pendingRequestsCount = useMemo(() => {
     if (!currentUser) return 0
     if (isCoach) {
-      return (accessRequests || []).filter(r => r.coachId === currentUser.id && r.status === 'pending').length
+      const coachApprovals = (approvalRequests || []).filter(r => r.coachId === currentUser.id && r.status === 'pending').length
+      const coachAccessRequests = (accessRequests || []).filter(r => r.coachId === currentUser.id && r.status === 'pending').length
+      return coachApprovals + coachAccessRequests
     }
     if (isSuperAdmin) {
       return (approvalRequests || []).filter(r => r.status === 'pending').length
@@ -1238,32 +1243,37 @@ function AppContent() {
     <div className="min-h-screen bg-background">
       <Toaster position="top-right" richColors />
       
-      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Trophy size={32} weight="fill" className="text-accent" />
-              <div>
-                <h1 className="text-2xl font-bold" style={{ fontFamily: 'Outfit', letterSpacing: '-0.02em' }}>
-                  Club Atletism
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                  {isCoach ? 'Panou Antrenor' : 'Management Atleți Juniori'}
-                </p>
+        <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Trophy size={32} weight="fill" className="text-accent" />
+                <div>
+                  <h1 className="text-2xl font-bold" style={{ fontFamily: 'Outfit', letterSpacing: '-0.02em' }}>
+                    Club Atletism
+                  </h1>
+                  <p className="text-sm text-muted-foreground">
+                    {isCoach ? 'Panou Antrenor' : 'Management Atleți Juniori'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="hidden sm:flex flex-col items-end">
+                  <Badge variant="secondary">
+                    {currentUser.firstName} {currentUser.lastName}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground mt-0.5">
+                    {isCoach ? 'Antrenor' : 'Administrator'}
+                  </span>
+                </div>
+                <Button variant="outline" size="sm" onClick={logout}>
+                  <SignOut size={16} className="mr-2" />
+                  Ieșire
+                </Button>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <Badge variant="secondary" className="hidden sm:flex">
-                {currentUser.firstName} {currentUser.lastName}
-              </Badge>
-              <Button variant="outline" size="sm" onClick={logout}>
-                <SignOut size={16} className="mr-2" />
-                Deconectare
-              </Button>
-            </div>
           </div>
-        </div>
-      </header>
+        </header>
 
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="dashboard" className="space-y-6">
@@ -1434,13 +1444,25 @@ function AppContent() {
           )}
 
           <TabsContent value="requests">
-            <CoachAccessRequests
-              coachId={currentUser.id}
-              athletes={athletes || []}
-              parents={parents}
-              accessRequests={accessRequests || []}
-              onUpdateRequest={handleUpdateAccessRequest}
-            />
+            <div className="space-y-6">
+              {isCoach && (
+                <CoachApprovalRequests
+                  coachId={currentUser.id}
+                  athletes={athletes || []}
+                  users={users || []}
+                  approvalRequests={approvalRequests || []}
+                  onApproveAccount={handleApproveAccount}
+                  onRejectAccount={handleRejectAccount}
+                />
+              )}
+              <CoachAccessRequests
+                coachId={currentUser.id}
+                athletes={athletes || []}
+                parents={parents}
+                accessRequests={accessRequests || []}
+                onUpdateRequest={handleUpdateAccessRequest}
+              />
+            </div>
           </TabsContent>
 
           {isCoach && (

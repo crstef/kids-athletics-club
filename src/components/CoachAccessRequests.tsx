@@ -30,13 +30,34 @@ export function CoachAccessRequests({
   }, [accessRequests, coachId])
 
   const handleApprove = (requestId: string) => {
+    const request = accessRequests.find(r => r.id === requestId)
+    if (!request) return
+    
+    const parent = parents.find(p => p.id === request.parentId)
+    const athlete = athletes.find(a => a.id === request.athleteId)
+    
     onUpdateRequest(requestId, 'approved')
-    toast.success('Cerere aprobată!')
+    
+    if (parent && athlete) {
+      toast.success(`Acces aprobat: ${parent.firstName} ${parent.lastName} poate vedea datele lui ${athlete.firstName} ${athlete.lastName}`)
+    } else {
+      toast.success('Cerere aprobată!')
+    }
   }
 
   const handleReject = (requestId: string) => {
+    const request = accessRequests.find(r => r.id === requestId)
+    if (!request) return
+    
+    const parent = parents.find(p => p.id === request.parentId)
+    
     onUpdateRequest(requestId, 'rejected')
-    toast.success('Cerere respinsă')
+    
+    if (parent) {
+      toast.success(`Cererea de acces de la ${parent.firstName} ${parent.lastName} a fost respinsă`)
+    } else {
+      toast.success('Cerere respinsă')
+    }
   }
 
   if (pendingRequests.length === 0 && processedRequests.length === 0) {
