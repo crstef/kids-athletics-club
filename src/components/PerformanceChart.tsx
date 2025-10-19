@@ -106,12 +106,12 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
       .domain(yDomain)
       .range([height, 0])
 
-    const tickCount = isMobile ? Math.min(3, sortedData.length) : Math.min(5, sortedData.length)
-
+    const actualDates = sortedData.map(d => new Date(d.date))
+    
     g.append('g')
       .attr('transform', `translate(0,${height})`)
       .call(d3.axisBottom(x)
-        .ticks(tickCount)
+        .tickValues(actualDates)
         .tickFormat(d => d3.timeFormat(isMobile ? '%d/%m' : '%d/%m/%y')(d as Date))
       )
       .selectAll('text')
