@@ -10,13 +10,13 @@ import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Plus, PencilSimple, Trash, Users } from '@phosphor-icons/react'
 import { toast } from 'sonner'
-import type { CoachGroup } from '@/lib/types'
+import type { CoachProbe } from '@/lib/types'
 
 interface GroupManagementProps {
-  groups: CoachGroup[]
+  groups: CoachProbe[]
   currentUserId: string
-  onAddGroup: (group: Omit<CoachGroup, 'id' | 'createdAt' | 'createdBy'>) => void
-  onUpdateGroup: (groupId: string, updates: Partial<CoachGroup>) => void
+  onAddGroup: (group: Omit<CoachProbe, 'id' | 'createdAt' | 'createdBy'>) => void
+  onUpdateGroup: (groupId: string, updates: Partial<CoachProbe>) => void
   onDeleteGroup: (groupId: string) => void
 }
 
@@ -30,7 +30,7 @@ export function GroupManagement({
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [selectedGroup, setSelectedGroup] = useState<CoachGroup | null>(null)
+  const [selectedGroup, setSelectedGroup] = useState<CoachProbe | null>(null)
   
   const [newGroupName, setNewGroupName] = useState('')
   const [newGroupDescription, setNewGroupDescription] = useState('')
@@ -97,7 +97,7 @@ export function GroupManagement({
     toast.success('Grupă actualizată cu succes!')
   }
 
-  const openEditDialog = (group: CoachGroup) => {
+  const openEditDialog = (group: CoachProbe) => {
     setSelectedGroup(group)
     setNewGroupName(group.name)
     setNewGroupDescription(group.description || '')
@@ -105,7 +105,7 @@ export function GroupManagement({
     setEditDialogOpen(true)
   }
 
-  const openDeleteDialog = (group: CoachGroup) => {
+  const openDeleteDialog = (group: CoachProbe) => {
     setSelectedGroup(group)
     setDeleteDialogOpen(true)
   }

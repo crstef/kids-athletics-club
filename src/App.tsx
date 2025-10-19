@@ -886,6 +886,17 @@ function AppContent() {
     return (messages || []).filter(m => m.toUserId === currentUser.id && !m.read).length
   }, [messages, currentUser])
 
+  const pendingRequestsCount = useMemo(() => {
+    if (!currentUser) return 0
+    if (isCoach) {
+      return (accessRequests || []).filter(r => r.coachId === currentUser.id && r.status === 'pending').length
+    }
+    if (isSuperAdmin) {
+      return (approvalRequests || []).filter(r => r.status === 'pending').length
+    }
+    return 0
+  }, [accessRequests, approvalRequests, currentUser, isCoach, isSuperAdmin])
+
   const selectedParent = parents.find(p => p.id === selectedParentId)
 
   const currentAthlete = useMemo(() => {
@@ -1009,7 +1020,14 @@ function AppContent() {
           <Tabs defaultValue="dashboard" className="space-y-6">
             <TabsList className="grid w-full max-w-6xl grid-cols-9">
               <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-              <TabsTrigger value="approvals">Aprobări</TabsTrigger>
+              <TabsTrigger value="approvals" className="gap-2">
+                Aprobări
+                {pendingRequestsCount > 0 && (
+                  <Badge variant="destructive" className="ml-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
+                    {pendingRequestsCount}
+                  </Badge>
+                )}
+              </TabsTrigger>
               <TabsTrigger value="users">Utilizatori</TabsTrigger>
               <TabsTrigger value="roles">Roluri</TabsTrigger>
               <TabsTrigger value="permissions">Permisiuni</TabsTrigger>
@@ -1042,6 +1060,14 @@ function AppContent() {
                 onRejectAccount={handleRejectAccount}
                 onUpdateUser={handleUpdateUser}
               />
+              {pendingRequestsCount > 0 && (
+                <div className="fixed bottom-4 right-4 bg-primary text-primary-foreground px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
+                  <Badge variant="secondary" className="h-6 w-6 rounded-full p-0 flex items-center justify-center">
+                    {pendingRequestsCount}
+                  </Badge>
+                  <span className="font-medium">Cereri pendinte</span>
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="users">
@@ -1248,9 +1274,9 @@ function AppContent() {
             <TabsTrigger value="requests" className="gap-2">
               <Envelope size={16} />
               Cereri
-              {isCoach && accessRequests && accessRequests.filter(r => r.coachId === currentUser.id && r.status === 'pending').length > 0 && (
+              {isCoach && pendingRequestsCount > 0 && (
                 <Badge variant="destructive" className="ml-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
-                  {accessRequests.filter(r => r.coachId === currentUser.id && r.status === 'pending').length}
+                  {pendingRequestsCount}
                 </Badge>
               )}
             </TabsTrigger>
