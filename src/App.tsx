@@ -22,6 +22,7 @@ import { SuperAdminDashboard } from '@/components/SuperAdminDashboard'
 import { EventManagement } from '@/components/EventManagement'
 import { PermissionsManagement } from '@/components/PermissionsManagement'
 import { AthleteDashboard } from '@/components/AthleteDashboard'
+import { UserManagement } from '@/components/UserManagement'
 import type { Athlete, Result, AgeCategory, User, Coach, AccessRequest, Message, EventTypeCustom, Permission } from '@/lib/types'
 
 function AppContent() {
@@ -201,6 +202,30 @@ function AppContent() {
       )
     )
     toast.success('Rol actualizat cu succes')
+  }
+
+  const handleAddUser = (userData: Omit<User, 'id' | 'createdAt'>) => {
+    const newUser: User = {
+      ...userData,
+      id: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      createdAt: new Date().toISOString()
+    }
+    setUsers((current) => [...(current || []), newUser])
+  }
+
+  const handleUpdateUser = (userId: string, userData: Partial<User>) => {
+    setUsers((current) =>
+      (current || []).map(u =>
+        u.id === userId ? { ...u, ...userData } : u
+      )
+    )
+  }
+
+  const handleDeleteUser = (userId: string) => {
+    setUsers((current) => (current || []).filter(u => u.id !== userId))
+    setAccessRequests((current) => (current || []).filter(r => r.parentId !== userId && r.coachId !== userId))
+    setMessages((current) => (current || []).filter(m => m.fromUserId !== userId && m.toUserId !== userId))
+    setPermissions((current) => (current || []).filter(p => p.userId !== userId))
   }
 
   const getAthleteResultsCount = (athleteId: string): number => {
@@ -383,8 +408,9 @@ function AppContent() {
 
         <main className="container mx-auto px-4 py-8">
           <Tabs defaultValue="dashboard" className="space-y-6">
-            <TabsList className="grid w-full max-w-3xl grid-cols-4">
+            <TabsList className="grid w-full max-w-4xl grid-cols-5">
               <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+              <TabsTrigger value="users">Utilizatori</TabsTrigger>
               <TabsTrigger value="permissions">Permisiuni</TabsTrigger>
               <TabsTrigger value="events">Probe</TabsTrigger>
               <TabsTrigger value="athletes">Atleți</TabsTrigger>
@@ -396,6 +422,16 @@ function AppContent() {
                 athletes={athletes || []}
                 events={events || []}
                 permissions={permissions || []}
+              />
+            </TabsContent>
+
+            <TabsContent value="users">
+              <UserManagement
+                users={users || []}
+                currentUserId={currentUser.id}
+                onAddUser={handleAddUser}
+                onUpdateUser={handleUpdateUser}
+                onDeleteUser={handleDeleteUser}
               />
             </TabsContent>
 

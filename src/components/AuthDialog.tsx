@@ -102,7 +102,22 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
             <TabsTrigger value="signup">Înregistrare</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="login">
+          <TabsContent value="login" className="space-y-4">
+            <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
+              <div className="font-semibold text-sm mb-2 text-primary">📋 Acces SuperAdmin:</div>
+              <div className="text-sm space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">Email:</span>
+                  <code className="bg-primary/20 px-2 py-0.5 rounded text-primary font-mono text-xs">
+                    admin@clubatletism.ro
+                  </code>
+                </div>
+                <div className="text-xs text-muted-foreground mt-2">
+                  Introdu emailul de mai sus pentru a accesa panoul SuperAdmin
+                </div>
+              </div>
+            </div>
+            
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="login-email">Email</Label>
