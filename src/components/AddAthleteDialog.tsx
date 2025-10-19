@@ -6,18 +6,20 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Plus } from '@phosphor-icons/react'
 import { AGE_CATEGORIES } from '@/lib/constants'
-import type { Athlete, AgeCategory } from '@/lib/types'
+import type { Athlete, AgeCategory, User } from '@/lib/types'
 
 interface AddAthleteDialogProps {
   onAdd: (athlete: Omit<Athlete, 'id'>) => void
+  coaches?: User[]
 }
 
-export function AddAthleteDialog({ onAdd }: AddAthleteDialogProps) {
+export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps) {
   const [open, setOpen] = useState(false)
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [age, setAge] = useState('')
   const [category, setCategory] = useState<AgeCategory>('U10')
+  const [coachId, setCoachId] = useState<string>('')
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -31,13 +33,15 @@ export function AddAthleteDialog({ onAdd }: AddAthleteDialogProps) {
       lastName: lastName.trim(),
       age: parseInt(age),
       category,
-      dateJoined: new Date().toISOString()
+      dateJoined: new Date().toISOString(),
+      coachId: coachId || undefined
     })
 
     setFirstName('')
     setLastName('')
     setAge('')
     setCategory('U10')
+    setCoachId('')
     setOpen(false)
   }
 
@@ -102,6 +106,24 @@ export function AddAthleteDialog({ onAdd }: AddAthleteDialogProps) {
               </SelectContent>
             </Select>
           </div>
+          {coaches.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="coach">Antrenor (opțional)</Label>
+              <Select value={coachId} onValueChange={setCoachId}>
+                <SelectTrigger id="coach">
+                  <SelectValue placeholder="Selectează antrenor..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Fără antrenor</SelectItem>
+                  {coaches.map((coach) => (
+                    <SelectItem key={coach.id} value={coach.id}>
+                      {coach.firstName} {coach.lastName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Anulează

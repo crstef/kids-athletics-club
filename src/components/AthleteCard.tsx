@@ -11,9 +11,10 @@ interface AthleteCardProps {
   resultsCount: number
   onViewDetails: (athlete: Athlete) => void
   onDelete: (id: string) => void
+  hideDelete?: boolean
 }
 
-export function AthleteCard({ athlete, resultsCount, onViewDetails, onDelete }: AthleteCardProps) {
+export function AthleteCard({ athlete, resultsCount, onViewDetails, onDelete, hideDelete }: AthleteCardProps) {
   const avatarColor = getAvatarColor(athlete.id)
   
   return (
@@ -52,14 +53,16 @@ export function AthleteCard({ athlete, resultsCount, onViewDetails, onDelete }: 
               <ChartLine size={16} />
               Detalii
             </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => onDelete(athlete.id)}
-              className="text-destructive hover:text-destructive"
-            >
-              <Trash size={16} />
-            </Button>
+            {!hideDelete && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => onDelete(athlete.id)}
+                className="text-destructive hover:text-destructive"
+              >
+                <Trash size={16} />
+              </Button>
+            )}
           </div>
         </div>
       </CardContent>

@@ -13,6 +13,28 @@ export type EventType =
   | 'Javelin'
   | 'Discus'
 
+export type UserRole = 'coach' | 'parent'
+
+export type AccessRequestStatus = 'pending' | 'approved' | 'rejected'
+
+export interface User {
+  id: string
+  email: string
+  firstName: string
+  lastName: string
+  role: UserRole
+  createdAt: string
+}
+
+export interface Coach extends User {
+  role: 'coach'
+  specialization?: string
+}
+
+export interface Parent extends User {
+  role: 'parent'
+}
+
 export interface Athlete {
   id: string
   firstName: string
@@ -21,6 +43,7 @@ export interface Athlete {
   category: AgeCategory
   dateJoined: string
   avatar?: string
+  coachId?: string
 }
 
 export interface Result {
@@ -36,4 +59,25 @@ export interface Result {
 export interface PerformanceData {
   date: string
   value: number
+}
+
+export interface AccessRequest {
+  id: string
+  parentId: string
+  athleteId: string
+  coachId: string
+  status: AccessRequestStatus
+  requestDate: string
+  responseDate?: string
+  message?: string
+}
+
+export interface Message {
+  id: string
+  fromUserId: string
+  toUserId: string
+  athleteId?: string
+  content: string
+  timestamp: string
+  read: boolean
 }
