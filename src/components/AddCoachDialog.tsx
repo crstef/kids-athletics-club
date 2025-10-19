@@ -7,23 +7,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, Eye, EyeSlash } from '@phosphor-icons/react'
 import { hashPassword } from '@/lib/crypto'
 import { toast } from 'sonner'
-import type { Coach, CoachGroup } from '@/lib/types'
+import type { Coach, CoachProbe } from '@/lib/types'
 
 interface AddCoachDialogProps {
-  groups: CoachGroup[]
+  probes: CoachProbe[]
   onAdd: (coach: Omit<Coach, 'id' | 'createdAt'>) => void
 }
 
-export function AddCoachDialog({ groups, onAdd }: AddCoachDialogProps) {
+export function AddCoachDialog({ probes, onAdd }: AddCoachDialogProps) {
   const [open, setOpen] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
-  const [groupId, setGroupId] = useState('')
+  const [probeId, setProbeId] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   
-  const activeGroups = groups.filter(g => g.isActive)
+  const activeProbes = probes.filter(p => p.isActive)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -46,7 +46,7 @@ export function AddCoachDialog({ groups, onAdd }: AddCoachDialogProps) {
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       role: 'coach',
-      groupId: groupId || undefined,
+      probeId: probeId || undefined,
       isActive: true,
       needsApproval: false
     })
@@ -55,7 +55,7 @@ export function AddCoachDialog({ groups, onAdd }: AddCoachDialogProps) {
     setPassword('')
     setFirstName('')
     setLastName('')
-    setGroupId('')
+    setProbeId('')
     setShowPassword(false)
     setOpen(false)
   }
@@ -132,16 +132,16 @@ export function AddCoachDialog({ groups, onAdd }: AddCoachDialogProps) {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="coach-group">Grupă (opțional)</Label>
-            <Select value={groupId} onValueChange={setGroupId}>
-              <SelectTrigger id="coach-group">
-                <SelectValue placeholder="Selectează grupa" />
+            <Label htmlFor="coach-probe">Probă (opțional)</Label>
+            <Select value={probeId} onValueChange={setProbeId}>
+              <SelectTrigger id="coach-probe">
+                <SelectValue placeholder="Selectează proba" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">Fără grupă</SelectItem>
-                {activeGroups.map((group) => (
-                  <SelectItem key={group.id} value={group.id}>
-                    {group.name}
+                <SelectItem value="none">Fără probă</SelectItem>
+                {activeProbes.map((probe) => (
+                  <SelectItem key={probe.id} value={probe.id}>
+                    {probe.name}
                   </SelectItem>
                 ))}
               </SelectContent>

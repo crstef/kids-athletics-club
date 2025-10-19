@@ -28,10 +28,10 @@ import { PermissionsSystem } from '@/components/PermissionsSystem'
 import { UserPermissionsManagement } from '@/components/UserPermissionsManagement'
 import { RoleManagement } from '@/components/RoleManagement'
 import { AgeCategoryManagement } from '@/components/AgeCategoryManagement'
-import { GroupManagement } from '@/components/GroupManagement'
+import { ProbeManagement } from '@/components/ProbeManagement'
 import { hashPassword } from '@/lib/crypto'
 import { DEFAULT_PERMISSIONS, DEFAULT_ROLES } from '@/lib/permissions'
-import type { Athlete, Result, AgeCategory, User, Coach, AccessRequest, Message, EventTypeCustom, Permission, UserPermission, AccountApprovalRequest, Role, AgeCategoryCustom, CoachGroup } from '@/lib/types'
+import type { Athlete, Result, AgeCategory, User, Coach, AccessRequest, Message, EventTypeCustom, Permission, UserPermission, AccountApprovalRequest, Role, AgeCategoryCustom, CoachProbe } from '@/lib/types'
 
 function AppContent() {
   const { currentUser, setCurrentUser, isCoach, isParent, isSuperAdmin, isAthlete, logout } = useAuth()
@@ -46,7 +46,7 @@ function AppContent() {
   const [approvalRequests, setApprovalRequests] = useKV<AccountApprovalRequest[]>('approval-requests', [])
   const [roles, setRoles] = useKV<Role[]>('roles', [])
   const [ageCategories, setAgeCategories] = useKV<AgeCategoryCustom[]>('age-categories', [])
-  const [groups, setGroups] = useKV<CoachGroup[]>('coach-groups', [])
+  const [probes, setProbes] = useKV<CoachProbe[]>('coach-probes', [])
   const [selectedAthlete, setSelectedAthlete] = useState<Athlete | null>(null)
   const [deleteAthleteId, setDeleteAthleteId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -57,11 +57,11 @@ function AppContent() {
 
   useEffect(() => {
     const initSuperAdmin = async () => {
-      const existingGroups = groups || []
-      if (existingGroups.length === 0) {
-        const defaultGroups: CoachGroup[] = [
+      const existingProbes = probes || []
+      if (existingProbes.length === 0) {
+        const defaultProbes: CoachProbe[] = [
           {
-            id: `group-${Date.now()}-1`,
+            id: `probe-${Date.now()}-1`,
             name: 'Sprint',
             description: 'Antrenori specializați în alergări de viteză',
             isActive: true,
@@ -69,7 +69,7 @@ function AppContent() {
             createdBy: 'system'
           },
           {
-            id: `group-${Date.now()}-2`,
+            id: `probe-${Date.now()}-2`,
             name: 'Sărituri',
             description: 'Antrenori specializați în sărituri (lungime, înălțime)',
             isActive: true,
@@ -77,7 +77,7 @@ function AppContent() {
             createdBy: 'system'
           },
           {
-            id: `group-${Date.now()}-3`,
+            id: `probe-${Date.now()}-3`,
             name: 'Alergări Lungi',
             description: 'Antrenori specializați în alergări de semifond și fond',
             isActive: true,
@@ -85,7 +85,7 @@ function AppContent() {
             createdBy: 'system'
           },
           {
-            id: `group-${Date.now()}-4`,
+            id: `probe-${Date.now()}-4`,
             name: 'Aruncări',
             description: 'Antrenori specializați în aruncări (disc, suliță, greutate)',
             isActive: true,
@@ -93,7 +93,7 @@ function AppContent() {
             createdBy: 'system'
           }
         ]
-        setGroups(defaultGroups)
+        setProbes(defaultProbes)
       }
 
       const existingUsers = users || []
@@ -118,10 +118,10 @@ function AppContent() {
       const hasCoaches = existingUsers.some(u => u.role === 'coach')
       if (!hasCoaches) {
         const coachPassword = await hashPassword('coach123')
-        const currentGroups = groups || []
-        const sprintGroup = currentGroups.find(g => g.name === 'Sprint')
-        const jumpGroup = currentGroups.find(g => g.name === 'Sărituri')
-        const longRunGroup = currentGroups.find(g => g.name === 'Alergări Lungi')
+        const currentProbes = probes || []
+        const sprintProbe = currentProbes.find(p => p.name === 'Sprint')
+        const jumpProbe = currentProbes.find(p => p.name === 'Sărituri')
+        const longRunProbe = currentProbes.find(p => p.name === 'Alergări Lungi')
         
         const testCoaches: User[] = [
           {
@@ -131,7 +131,7 @@ function AppContent() {
             firstName: 'Ion',
             lastName: 'Popescu',
             role: 'coach',
-            groupId: sprintGroup?.id,
+            probeId: sprintProbe?.id,
             createdAt: new Date().toISOString(),
             isActive: true,
             needsApproval: false
@@ -143,7 +143,7 @@ function AppContent() {
             firstName: 'Maria',
             lastName: 'Ionescu',
             role: 'coach',
-            groupId: jumpGroup?.id,
+            probeId: jumpProbe?.id,
             createdAt: new Date().toISOString(),
             isActive: true,
             needsApproval: false
@@ -155,7 +155,7 @@ function AppContent() {
             firstName: 'Andrei',
             lastName: 'Matei',
             role: 'coach',
-            groupId: longRunGroup?.id,
+            probeId: longRunProbe?.id,
             createdAt: new Date().toISOString(),
             isActive: true,
             needsApproval: false
@@ -665,28 +665,28 @@ function AppContent() {
     setAgeCategories((current) => (current || []).filter(c => c.id !== categoryId))
   }
 
-  const handleAddGroup = (groupData: Omit<CoachGroup, 'id' | 'createdAt' | 'createdBy'>) => {
-    setGroups((current) => [
+  const handleAddProbe = (probeData: Omit<CoachProbe, 'id' | 'createdAt' | 'createdBy'>) => {
+    setProbes((current) => [
       ...(current || []),
       {
-        ...groupData,
-        id: `group-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        ...probeData,
+        id: `probe-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         createdAt: new Date().toISOString(),
         createdBy: currentUser?.id || 'system'
       }
     ])
   }
 
-  const handleUpdateGroup = (groupId: string, updates: Partial<CoachGroup>) => {
-    setGroups((current) =>
-      (current || []).map(g => g.id === groupId ? { ...g, ...updates } : g)
+  const handleUpdateProbe = (probeId: string, updates: Partial<CoachProbe>) => {
+    setProbes((current) =>
+      (current || []).map(p => p.id === probeId ? { ...p, ...updates } : p)
     )
   }
 
-  const handleDeleteGroup = (groupId: string) => {
-    setGroups((current) => (current || []).filter(g => g.id !== groupId))
+  const handleDeleteProbe = (probeId: string) => {
+    setProbes((current) => (current || []).filter(p => p.id !== probeId))
     setUsers((current) =>
-      (current || []).map(u => (u as Coach).groupId === groupId ? { ...u, groupId: undefined } : u)
+      (current || []).map(u => (u as Coach).probeId === probeId ? { ...u, probeId: undefined } : u)
     )
   }
 
@@ -1014,8 +1014,8 @@ function AppContent() {
               <TabsTrigger value="roles">Roluri</TabsTrigger>
               <TabsTrigger value="permissions">Permisiuni</TabsTrigger>
               <TabsTrigger value="categories">Categorii</TabsTrigger>
-              <TabsTrigger value="groups">Grupe</TabsTrigger>
-              <TabsTrigger value="events">Probe</TabsTrigger>
+              <TabsTrigger value="groups">Probe</TabsTrigger>
+              <TabsTrigger value="events">Evenimente</TabsTrigger>
               <TabsTrigger value="athletes">Atleți</TabsTrigger>
             </TabsList>
 
@@ -1086,12 +1086,12 @@ function AppContent() {
             </TabsContent>
 
             <TabsContent value="groups">
-              <GroupManagement
-                groups={groups || []}
+              <ProbeManagement
+                probes={probes || []}
                 currentUserId={currentUser.id}
-                onAddGroup={handleAddGroup}
-                onUpdateGroup={handleUpdateGroup}
-                onDeleteGroup={handleDeleteGroup}
+                onAddProbe={handleAddProbe}
+                onUpdateProbe={handleUpdateProbe}
+                onDeleteProbe={handleDeleteProbe}
               />
             </TabsContent>
 
@@ -1375,7 +1375,7 @@ function AppContent() {
           {!isCoach && (
             <TabsContent value="coaches" className="space-y-6">
               <div className="flex justify-end">
-                <AddCoachDialog groups={groups || []} onAdd={handleAddCoach} />
+                <AddCoachDialog probes={probes || []} onAdd={handleAddCoach} />
               </div>
               {coaches.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
@@ -1386,15 +1386,15 @@ function AppContent() {
                   {coaches.map((coach) => {
                     const coachAthletes = (athletes || []).filter(a => a.coachId === coach.id)
                     const coachData = coach as Coach
-                    const coachGroup = coachData.groupId ? (groups || []).find(g => g.id === coachData.groupId) : null
+                    const coachProbe = coachData.probeId ? (probes || []).find(p => p.id === coachData.probeId) : null
                     return (
                       <div key={coach.id} className="p-6 border rounded-lg space-y-2">
                         <div className="font-semibold text-lg">
                           {coach.firstName} {coach.lastName}
                         </div>
                         <div className="text-sm text-muted-foreground">{coach.email}</div>
-                        {coachGroup && (
-                          <Badge variant="secondary">{coachGroup.name}</Badge>
+                        {coachProbe && (
+                          <Badge variant="secondary">{coachProbe.name}</Badge>
                         )}
                         <div className="text-sm text-muted-foreground pt-2">
                           Atleți: {coachAthletes.length}

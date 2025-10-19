@@ -110,11 +110,11 @@ export interface SuperAdmin extends User {
 export interface Coach extends User {
   role: 'coach'
   specialization?: string
-  groupId?: string
+  probeId?: string
   permissions?: PermissionType
 }
 
-export interface CoachGroup {
+export interface CoachProbe {
   id: string
   name: string
   description?: string
