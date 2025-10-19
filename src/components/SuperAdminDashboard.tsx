@@ -1,7 +1,8 @@
 import { useMemo } from 'react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Users, Trophy, Target, ShieldCheck } from '@phosphor-icons/react'
+import { Button } from '@/components/ui/button'
+import { Users, Trophy, Target, ShieldCheck, ArrowRight } from '@phosphor-icons/react'
 import { StatWidget } from './StatWidget'
 import type { User, Athlete, EventTypeCustom, Permission } from '@/lib/types'
 
@@ -10,9 +11,11 @@ interface SuperAdminDashboardProps {
   athletes: Athlete[]
   events: EventTypeCustom[]
   permissions: Permission[]
+  onNavigateToTab?: (tab: string) => void
+  onViewAthleteDetails?: (athlete: Athlete) => void
 }
 
-export function SuperAdminDashboard({ users, athletes, events, permissions }: SuperAdminDashboardProps) {
+export function SuperAdminDashboard({ users, athletes, events, permissions, onNavigateToTab, onViewAthleteDetails }: SuperAdminDashboardProps) {
   const stats = useMemo(() => {
     const coaches = users.filter(u => u.role === 'coach')
     const parents = users.filter(u => u.role === 'parent')
@@ -79,6 +82,11 @@ export function SuperAdminDashboard({ users, athletes, events, permissions }: Su
           </div>
         )}
       </div>
+      {onNavigateToTab && (
+        <Button onClick={() => onNavigateToTab('users')} className="w-full mt-4">
+          Mergi la Utilizatori <ArrowRight size={16} className="ml-2" />
+        </Button>
+      )}
     </div>
   )
 
@@ -91,14 +99,21 @@ export function SuperAdminDashboard({ users, athletes, events, permissions }: Su
         {athletes
           .sort((a, b) => a.lastName.localeCompare(b.lastName))
           .map((athlete) => (
-            <div key={athlete.id} className="flex items-center justify-between p-3 border rounded-lg">
+            <div 
+              key={athlete.id} 
+              className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/5 hover:border-accent/50 transition-all cursor-pointer"
+              onClick={() => onViewAthleteDetails?.(athlete)}
+            >
               <div>
                 <div className="font-medium">{athlete.firstName} {athlete.lastName}</div>
                 <div className="text-sm text-muted-foreground">
                   {athlete.age} ani • Categoria {athlete.category}
                 </div>
               </div>
-              <Badge variant="outline">{athlete.category}</Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline">{athlete.category}</Badge>
+                <ArrowRight size={16} className="text-muted-foreground" />
+              </div>
             </div>
           ))}
         {athletes.length === 0 && (
@@ -107,6 +122,11 @@ export function SuperAdminDashboard({ users, athletes, events, permissions }: Su
           </div>
         )}
       </div>
+      {onNavigateToTab && (
+        <Button onClick={() => onNavigateToTab('athletes')} className="w-full mt-4">
+          Mergi la Atleți <ArrowRight size={16} className="ml-2" />
+        </Button>
+      )}
     </div>
   )
 
@@ -131,6 +151,11 @@ export function SuperAdminDashboard({ users, athletes, events, permissions }: Su
           </div>
         )}
       </div>
+      {onNavigateToTab && (
+        <Button onClick={() => onNavigateToTab('events')} className="w-full mt-4">
+          Mergi la Evenimente <ArrowRight size={16} className="ml-2" />
+        </Button>
+      )}
     </div>
   )
 
@@ -159,6 +184,11 @@ export function SuperAdminDashboard({ users, athletes, events, permissions }: Su
           </div>
         )}
       </div>
+      {onNavigateToTab && (
+        <Button onClick={() => onNavigateToTab('permissions')} className="w-full mt-4">
+          Mergi la Permisiuni <ArrowRight size={16} className="ml-2" />
+        </Button>
+      )}
     </div>
   )
 

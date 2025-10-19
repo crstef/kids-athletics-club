@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { Badge } from '@/components/ui/badge'
-import { Users, Trophy, ListNumbers, TrendUp } from '@phosphor-icons/react'
+import { Button } from '@/components/ui/button'
+import { Users, Trophy, ListNumbers, TrendUp, ArrowRight } from '@phosphor-icons/react'
 import { StatWidget } from './StatWidget'
 import { formatResult } from '@/lib/constants'
 import type { Athlete, Result } from '@/lib/types'
@@ -8,9 +9,11 @@ import type { Athlete, Result } from '@/lib/types'
 interface DashboardStatsProps {
   athletes: Athlete[]
   results: Result[]
+  onNavigateToAthletes?: () => void
+  onViewAthleteDetails?: (athlete: Athlete) => void
 }
 
-export function DashboardStats({ athletes, results }: DashboardStatsProps) {
+export function DashboardStats({ athletes, results, onNavigateToAthletes, onViewAthleteDetails }: DashboardStatsProps) {
   const totalAthletes = athletes.length
   const totalResults = results.length
   const activeAthletes = useMemo(() => 
@@ -71,6 +74,11 @@ export function DashboardStats({ athletes, results }: DashboardStatsProps) {
           </div>
         ))}
       </div>
+      {onNavigateToAthletes && (
+        <Button onClick={onNavigateToAthletes} className="w-full mt-4">
+          Vezi toți atletii <ArrowRight size={16} className="ml-2" />
+        </Button>
+      )}
     </div>
   )
 
@@ -85,18 +93,30 @@ export function DashboardStats({ athletes, results }: DashboardStatsProps) {
           .map(athlete => {
             const athleteResults = results.filter(r => r.athleteId === athlete.id)
             return (
-              <div key={athlete.id} className="flex items-center justify-between p-3 border rounded-lg">
+              <div 
+                key={athlete.id} 
+                className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/5 hover:border-accent/50 transition-all cursor-pointer"
+                onClick={() => onViewAthleteDetails?.(athlete)}
+              >
                 <div>
                   <div className="font-medium">{athlete.firstName} {athlete.lastName}</div>
                   <div className="text-sm text-muted-foreground">Categoria {athlete.category}</div>
                 </div>
-                <Badge variant="secondary" className="text-lg px-3 py-1">
-                  {athleteResults.length}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="text-lg px-3 py-1">
+                    {athleteResults.length}
+                  </Badge>
+                  <ArrowRight size={16} className="text-muted-foreground" />
+                </div>
               </div>
             )
           })}
       </div>
+      {onNavigateToAthletes && (
+        <Button onClick={onNavigateToAthletes} className="w-full mt-4">
+          Vezi toți atletii <ArrowRight size={16} className="ml-2" />
+        </Button>
+      )}
     </div>
   )
 
@@ -109,17 +129,22 @@ export function DashboardStats({ athletes, results }: DashboardStatsProps) {
         {recentResults.map(result => {
           const athlete = athletes.find(a => a.id === result.athleteId)
           return (
-            <div key={result.id} className="flex items-center justify-between p-3 border rounded-lg">
+            <div 
+              key={result.id} 
+              className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/5 hover:border-accent/50 transition-all cursor-pointer"
+              onClick={() => athlete && onViewAthleteDetails?.(athlete)}
+            >
               <div>
                 <div className="font-medium">{athlete?.firstName} {athlete?.lastName}</div>
                 <div className="text-sm text-muted-foreground">
                   {result.eventType} • {new Date(result.date).toLocaleDateString('ro-RO')}
                 </div>
               </div>
-              <div className="text-right">
+              <div className="text-right flex items-center gap-2">
                 <div className="font-bold text-primary">
                   {formatResult(result.value, result.unit)}
                 </div>
+                <ArrowRight size={16} className="text-muted-foreground" />
               </div>
             </div>
           )

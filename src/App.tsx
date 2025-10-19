@@ -56,6 +56,8 @@ function AppContent() {
   const [sortBy, setSortBy] = useState<'name' | 'age' | 'results'>('name')
   const [authDialogOpen, setAuthDialogOpen] = useState(false)
   const [selectedParentId, setSelectedParentId] = useState<string>('')
+  const [activeTab, setActiveTab] = useState('dashboard')
+  const [superAdminActiveTab, setSuperAdminActiveTab] = useState('dashboard')
 
   useEffect(() => {
     const initSuperAdmin = async () => {
@@ -793,7 +795,7 @@ function AppContent() {
         </header>
 
         <main className="container mx-auto px-4 py-8">
-          <Tabs defaultValue="dashboard" className="space-y-6">
+          <Tabs value={superAdminActiveTab} onValueChange={setSuperAdminActiveTab} className="space-y-6">
             <TabsList className="grid w-full max-w-6xl grid-cols-9 bg-muted/50 p-1.5 rounded-xl">
               <TabsTrigger value="dashboard" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Dashboard</TabsTrigger>
               <TabsTrigger value="approvals" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
@@ -819,6 +821,11 @@ function AppContent() {
                 athletes={athletes || []}
                 events={events || []}
                 permissions={permissions || []}
+                onNavigateToTab={setSuperAdminActiveTab}
+                onViewAthleteDetails={(athlete) => {
+                  setSelectedAthlete(athlete)
+                  setSuperAdminActiveTab('athletes')
+                }}
               />
             </TabsContent>
 
@@ -1057,7 +1064,7 @@ function AppContent() {
         </header>
 
       <main className="container mx-auto px-4 py-8">
-        <Tabs defaultValue="dashboard" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className={`grid w-full max-w-2xl ${isCoach ? 'grid-cols-4' : 'grid-cols-3'} bg-muted/50 p-1.5 rounded-xl`}>
             <TabsTrigger value="dashboard" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Dashboard</TabsTrigger>
             <TabsTrigger value="athletes" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Atleți</TabsTrigger>
@@ -1097,7 +1104,12 @@ function AppContent() {
               />
             ) : (
               <>
-                <DashboardStats athletes={myAthletes} results={results || []} />
+                <DashboardStats 
+                  athletes={myAthletes} 
+                  results={results || []} 
+                  onNavigateToAthletes={() => setActiveTab('athletes')}
+                  onViewAthleteDetails={setSelectedAthlete}
+                />
 
                 {myAthletes.length === 0 ? (
                   <div className="text-center py-16 space-y-6">
