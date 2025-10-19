@@ -7,6 +7,8 @@ interface AuthContextType {
   setCurrentUser: (user: User | null) => void
   isCoach: boolean
   isParent: boolean
+  isSuperAdmin: boolean
+  isAthlete: boolean
   logout: () => void
 }
 
@@ -38,9 +40,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const isCoach = currentUser?.role === 'coach'
   const isParent = currentUser?.role === 'parent'
+  const isSuperAdmin = currentUser?.role === 'superadmin'
+  const isAthlete = currentUser?.role === 'athlete'
 
   return (
-    <AuthContext.Provider value={{ currentUser, setCurrentUser, isCoach, isParent, logout }}>
+    <AuthContext.Provider value={{ currentUser, setCurrentUser, isCoach, isParent, isSuperAdmin, isAthlete, logout }}>
       {children}
     </AuthContext.Provider>
   )

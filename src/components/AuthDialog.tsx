@@ -165,6 +165,7 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
                   <SelectContent>
                     <SelectItem value="parent">Părinte</SelectItem>
                     <SelectItem value="coach">Antrenor</SelectItem>
+                    <SelectItem value="athlete">Atlet</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

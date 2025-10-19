@@ -1,23 +1,51 @@
 # Planning Guide
 
-O aplicație web pentru managementul atleților juniori din clubul de atletism, care permite înregistrarea sportivilor, adăugarea rezultatelor la diferite probe sportive și urmărirea evoluției performanțelor în timp. Include sistem de autentificare pentru antrenori și părinți, cereri de acces pentru vizualizarea datelor copiilor, și canal de comunicare între părinți și antrenori.
+O aplicație web profesională pentru managementul atleților juniori din clubul de atletism, care permite înregistrarea sportivilor, managementul probelor sportive personalizate, adăugarea rezultatelor și urmărirea evoluției performanțelor în timp. Include sistem de autentificare cu roluri multiple (SuperAdmin, Antrenor, Părinte, Atlet), management granular al permisiunilor, cereri de acces controlate pentru vizualizarea datelor copiilor și canal de comunicare între părinți și antrenori.
 
 **Experience Qualities**:
-1. **Organizată** - Structură clară și intuitivă pentru navigarea între atleți, probe și rezultate, cu roluri distincte pentru antrenori și părinți
-2. **Sigură** - Sistem de cereri și aprobare pentru accesul părinților la datele copiilor, asigurând controlul antrenorilor
-3. **Comunicativă** - Canal direct de mesagerie între părinți și antrenori pentru discuții despre progresul copiilor
+1. **Profesională** - Interfață modernă și premium cu design sofisticat, iconografie consistentă și feedback vizual immediate pentru toate acțiunile
+2. **Securizată** - Sistem hierarhic de roluri cu SuperAdmin care controlează toate permisiunile, cereri de aprobare pentru acces și separare clară între drepturile utilizatorilor
+3. **Flexibilă** - Management dinamic al probelor sportive personalizate, configurabile per nevoile clubului, și sistem granular de permisiuni pe resurse specifice
 
-**Complexity Level**: Light Application (multiple features with basic state)
-  - Aplicația gestionează multiple entități (atleți, probe, rezultate, utilizatori, cereri) cu relații complexe între ele, sistem de autentificare simplu și mesagerie, dar fără funcționalități avansate de backend.
+**Complexity Level**: Complex Application (advanced functionality, accounts)
+  - Aplicația gestionează multiple entități cu relații complexe (atleți, probe custom, rezultate, utilizatori multi-rol, cereri, permisiuni granulare, mesagerie), sistem complet de autentificare și autorizare cu SuperAdmin, management dinamic al schemei de date (probe configurabile).
 
 ## Essential Features
 
-### Sistem de Autentificare
-- **Functionality**: Înregistrare și autentificare simplă pentru antrenori și părinți cu email, nume și rol
-- **Purpose**: Controlul accesului la date și funcționalități specifice fiecărui rol
-- **Trigger**: Acces aplicație fără cont activ
-- **Progression**: Ecran login → Tab Autentificare/Înregistrare → Completare date (Email, Nume, Rol) → Salvare → Acces panou personalizat
-- **Success criteria**: Utilizatorii pot crea conturi, se pot autentifica și accesa funcționalități specifice rolului lor
+### Sistem SuperAdmin
+- **Functionality**: Rol special de administrator care are control complet asupra sistemului - poate gestiona utilizatori, probe, permisiuni și vizualiza toate datele
+- **Purpose**: Centralizarea managementului aplicației și controlul ierarhic al drepturilor
+- **Trigger**: Autentificare cu cont SuperAdmin (admin@clubatletism.ro) → Acces panou dedicat
+- **Progression**: Login SuperAdmin → Dashboard cu statistici complete → Tabs pentru Permisiuni/Probe/Atleți → Acțiuni administrative
+- **Success criteria**: SuperAdmin poate vedea toate datele, modifica roluri utilizatori, acorda/revoca permisiuni și gestiona probele
+
+### Management Probe Personalizate
+- **Functionality**: Adăugare, editare și ștergere probe sportive custom cu nume, categorie (Alergare/Sărituri/Aruncări/Altele), unitate măsură (secunde/metri/puncte) și descriere
+- **Purpose**: Flexibilitate în adaptarea sistemului la nevoile specifice ale clubului și diversitatea probelor practicate
+- **Trigger**: SuperAdmin → Tab "Probe" → Buton "Adaugă Probă"
+- **Progression**: Click acțiune → Formular (Nume, Categorie, Unitate, Descriere) → Salvare → Afișare în listă cu iconuri și badge-uri → Utilizare în înregistrare rezultate
+- **Success criteria**: Probele custom apar în dropdown-urile de selecție, rezultatele folosesc unitatea corectă, probele pot fi șterse
+
+### Management Permisiuni Granulare
+- **Functionality**: SuperAdmin poate acorda permisiuni specifice (Vizualizare/Editare/Control Complet) pe resurse (Toți Atleții/Atlet Specific/Probe/Rezultate) către utilizatori individuali
+- **Purpose**: Control fin al accesului la date pentru scenarii complexe (ex: părinte care poate edita doar date copilului său)
+- **Trigger**: SuperAdmin → Tab "Permisiuni" → Selectare utilizator → "Acordă" → Configurare permisiune
+- **Progression**: Selectare user → Alegere tip permisiune (view/edit/full) → Alegere resursă → Confirmare → Badge vizibil pe profil user
+- **Success criteria**: Utilizatorii văd/modifică doar resursele pentru care au permisiuni, revocarea funcționează instant
+
+### Sistem Multi-Rol (4 roluri)
+- **Functionality**: Utilizatorii pot avea roluri distincte: SuperAdmin (control total), Coach (manageriază atleți proprii), Parent (vizualizează copii aprobați), Athlete (vizualizează propriile date)
+- **Purpose**: Separarea clară a responsabilităților și experienței per tip de utilizator
+- **Trigger**: Înregistrare → Selectare rol (sau SuperAdmin modifică rol existent)
+- **Progression**: Autentificare → Sistem detectează rol → Redirect la panou specific rolului → Funcționalități personalizate
+- **Success criteria**: Fiecare rol vede doar UI-ul relevant, nu poate accesa funcții din alte roluri
+
+### Dashboard Atlet
+- **Functionality**: Atleții autentificați pot vedea propriile statistici, rezultate recente și grafice de evoluție
+- **Purpose**: Implicare și motivare atleți prin vizualizarea propriului progres
+- **Trigger**: Autentificare ca Atlet → Dashboard personalizat
+- **Progression**: Login → Card profil cu categorie și antrenor → Statistici (total rezultate, probe practicate) → Listă rezultate recente → Grafic evoluție
+- **Success criteria**: Atleții văd doar datele proprii, graficele afișează progresul cronologic
 
 ### Managementul Antrenorilor
 - **Functionality**: Adăugare antrenori în sistem cu email, nume și specializare opțională
@@ -84,23 +112,29 @@ O aplicație web pentru managementul atleților juniori din clubul de atletism, 
 
 ## Edge Case Handling
 - **Email duplicat**: Validare la înregistrare/adăugare antrenor pentru a preveni duplicate
+- **SuperAdmin implicit**: La prima rulare se creează automat cont SuperAdmin (admin@clubatletism.ro)
+- **Probe șterse**: La ștergerea unei probe, rezultatele existente rămân dar fără referință (arhivare)
+- **Permisiuni conflictuale**: Ultima permisiune acordată suprascrie pe anterioara pentru aceeași resursă
+- **Rol modificat**: Când SuperAdmin schimbă rolul unui user, permisiunile existente rămân active
 - **Cerere duplicată**: Previne trimiterea mai multor cereri pentru același atlet până la răspuns
 - **Acces fără aprobare**: Părinții văd doar atleții aprobați, restul sunt invizibili
 - **Mesaje fără acces**: Mesageria este disponibilă doar între antrenori și părinți cu acces aprobat
 - **Ștergere atlet cu cereri**: La ștergerea unui atlet se șterg și cererile și mesajele asociate
+- **Atlet fără user asociat**: Atleții pot exista independent de utilizatorii cu rol "athlete"
 - **Deconectare**: Buton clar de logout care resetează sesiunea curentă
-- **Atleți fără antrenor**: Atleții pot exista fără antrenor asociat inițial
 - **Validare formulare**: Toate câmpurile obligatorii sunt verificate înainte de salvare
+- **Mobile responsive**: Layout se adaptează complet pe dispozitive mobile cu tabs transformate în select când e necesar
 
 ## Design Direction
-Design-ul păstrează energia și dinamismul sportiv, dar adaugă elemente de profesionalism și siguranță pentru sistemul de acces controlat. Interfața trebuie să fie clară în distingerea rolurilor (Antrenor vs Părinte) și să evidențieze starea cererilor și mesajelor necitite prin badge-uri vizibile.
+Design-ul evoluează către o estetică premium, profesională și sofisticată, menținând energia sportivă dar adăugând elemente de siguranță enterprise și trust prin gradient-uri subtile, iconografie distinctivă per rol (ShieldCheck pentru SuperAdmin, Trophy pentru atleți) și sisteme vizuale clare pentru ierarhia permisiunilor. Interfața trebuie să transmită încredere, organizare și control prin detalii precum badge-uri colorate pentru status, animații micro pe interacțiuni și spacing generos.
 
 ## Color Selection
-Triadic (three equally spaced colors) - combinație de albastru, portocaliu și verde pentru a crea o paletă energică și echilibrată care reflectă diversitatea sportului și entuziasmul copiilor.
+Triadic (three equally spaced colors) extinsă - combinație de albastru, verde și portocaliu pentru a crea o paletă energică și echilibrată, cu adăugare de gradient-uri subtile pentru diferențierea rolurilor (primary/10 pentru SuperAdmin).
 
-- **Primary Color**: Albastru vibrant (oklch(0.55 0.20 250)) - transmite profesionalism, încredere și stabilitate specifică organizațiilor sportive
-- **Secondary Colors**: Verde energic (oklch(0.65 0.18 145)) pentru progres și acces aprobat; Portocaliu cald (oklch(0.70 0.17 45)) pentru acțiuni și atenție
-- **Accent Color**: Portocaliu intens (oklch(0.68 0.19 40)) pentru butoane CTA, notificări de succes și evidențierea recordurilor
+- **Primary Color**: Albastru vibrant (oklch(0.55 0.20 250)) - transmite profesionalism, încredere și autoritate pentru zona admin și sistem
+- **Secondary Colors**: Verde energic (oklch(0.65 0.18 145)) pentru progres, aprobare și acces granted; gradient-uri subtile albastru-portocaliu pentru header SuperAdmin
+- **Accent Color**: Portocaliu intens (oklch(0.68 0.19 40)) pentru butoane CTA, notificări de succes, badges de permisiuni și evidențierea recordurilor
+- **Role Colors**: Primary pentru SuperAdmin, Secondary pentru aprobare/success, Accent pentru atenție/acțiuni, badges colorate pentru roluri
 - **Foreground/Background Pairings**: 
   - Background (White oklch(0.99 0 0)): Dark text oklch(0.20 0 0) - Ratio 15.8:1 ✓
   - Card (Light gray oklch(0.98 0 0)): Dark text oklch(0.20 0 0) - Ratio 15.2:1 ✓
@@ -108,68 +142,94 @@ Triadic (three equally spaced colors) - combinație de albastru, portocaliu și 
   - Secondary (Green oklch(0.65 0.18 145)): White text oklch(0.99 0 0) - Ratio 8.8:1 ✓
   - Accent (Orange oklch(0.68 0.19 40)): White text oklch(0.99 0 0) - Ratio 9.2:1 ✓
   - Muted (Light gray oklch(0.96 0 0)): Muted text oklch(0.45 0 0) - Ratio 7.5:1 ✓
+  - Gradient SuperAdmin (primary/10 to accent/10): Dark text - Ratio > 10:1 ✓
 
 ## Font Selection
-Tipografia trebuie să transmită claritate și modernitate, cu un caracter puternic dar accesibil - folosind Inter pentru interfață datorită lizibilității sale excelente la toate dimensiunile și Outfit pentru titluri pentru a adăuga un caracter sportiv și dinamic.
+Tipografia trebuie să transmită autoritate, claritate și modernitate premium - folosind Inter pentru interfață datorită lizibilității sale excelente la toate dimensiunile și suportului vast de greutăți, și Outfit pentru titluri pentru a adăuga un caracter sportiv, dinamic dar profesional.
 
 - **Typographic Hierarchy**: 
-  - H1 (Titlu aplicație): Outfit Bold/32px/tight letter spacing (-0.02em)
-  - H2 (Secțiuni): Outfit SemiBold/24px/normal spacing
-  - H3 (Card headers): Outfit Medium/18px/normal spacing
-  - Body (Conținut general): Inter Regular/16px/line-height 1.6
-  - Small (Labels, meta): Inter Medium/14px/line-height 1.5
-  - Stats (Numere mari): Outfit Bold/48px/tight spacing
+  - H1 (Titlu aplicație + Rol): Outfit Bold/32px/tight letter spacing (-0.02em)
+  - H2 (Secțiuni majore, Dashboard titles): Outfit SemiBold/24px/normal spacing
+  - H3 (Card headers, subtitles): Outfit Medium/18px/normal spacing
+  - Body (Conținut general, descrieri): Inter Regular/16px/line-height 1.6
+  - Small (Labels, meta info, badges): Inter Medium/14px/line-height 1.5
+  - Button text: Inter SemiBold/14px
+  - Stats (Numere mari dashboard): Outfit Bold/48px/tight spacing (-0.01em)
+  - Micro (timestamps, hints): Inter Regular/12px/line-height 1.4
 
 ## Animations
-Animații subtile și rapide care ghidează utilizatorul fără să întârzie acțiunile - micro-tranziții la hover pentru feedback imediat, slide-in pentru formulare și carduri noi, notificări badge pentru mesaje necitite și cereri în așteptare.
+Animații profesionale, subtile și rapide care ghidează utilizatorul fără să întârzie acțiunile - micro-tranziții la hover pentru feedback imediat (scale 1.02), slide-in pentru formulare și carduri noi, notificări badge pentru mesaje necitite și cereri în așteptare, gradient animations pe header SuperAdmin pentru a transmite autoritate.
 
-- **Purposeful Meaning**: Animații de "creștere" pentru statistici pozitive (scale up), tranziții fluide între roluri/panouri, pulse pentru notificări noi
-- **Hierarchy of Movement**: Prioritate pentru feedback la butoane (100ms), apoi badge-uri notificare (pulse), apoi tranziții de pagină (300ms)
+- **Purposeful Meaning**: Animații de "creștere" pentru statistici pozitive (scale up), tranziții fluide între roluri/panouri, pulse discret pentru notificări noi, fade-in pentru liste de permisiuni
+- **Hierarchy of Movement**: Prioritate pentru feedback la butoane (100ms), apoi badge-uri notificare (pulse 2s), apoi tranziții de pagină (300ms), micro-interactions pe hover cards (150ms)
+- **Role-specific animations**: SuperAdmin header cu gradient subtil animat, Athlete dashboard cu emphasis pe progres (green glow pe îmbunătățiri)
 
 ## Component Selection
 - **Components**: 
-  - Card pentru atleți, statistici, antrenori, cereri și conversații
-  - Dialog pentru formulare de adăugare/editare și autentificare
-  - Tabs pentru navigare între secțiuni diferite per rol
-  - Badge pentru status cereri (Pending, Approved, Rejected) și mesaje necitite
+  - Card pentru atleți, statistici, antrenori, cereri, conversații, probe și permisiuni
+  - Dialog pentru formulare de adăugare/editare, autentificare și management permisiuni
+  - Tabs pentru navigare între secțiuni diferite per rol (4 tabs pentru SuperAdmin, variabil pentru alte roluri)
+  - Badge pentru status cereri (Pending, Approved, Rejected), roluri (SuperAdmin, Coach, etc.), permisiuni (View, Edit, Full) și mesaje necitite
   - Avatar pentru reprezentare utilizatori și atleți
   - ScrollArea pentru lista de mesaje în chat
-  - Textarea pentru scriere mesaje
+  - Textarea pentru scriere mesaje și descrieri probe
   - Alert pentru notificări importante
+  - Select pentru filtre și alegeri (categorie probe, tip permisiune, resurse)
+  - Input pentru căutare și formulare
   
 - **Customizations**: 
-  - Panouri separate pentru Antrenor vs Părinte cu funcționalități distincte
-  - Componente chat cu bule de mesaje și timestamp
-  - Badge-uri numerice pentru cereri și mesaje necitite
-  - Cards de cereri cu butoane Aprobă/Respinge
+  - Panouri separate și complet diferite pentru fiecare rol (SuperAdmin/Coach/Parent/Athlete)
+  - Header cu gradient pentru SuperAdmin (from-primary/10 to-accent/10)
+  - Card-uri probe cu iconuri contextuale (Timer/Target/Ruler) per categorie
+  - Management permisiuni cu sistem de badge-uri complexe (icon + text + remove button)
+  - Dashboard statistici pentru SuperAdmin cu 4 carduri overview
+  - Athlete dashboard cu profil hero card gradient și timeline rezultate
   
 - **States**: 
-  - Buttons: hover cu scale(1.02) și shadow, active cu scale(0.98), disabled cu opacity 50%
-  - Badge status: culori distincte pentru pending (secondary), approved (success green), rejected (destructive)
-  - Mesaje: stil diferit pentru mesaje trimise (primary) vs primite (muted)
+  - Buttons: hover cu scale(1.02) și shadow enhanced, active cu scale(0.98), disabled cu opacity 50%
+  - Badge status cereri: culori distincte pending (secondary), approved (success green), rejected (destructive)
+  - Badge roluri: default pentru SuperAdmin, secondary pentru Coach, outline pentru Parent/Athlete
+  - Badge permisiuni: outline cu icon prefix pentru fiecare tip (Eye/PencilSimple/LockKey)
+  - Mesaje: stil diferit pentru mesaje trimise (primary bg) vs primite (muted bg)
   - Inputs: focus cu border accent și shadow glow, error cu border destructive
+  - Cards: hover cu subtle lift (translateY(-2px)) și shadow increase
   
 - **Icon Selection**: 
-  - UserCircle pentru autentificare
+  - ShieldCheck pentru SuperAdmin și sistem permisiuni
+  - UserCircle pentru autentificare și utilizatori
   - SignOut pentru deconectare
   - Envelope pentru cereri de acces și notificări
   - ChatCircleDots pentru mesagerie
+  - Trophy pentru dashboard și performanțe atleți
+  - Target pentru probe și events management
+  - Timer pentru probe alergare
+  - Ruler pentru probe aruncări
+  - Eye, PencilSimple, LockKey pentru tipuri permisiuni (view/edit/full)
+  - Plus pentru adăugare (atleți, antrenori, probe, permisiuni)
+  - Trash pentru ștergere
   - CheckCircle pentru aprobare
   - XCircle pentru respingere
   - Clock pentru status în așteptare
-  - Plus pentru adăugare (atleți, antrenori)
-  - Trophy pentru dashboard și performanțe
   - PaperPlaneRight pentru trimitere mesaj
+  - MagnifyingGlass pentru căutare
+  - Medal, TrendUp, Calendar pentru statistici athlete
+  - Users pentru statistici utilizatori
   
 - **Spacing**: 
-  - Padding carduri: p-6
-  - Gap în liste/grids: gap-4 (16px) pentru liste, gap-6 (24px) pentru carduri
-  - Margin între secțiuni: mb-8
-  - Spacing în formulare și chat: space-y-4
+  - Padding carduri standard: p-6
+  - Padding carduri dense (liste): p-4
+  - Gap în liste/grids: gap-4 (16px) pentru liste dense, gap-6 (24px) pentru carduri importante
+  - Margin între secțiuni majore: mb-8, space-y-6 pentru tab content
+  - Spacing în formulare: space-y-4 pentru inputs, space-y-2 pentru label+input pairs
+  - Container padding: px-4 py-8 pentru main content areas
+  - Header padding: px-4 py-4
   
 - **Mobile**: 
-  - Tabs transformate în Select dropdown pe mobile dacă sunt multe
-  - Conversații chat: layout vertical pe mobile, side-by-side pe desktop
-  - Grid antrenori/atleți: 1 coloană mobile, 2 tabletă, 3+ desktop
-  - Dialog fullscreen pe mobile pentru formulare
-  - Sticky header pentru navigare rapidă
+  - Tabs pentru SuperAdmin (4 tabs) rămân tabs dar cu text mai scurt pe mobile
+  - Grid atleți/probe: 1 coloană mobile (<768px), 2 coloane tablet (768-1024px), 3+ coloane desktop (>1024px)
+  - Dialog fullscreen pe mobile pentru formulare complexe (management permisiuni)
+  - Conversații chat: layout vertical stack pe mobile, side-by-side pe desktop (>1024px)
+  - Badges se wrappează pe multiple linii când e nevoie
+  - Search bars full-width pe mobile
+  - Sticky header pentru navigare rapidă pe scroll
+  - Badge-uri "hidden sm:flex" pentru labels text lunghi (ex: nume utilizator în header)

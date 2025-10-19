@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useKV } from '@github/spark/hooks'
 import { Toaster, toast } from 'sonner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
-import { MagnifyingGlass, SortAscending, Trophy, SignOut, UserCircle, Envelope, ChatCircleDots } from '@phosphor-icons/react'
+import { MagnifyingGlass, SortAscending, Trophy, SignOut, UserCircle, Envelope, ChatCircleDots, ShieldCheck, Target } from '@phosphor-icons/react'
 import { AuthProvider, useAuth } from '@/lib/auth-context'
 import { AuthDialog } from '@/components/AuthDialog'
 import { AddAthleteDialog } from '@/components/AddAthleteDialog'
@@ -18,15 +18,21 @@ import { DashboardStats } from '@/components/DashboardStats'
 import { CoachAccessRequests } from '@/components/CoachAccessRequests'
 import { ParentDashboard } from '@/components/ParentDashboard'
 import { MessagingPanel } from '@/components/MessagingPanel'
-import type { Athlete, Result, AgeCategory, User, Coach, AccessRequest, Message } from '@/lib/types'
+import { SuperAdminDashboard } from '@/components/SuperAdminDashboard'
+import { EventManagement } from '@/components/EventManagement'
+import { PermissionsManagement } from '@/components/PermissionsManagement'
+import { AthleteDashboard } from '@/components/AthleteDashboard'
+import type { Athlete, Result, AgeCategory, User, Coach, AccessRequest, Message, EventTypeCustom, Permission } from '@/lib/types'
 
 function AppContent() {
-  const { currentUser, setCurrentUser, isCoach, isParent, logout } = useAuth()
+  const { currentUser, setCurrentUser, isCoach, isParent, isSuperAdmin, isAthlete, logout } = useAuth()
   const [athletes, setAthletes] = useKV<Athlete[]>('athletes', [])
   const [results, setResults] = useKV<Result[]>('results', [])
   const [users, setUsers] = useKV<User[]>('users', [])
   const [accessRequests, setAccessRequests] = useKV<AccessRequest[]>('access-requests', [])
   const [messages, setMessages] = useKV<Message[]>('messages', [])
+  const [events, setEvents] = useKV<EventTypeCustom[]>('events', [])
+  const [permissions, setPermissions] = useKV<Permission[]>('permissions', [])
   const [selectedAthlete, setSelectedAthlete] = useState<Athlete | null>(null)
   const [deleteAthleteId, setDeleteAthleteId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -34,6 +40,27 @@ function AppContent() {
   const [sortBy, setSortBy] = useState<'name' | 'age' | 'results'>('name')
   const [authDialogOpen, setAuthDialogOpen] = useState(false)
   const [selectedParentId, setSelectedParentId] = useState<string>('')
+
+  useEffect(() => {
+    const initSuperAdmin = async () => {
+      const existingUsers = users || []
+      const hasSuperAdmin = existingUsers.some(u => u.role === 'superadmin')
+      
+      if (!hasSuperAdmin) {
+        const superAdmin: User = {
+          id: 'superadmin-1',
+          email: 'admin@clubatletism.ro',
+          firstName: 'Super',
+          lastName: 'Admin',
+          role: 'superadmin',
+          createdAt: new Date().toISOString()
+        }
+        setUsers((current) => [...(current || []), superAdmin])
+      }
+    }
+    
+    initSuperAdmin()
+  }, [])
 
   const coaches = useMemo(() => {
     return (users || []).filter(u => u.role === 'coach')
@@ -137,17 +164,57 @@ function AppContent() {
     )
   }
 
+  const handleAddEvent = (eventData: Omit<EventTypeCustom, 'id' | 'createdAt'>) => {
+    setEvents((current) => [
+      ...(current || []),
+      {
+        ...eventData,
+        id: `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        createdAt: new Date().toISOString()
+      }
+    ])
+  }
+
+  const handleDeleteEvent = (id: string) => {
+    setEvents((current) => (current || []).filter(e => e.id !== id))
+  }
+
+  const handleGrantPermission = (permData: Omit<Permission, 'id' | 'grantedAt'>) => {
+    setPermissions((current) => [
+      ...(current || []),
+      {
+        ...permData,
+        id: `perm-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        grantedAt: new Date().toISOString()
+      }
+    ])
+  }
+
+  const handleRevokePermission = (id: string) => {
+    setPermissions((current) => (current || []).filter(p => p.id !== id))
+  }
+
+  const handleUpdateUserRole = (userId: string, role: 'coach' | 'parent' | 'athlete') => {
+    setUsers((current) =>
+      (current || []).map(u =>
+        u.id === userId ? { ...u, role } : u
+      )
+    )
+    toast.success('Rol actualizat cu succes')
+  }
+
   const getAthleteResultsCount = (athleteId: string): number => {
     return (results || []).filter(r => r.athleteId === athleteId).length
   }
 
   const myAthletes = useMemo(() => {
     if (!currentUser) return athletes || []
+    if (isSuperAdmin) return athletes || []
     if (isCoach) {
       return (athletes || []).filter(a => a.coachId === currentUser.id)
     }
     return athletes || []
-  }, [athletes, currentUser, isCoach])
+  }, [athletes, currentUser, isCoach, isSuperAdmin])
 
   const filteredAndSortedAthletes = useMemo(() => {
     let filtered = myAthletes
@@ -196,6 +263,11 @@ function AppContent() {
   }, [messages, currentUser])
 
   const selectedParent = parents.find(p => p.id === selectedParentId)
+
+  const currentAthlete = useMemo(() => {
+    if (!isAthlete || !currentUser) return null
+    return (athletes || []).find(a => a.id === (currentUser as any).athleteId) || null
+  }, [isAthlete, currentUser, athletes])
 
   if (!currentUser) {
     return (
@@ -275,6 +347,179 @@ function AppContent() {
           onAddResult={handleAddResult}
           onDeleteResult={handleDeleteResult}
         />
+      </div>
+    )
+  }
+
+  if (isSuperAdmin) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Toaster position="top-right" richColors />
+        
+        <header className="border-b bg-gradient-to-r from-primary/10 to-accent/10 backdrop-blur-sm sticky top-0 z-10">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <ShieldCheck size={32} weight="fill" className="text-primary" />
+                <div>
+                  <h1 className="text-2xl font-bold" style={{ fontFamily: 'Outfit', letterSpacing: '-0.02em' }}>
+                    Club Atletism
+                  </h1>
+                  <p className="text-sm text-muted-foreground">Panou SuperAdmin</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <Badge variant="default" className="hidden sm:flex">
+                  {currentUser.firstName} {currentUser.lastName}
+                </Badge>
+                <Button variant="outline" size="sm" onClick={logout}>
+                  <SignOut size={16} className="mr-2" />
+                  Deconectare
+                </Button>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <main className="container mx-auto px-4 py-8">
+          <Tabs defaultValue="dashboard" className="space-y-6">
+            <TabsList className="grid w-full max-w-3xl grid-cols-4">
+              <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+              <TabsTrigger value="permissions">Permisiuni</TabsTrigger>
+              <TabsTrigger value="events">Probe</TabsTrigger>
+              <TabsTrigger value="athletes">Atleți</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="dashboard">
+              <SuperAdminDashboard
+                users={users || []}
+                athletes={athletes || []}
+                events={events || []}
+                permissions={permissions || []}
+              />
+            </TabsContent>
+
+            <TabsContent value="permissions">
+              <PermissionsManagement
+                users={users || []}
+                athletes={athletes || []}
+                permissions={permissions || []}
+                currentUserId={currentUser.id}
+                onGrantPermission={handleGrantPermission}
+                onRevokePermission={handleRevokePermission}
+                onUpdateUserRole={handleUpdateUserRole}
+              />
+            </TabsContent>
+
+            <TabsContent value="events">
+              <EventManagement
+                events={events || []}
+                onAddEvent={handleAddEvent}
+                onDeleteEvent={handleDeleteEvent}
+              />
+            </TabsContent>
+
+            <TabsContent value="athletes" className="space-y-6">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="relative flex-1">
+                  <MagnifyingGlass 
+                    size={20} 
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" 
+                  />
+                  <Input
+                    placeholder="Caută atlet..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v as AgeCategory | 'all')}>
+                  <SelectTrigger className="w-full sm:w-[180px]">
+                    <SelectValue placeholder="Categorie" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Toate categoriile</SelectItem>
+                    <SelectItem value="U10">U10</SelectItem>
+                    <SelectItem value="U12">U12</SelectItem>
+                    <SelectItem value="U14">U14</SelectItem>
+                    <SelectItem value="U16">U16</SelectItem>
+                    <SelectItem value="U18">U18</SelectItem>
+                  </SelectContent>
+                </Select>
+                <AddAthleteDialog onAdd={handleAddAthlete} coaches={coaches} />
+              </div>
+
+              {filteredAndSortedAthletes.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  {searchQuery || categoryFilter !== 'all'
+                    ? 'Niciun atlet găsit cu filtrele curente'
+                    : 'Niciun atlet adăugat încă'}
+                </div>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {filteredAndSortedAthletes.map((athlete) => (
+                    <AthleteCard
+                      key={athlete.id}
+                      athlete={athlete}
+                      resultsCount={getAthleteResultsCount(athlete.id)}
+                      onViewDetails={setSelectedAthlete}
+                      onDelete={handleDeleteAthlete}
+                    />
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+        </main>
+
+        <AthleteDetailsDialog
+          athlete={selectedAthlete}
+          results={results || []}
+          onClose={() => setSelectedAthlete(null)}
+          onAddResult={handleAddResult}
+          onDeleteResult={handleDeleteResult}
+        />
+      </div>
+    )
+  }
+
+  if (isAthlete) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Toaster position="top-right" richColors />
+        
+        <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Trophy size={32} weight="fill" className="text-accent" />
+                <div>
+                  <h1 className="text-2xl font-bold" style={{ fontFamily: 'Outfit', letterSpacing: '-0.02em' }}>
+                    Club Atletism
+                  </h1>
+                  <p className="text-sm text-muted-foreground">Panou Atlet</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <Badge variant="secondary" className="hidden sm:flex">
+                  {currentUser.firstName} {currentUser.lastName}
+                </Badge>
+                <Button variant="outline" size="sm" onClick={logout}>
+                  <SignOut size={16} className="mr-2" />
+                  Deconectare
+                </Button>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <main className="container mx-auto px-4 py-8">
+          <AthleteDashboard
+            athlete={currentAthlete}
+            results={results || []}
+            coaches={coaches}
+          />
+        </main>
       </div>
     )
   }

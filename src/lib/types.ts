@@ -13,9 +13,11 @@ export type EventType =
   | 'Javelin'
   | 'Discus'
 
-export type UserRole = 'coach' | 'parent'
+export type UserRole = 'superadmin' | 'coach' | 'parent' | 'athlete'
 
 export type AccessRequestStatus = 'pending' | 'approved' | 'rejected'
+
+export type PermissionType = 'view' | 'edit' | 'full'
 
 export interface User {
   id: string
@@ -26,13 +28,25 @@ export interface User {
   createdAt: string
 }
 
+export interface SuperAdmin extends User {
+  role: 'superadmin'
+}
+
 export interface Coach extends User {
   role: 'coach'
   specialization?: string
+  permissions?: PermissionType
 }
 
 export interface Parent extends User {
   role: 'parent'
+  permissions?: PermissionType
+}
+
+export interface AthleteUser extends User {
+  role: 'athlete'
+  athleteId?: string
+  permissions?: PermissionType
 }
 
 export interface Athlete {
@@ -80,4 +94,23 @@ export interface Message {
   content: string
   timestamp: string
   read: boolean
+}
+
+export interface EventTypeCustom {
+  id: string
+  name: string
+  category: 'running' | 'jumping' | 'throwing' | 'other'
+  unit: 'seconds' | 'meters' | 'points'
+  description?: string
+  createdAt: string
+}
+
+export interface Permission {
+  id: string
+  userId: string
+  resourceType: 'athlete' | 'event' | 'result' | 'all'
+  resourceId?: string
+  permissionType: PermissionType
+  grantedBy: string
+  grantedAt: string
 }
