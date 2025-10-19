@@ -796,24 +796,26 @@ function AppContent() {
 
         <main className="container mx-auto px-4 py-8">
           <Tabs value={superAdminActiveTab} onValueChange={setSuperAdminActiveTab} className="space-y-6">
-            <TabsList className="grid w-full max-w-6xl grid-cols-9 bg-muted/50 p-1.5 rounded-xl">
-              <TabsTrigger value="dashboard" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Dashboard</TabsTrigger>
-              <TabsTrigger value="approvals" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                Aprobări
-                {pendingRequestsCount > 0 && (
-                  <Badge variant="destructive" className="ml-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs animate-pulse">
-                    {pendingRequestsCount}
-                  </Badge>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="users" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Utilizatori</TabsTrigger>
-              <TabsTrigger value="roles" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Roluri</TabsTrigger>
-              <TabsTrigger value="permissions" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Permisiuni</TabsTrigger>
-              <TabsTrigger value="categories" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Categorii</TabsTrigger>
-              <TabsTrigger value="groups" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Probe</TabsTrigger>
-              <TabsTrigger value="events" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Evenimente</TabsTrigger>
-              <TabsTrigger value="athletes" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Atleți</TabsTrigger>
-            </TabsList>
+            <div className="overflow-x-auto -mx-4 px-4 pb-2">
+              <TabsList className="inline-flex w-auto min-w-full bg-muted/50 p-1.5 rounded-xl">
+                <TabsTrigger value="dashboard" className="data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap text-xs sm:text-sm">Dashboard</TabsTrigger>
+                <TabsTrigger value="approvals" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap text-xs sm:text-sm">
+                  Aprobări
+                  {pendingRequestsCount > 0 && (
+                    <Badge variant="destructive" className="ml-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs animate-pulse">
+                      {pendingRequestsCount}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="users" className="data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap text-xs sm:text-sm">Utilizatori</TabsTrigger>
+                <TabsTrigger value="roles" className="data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap text-xs sm:text-sm">Roluri</TabsTrigger>
+                <TabsTrigger value="permissions" className="data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap text-xs sm:text-sm">Permisiuni</TabsTrigger>
+                <TabsTrigger value="categories" className="data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap text-xs sm:text-sm">Categorii</TabsTrigger>
+                <TabsTrigger value="groups" className="data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap text-xs sm:text-sm">Probe</TabsTrigger>
+                <TabsTrigger value="events" className="data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap text-xs sm:text-sm">Evenimente</TabsTrigger>
+                <TabsTrigger value="athletes" className="data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap text-xs sm:text-sm">Atleți</TabsTrigger>
+              </TabsList>
+            </div>
 
             <TabsContent value="dashboard">
               <SuperAdminDashboard
@@ -1065,31 +1067,33 @@ function AppContent() {
 
       <main className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className={`grid w-full max-w-2xl ${isCoach ? 'grid-cols-4' : 'grid-cols-3'} bg-muted/50 p-1.5 rounded-xl`}>
-            <TabsTrigger value="dashboard" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Dashboard</TabsTrigger>
-            <TabsTrigger value="athletes" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Atleți</TabsTrigger>
-            {!isCoach && <TabsTrigger value="coaches" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Antrenori</TabsTrigger>}
-            <TabsTrigger value="requests" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-              <Envelope size={16} />
-              Cereri
-              {isCoach && pendingRequestsCount > 0 && (
-                <Badge variant="destructive" className="ml-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs animate-pulse">
-                  {pendingRequestsCount}
-                </Badge>
-              )}
-            </TabsTrigger>
-            {isCoach && (
-              <TabsTrigger value="messages" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                <ChatCircleDots size={16} />
-                Mesaje
-                {unreadMessagesCount > 0 && (
-                  <Badge variant="destructive" className="ml-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs animate-pulse">
-                    {unreadMessagesCount}
+          <div className="overflow-x-auto -mx-4 px-4 pb-2">
+            <TabsList className="inline-flex w-auto min-w-full bg-muted/50 p-1.5 rounded-xl">
+              <TabsTrigger value="dashboard" className="data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap text-xs sm:text-sm">Dashboard</TabsTrigger>
+              <TabsTrigger value="athletes" className="data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap text-xs sm:text-sm">Atleți</TabsTrigger>
+              {!isCoach && <TabsTrigger value="coaches" className="data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap text-xs sm:text-sm">Antrenori</TabsTrigger>}
+              <TabsTrigger value="requests" className="gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap text-xs sm:text-sm">
+                <Envelope size={14} className="sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Cereri</span>
+                {isCoach && pendingRequestsCount > 0 && (
+                  <Badge variant="destructive" className="ml-1 h-4 w-4 sm:h-5 sm:w-5 rounded-full p-0 flex items-center justify-center text-[10px] sm:text-xs animate-pulse">
+                    {pendingRequestsCount}
                   </Badge>
                 )}
               </TabsTrigger>
-            )}
-          </TabsList>
+              {isCoach && (
+                <TabsTrigger value="messages" className="gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap text-xs sm:text-sm">
+                  <ChatCircleDots size={14} className="sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Mesaje</span>
+                  {unreadMessagesCount > 0 && (
+                    <Badge variant="destructive" className="ml-1 h-4 w-4 sm:h-5 sm:w-5 rounded-full p-0 flex items-center justify-center text-[10px] sm:text-xs animate-pulse">
+                      {unreadMessagesCount}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+              )}
+            </TabsList>
+          </div>
 
           <TabsContent value="dashboard" className="space-y-6">
             {isCoach ? (
