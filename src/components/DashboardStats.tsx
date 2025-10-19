@@ -1,10 +1,29 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
+import { useKV } from '@github/spark/hooks'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Users, Trophy, ListNumbers, TrendUp, ArrowRight } from '@phosphor-icons/react'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
+import { Users, Trophy, ListNumbers, TrendUp, ArrowRight, Gear } from '@phosphor-icons/react'
 import { StatWidget } from './StatWidget'
 import { formatResult } from '@/lib/constants'
 import type { Athlete, Result } from '@/lib/types'
+
+type WidgetType = 
+  | 'stats-total'
+  | 'stats-active'
+  | 'stats-results'
+  | 'stats-probes'
+
+interface Widget {
+  id: string
+  type: WidgetType
+  title: string
+  size: 'small' | 'medium' | 'large' | 'xlarge'
+  enabled: boolean
+}
 
 interface DashboardStatsProps {
   athletes: Athlete[]
@@ -14,6 +33,13 @@ interface DashboardStatsProps {
 }
 
 export function DashboardStats({ athletes, results, onNavigateToAthletes, onViewAthleteDetails }: DashboardStatsProps) {
+  const [widgets, setWidgets] = useKV<Widget[]>('dashboard-widgets', [
+    { id: 'w1', type: 'stats-total', title: 'Total Atleți', size: 'small', enabled: true },
+    { id: 'w2', type: 'stats-active', title: 'Atleți Activi', size: 'small', enabled: true },
+    { id: 'w3', type: 'stats-results', title: 'Total Rezultate', size: 'small', enabled: true },
+    { id: 'w4', type: 'stats-probes', title: 'Probe Active', size: 'small', enabled: true }
+  ])
+  const [customizeOpen, setCustomizeOpen] = useState(false)
   const totalAthletes = athletes.length
   const totalResults = results.length
   const activeAthletes = useMemo(() => 
@@ -177,43 +203,143 @@ export function DashboardStats({ athletes, results, onNavigateToAthletes, onView
     </div>
   )
 
+  const toggleWidget = (widgetId: string) => {
+    setWidgets((current) => 
+      (current || []).map(w => w.id === widgetId ? { ...w, enabled: !w.enabled } : w)
+    )
+  }
+
+  const changeWidgetSize = (widgetId: string, size: Widget['size']) => {
+    setWidgets((current) => 
+      (current || []).map(w => w.id === widgetId ? { ...w, size } : w)
+    )
+  }
+
+  const renderWidget = (widget: Widget) => {
+    if (!widget.enabled) return null
+
+    const sizeClasses = {
+      small: 'col-span-1',
+      medium: 'col-span-1 lg:col-span-2',
+      large: 'col-span-1 lg:col-span-3',
+      xlarge: 'col-span-1 lg:col-span-4'
+    }
+
+    switch (widget.type) {
+      case 'stats-total':
+        return (
+          <div key={widget.id} className={sizeClasses[widget.size]}>
+            <StatWidget
+              title="Total Atleți"
+              value={totalAthletes}
+              icon={<Users size={24} weight="fill" />}
+              iconColor="text-primary"
+              subtitle={`${categoryBreakdown.length} ${categoryBreakdown.length === 1 ? 'categorie' : 'categorii'}`}
+              detailsContent={totalAthletesDetails}
+            />
+          </div>
+        )
+
+      case 'stats-active':
+        return (
+          <div key={widget.id} className={sizeClasses[widget.size]}>
+            <StatWidget
+              title="Atleți Activi"
+              value={activeAthletes}
+              icon={<TrendUp size={24} weight="fill" />}
+              iconColor="text-secondary"
+              subtitle={totalAthletes > 0 ? `${((activeAthletes / totalAthletes) * 100).toFixed(0)}% din total` : '0% din total'}
+              detailsContent={activeAthletesDetails}
+            />
+          </div>
+        )
+
+      case 'stats-results':
+        return (
+          <div key={widget.id} className={sizeClasses[widget.size]}>
+            <StatWidget
+              title="Total Rezultate"
+              value={totalResults}
+              icon={<ListNumbers size={24} weight="fill" />}
+              iconColor="text-accent"
+              subtitle={totalAthletes > 0 ? `${(totalResults / totalAthletes).toFixed(1)} per atlet` : '0 per atlet'}
+              detailsContent={totalResultsDetails}
+            />
+          </div>
+        )
+
+      case 'stats-probes':
+        return (
+          <div key={widget.id} className={sizeClasses[widget.size]}>
+            <StatWidget
+              title="Probe Active"
+              value={activeProbes}
+              icon={<Trophy size={24} weight="fill" />}
+              iconColor="text-purple-500"
+              subtitle={`${activeProbes} ${activeProbes === 1 ? 'disciplină' : 'discipline'}`}
+              detailsContent={probesDetails}
+            />
+          </div>
+        )
+
+      default:
+        return null
+    }
+  }
+
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      <StatWidget
-        title="Total Atleți"
-        value={totalAthletes}
-        icon={<Users size={24} weight="fill" />}
-        iconColor="text-primary"
-        subtitle={`${categoryBreakdown.length} ${categoryBreakdown.length === 1 ? 'categorie' : 'categorii'}`}
-        detailsContent={totalAthletesDetails}
-      />
+    <div className="space-y-4">
+      <div className="flex items-center justify-end">
+        <Button variant="outline" size="sm" onClick={() => setCustomizeOpen(true)}>
+          <Gear size={16} className="mr-2" />
+          Personalizează
+        </Button>
+      </div>
 
-      <StatWidget
-        title="Atleți Activi"
-        value={activeAthletes}
-        icon={<TrendUp size={24} weight="fill" />}
-        iconColor="text-secondary"
-        subtitle={totalAthletes > 0 ? `${((activeAthletes / totalAthletes) * 100).toFixed(0)}% din total` : '0% din total'}
-        detailsContent={activeAthletesDetails}
-      />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 auto-rows-auto">
+        {(widgets || []).map(renderWidget)}
+      </div>
 
-      <StatWidget
-        title="Total Rezultate"
-        value={totalResults}
-        icon={<ListNumbers size={24} weight="fill" />}
-        iconColor="text-accent"
-        subtitle={totalAthletes > 0 ? `${(totalResults / totalAthletes).toFixed(1)} per atlet` : '0 per atlet'}
-        detailsContent={totalResultsDetails}
-      />
-
-      <StatWidget
-        title="Probe Active"
-        value={activeProbes}
-        icon={<Trophy size={24} weight="fill" />}
-        iconColor="text-purple-500"
-        subtitle={`${activeProbes} ${activeProbes === 1 ? 'disciplină' : 'discipline'}`}
-        detailsContent={probesDetails}
-      />
+      <Dialog open={customizeOpen} onOpenChange={setCustomizeOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Personalizează Dashboard</DialogTitle>
+            <DialogDescription>
+              Activează sau dezactivează widget-urile și ajustează dimensiunile
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {(widgets || []).map((widget) => (
+              <div key={widget.id} className="flex items-center gap-4 p-4 border rounded-lg">
+                <Checkbox
+                  id={`widget-${widget.id}`}
+                  checked={widget.enabled}
+                  onCheckedChange={() => toggleWidget(widget.id)}
+                />
+                <Label htmlFor={`widget-${widget.id}`} className="flex-1 cursor-pointer">
+                  <div className="font-medium">{widget.title}</div>
+                  <div className="text-sm text-muted-foreground">{widget.type}</div>
+                </Label>
+                <Select
+                  value={widget.size}
+                  onValueChange={(value) => changeWidgetSize(widget.id, value as Widget['size'])}
+                  disabled={!widget.enabled}
+                >
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="small">Mic</SelectItem>
+                    <SelectItem value="medium">Mediu</SelectItem>
+                    <SelectItem value="large">Mare</SelectItem>
+                    <SelectItem value="xlarge">Foarte Mare</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

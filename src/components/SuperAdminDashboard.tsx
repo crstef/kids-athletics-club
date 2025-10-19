@@ -1,10 +1,29 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
+import { useKV } from '@github/spark/hooks'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Users, Trophy, Target, ShieldCheck, ArrowRight } from '@phosphor-icons/react'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
+import { Users, Trophy, Target, ShieldCheck, ArrowRight, Gear } from '@phosphor-icons/react'
 import { StatWidget } from './StatWidget'
 import type { User, Athlete, EventTypeCustom, Permission } from '@/lib/types'
+
+type WidgetType = 
+  | 'stats-users'
+  | 'stats-athletes'
+  | 'stats-events'
+  | 'stats-permissions'
+
+interface Widget {
+  id: string
+  type: WidgetType
+  title: string
+  size: 'small' | 'medium' | 'large' | 'xlarge'
+  enabled: boolean
+}
 
 interface SuperAdminDashboardProps {
   users: User[]
@@ -16,6 +35,14 @@ interface SuperAdminDashboardProps {
 }
 
 export function SuperAdminDashboard({ users, athletes, events, permissions, onNavigateToTab, onViewAthleteDetails }: SuperAdminDashboardProps) {
+  const [widgets, setWidgets] = useKV<Widget[]>('superadmin-dashboard-widgets', [
+    { id: 'w1', type: 'stats-users', title: 'Utilizatori', size: 'small', enabled: true },
+    { id: 'w2', type: 'stats-athletes', title: 'Atleți Înregistrați', size: 'small', enabled: true },
+    { id: 'w3', type: 'stats-events', title: 'Probe Sportive', size: 'small', enabled: true },
+    { id: 'w4', type: 'stats-permissions', title: 'Permisiuni Active', size: 'small', enabled: true }
+  ])
+  const [customizeOpen, setCustomizeOpen] = useState(false)
+  
   const stats = useMemo(() => {
     const coaches = users.filter(u => u.role === 'coach')
     const parents = users.filter(u => u.role === 'parent')
@@ -192,55 +219,154 @@ export function SuperAdminDashboard({ users, athletes, events, permissions, onNa
     </div>
   )
 
+  const toggleWidget = (widgetId: string) => {
+    setWidgets((current) => 
+      (current || []).map(w => w.id === widgetId ? { ...w, enabled: !w.enabled } : w)
+    )
+  }
+
+  const changeWidgetSize = (widgetId: string, size: Widget['size']) => {
+    setWidgets((current) => 
+      (current || []).map(w => w.id === widgetId ? { ...w, size } : w)
+    )
+  }
+
+  const renderWidget = (widget: Widget) => {
+    if (!widget.enabled) return null
+
+    const sizeClasses = {
+      small: 'col-span-1',
+      medium: 'col-span-1 lg:col-span-2',
+      large: 'col-span-1 lg:col-span-3',
+      xlarge: 'col-span-1 lg:col-span-4'
+    }
+
+    switch (widget.type) {
+      case 'stats-users':
+        return (
+          <div key={widget.id} className={sizeClasses[widget.size]}>
+            <StatWidget
+              title="Utilizatori"
+              value={stats.totalUsers}
+              icon={<Users size={24} weight="fill" />}
+              iconColor="text-primary"
+              subtitle={`${stats.activeUsers} ${stats.activeUsers === 1 ? 'activ' : 'activi'}`}
+              detailsContent={usersDetails}
+            />
+          </div>
+        )
+
+      case 'stats-athletes':
+        return (
+          <div key={widget.id} className={sizeClasses[widget.size]}>
+            <StatWidget
+              title="Atleți Înregistrați"
+              value={stats.athletes}
+              icon={<Trophy size={24} weight="fill" />}
+              iconColor="text-accent"
+              subtitle={`${stats.athletes} ${stats.athletes === 1 ? 'copil în sistem' : 'copii în sistem'}`}
+              detailsContent={athletesDetails}
+            />
+          </div>
+        )
+
+      case 'stats-events':
+        return (
+          <div key={widget.id} className={sizeClasses[widget.size]}>
+            <StatWidget
+              title="Probe Sportive"
+              value={stats.events}
+              icon={<Target size={24} weight="fill" />}
+              iconColor="text-secondary"
+              subtitle={`${stats.events} ${stats.events === 1 ? 'probă configurată' : 'probe configurate'}`}
+              detailsContent={eventsDetails}
+            />
+          </div>
+        )
+
+      case 'stats-permissions':
+        return (
+          <div key={widget.id} className={sizeClasses[widget.size]}>
+            <StatWidget
+              title="Permisiuni Active"
+              value={stats.permissions}
+              icon={<ShieldCheck size={24} weight="fill" />}
+              iconColor="text-green-500"
+              subtitle={`${stats.permissions} ${stats.permissions === 1 ? 'drept acordat' : 'drepturi acordate'}`}
+              detailsContent={permissionsDetails}
+            />
+          </div>
+        )
+
+      default:
+        return null
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="relative">
         <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-primary/5 to-accent/10 blur-3xl -z-10" />
-        <h2 className="text-3xl font-bold mb-2 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent" style={{ fontFamily: 'Outfit', letterSpacing: '-0.02em' }}>
-          Dashboard SuperAdmin
-        </h2>
-        <p className="text-muted-foreground">
-          Statistici generale și management sistem
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-3xl font-bold mb-2 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent" style={{ fontFamily: 'Outfit', letterSpacing: '-0.02em' }}>
+              Dashboard SuperAdmin
+            </h2>
+            <p className="text-muted-foreground">
+              Statistici generale și management sistem
+            </p>
+          </div>
+          <Button variant="outline" onClick={() => setCustomizeOpen(true)}>
+            <Gear size={16} className="mr-2" />
+            Personalizează
+          </Button>
+        </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatWidget
-          title="Utilizatori"
-          value={stats.totalUsers}
-          icon={<Users size={24} weight="fill" />}
-          iconColor="text-primary"
-          subtitle={`${stats.activeUsers} ${stats.activeUsers === 1 ? 'activ' : 'activi'}`}
-          detailsContent={usersDetails}
-        />
-
-        <StatWidget
-          title="Atleți Înregistrați"
-          value={stats.athletes}
-          icon={<Trophy size={24} weight="fill" />}
-          iconColor="text-accent"
-          subtitle={`${stats.athletes} ${stats.athletes === 1 ? 'copil în sistem' : 'copii în sistem'}`}
-          detailsContent={athletesDetails}
-        />
-
-        <StatWidget
-          title="Probe Sportive"
-          value={stats.events}
-          icon={<Target size={24} weight="fill" />}
-          iconColor="text-secondary"
-          subtitle={`${stats.events} ${stats.events === 1 ? 'probă configurată' : 'probe configurate'}`}
-          detailsContent={eventsDetails}
-        />
-
-        <StatWidget
-          title="Permisiuni Active"
-          value={stats.permissions}
-          icon={<ShieldCheck size={24} weight="fill" />}
-          iconColor="text-green-500"
-          subtitle={`${stats.permissions} ${stats.permissions === 1 ? 'drept acordat' : 'drepturi acordate'}`}
-          detailsContent={permissionsDetails}
-        />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 auto-rows-auto">
+        {(widgets || []).map(renderWidget)}
       </div>
+
+      <Dialog open={customizeOpen} onOpenChange={setCustomizeOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Personalizează Dashboard</DialogTitle>
+            <DialogDescription>
+              Activează sau dezactivează widget-urile și ajustează dimensiunile
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {(widgets || []).map((widget) => (
+              <div key={widget.id} className="flex items-center gap-4 p-4 border rounded-lg">
+                <Checkbox
+                  id={`widget-${widget.id}`}
+                  checked={widget.enabled}
+                  onCheckedChange={() => toggleWidget(widget.id)}
+                />
+                <Label htmlFor={`widget-${widget.id}`} className="flex-1 cursor-pointer">
+                  <div className="font-medium">{widget.title}</div>
+                  <div className="text-sm text-muted-foreground">{widget.type}</div>
+                </Label>
+                <Select
+                  value={widget.size}
+                  onValueChange={(value) => changeWidgetSize(widget.id, value as Widget['size'])}
+                  disabled={!widget.enabled}
+                >
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="small">Mic</SelectItem>
+                    <SelectItem value="medium">Mediu</SelectItem>
+                    <SelectItem value="large">Mare</SelectItem>
+                    <SelectItem value="xlarge">Foarte Mare</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card className="p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">

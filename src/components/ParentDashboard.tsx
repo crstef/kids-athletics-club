@@ -1,10 +1,14 @@
 import { useMemo, useState } from 'react'
+import { useKV } from '@github/spark/hooks'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Trophy, ChartLine, ChatCircleDots, Envelope, TrendUp, Medal, Target, Calendar, ListNumbers } from '@phosphor-icons/react'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
+import { Trophy, ChartLine, ChatCircleDots, Envelope, TrendUp, Medal, Target, Calendar, ListNumbers, Gear } from '@phosphor-icons/react'
 import { AthleteCard } from './AthleteCard'
 import { ParentAccessRequest } from './ParentAccessRequest'
 import { MessagingPanel } from './MessagingPanel'
@@ -13,6 +17,20 @@ import { ProgressStats } from './ProgressStats'
 import { PerformanceChart } from './PerformanceChart'
 import type { Athlete, Result, AccessRequest, User, Message } from '@/lib/types'
 import { formatResult } from '@/lib/constants'
+
+type WidgetType = 
+  | 'stats-results'
+  | 'stats-events'
+  | 'stats-recent'
+  | 'stats-improvements'
+
+interface Widget {
+  id: string
+  type: WidgetType
+  title: string
+  size: 'small' | 'medium' | 'large' | 'xlarge'
+  enabled: boolean
+}
 
 interface ParentDashboardProps {
   parentId: string
@@ -39,6 +57,13 @@ export function ParentDashboard({
   onMarkAsRead,
   onViewAthleteDetails
 }: ParentDashboardProps) {
+  const [widgets, setWidgets] = useKV<Widget[]>('parent-dashboard-widgets', [
+    { id: 'w1', type: 'stats-results', title: 'Total Rezultate', size: 'small', enabled: true },
+    { id: 'w2', type: 'stats-events', title: 'Probe Practicate', size: 'small', enabled: true },
+    { id: 'w3', type: 'stats-recent', title: 'Ultima Lună', size: 'small', enabled: true },
+    { id: 'w4', type: 'stats-improvements', title: 'Îmbunătățiri', size: 'small', enabled: true }
+  ])
+  const [customizeOpen, setCustomizeOpen] = useState(false)
   const [selectedCoachId, setSelectedCoachId] = useState<string>('')
   const [selectedAthleteId, setSelectedAthleteId] = useState<string>('')
 
@@ -125,6 +150,18 @@ export function ParentDashboard({
     return messages.filter(m => m.toUserId === parentId && !m.read).length
   }, [messages, parentId])
 
+  const toggleWidget = (widgetId: string) => {
+    setWidgets((current) => 
+      (current || []).map(w => w.id === widgetId ? { ...w, enabled: !w.enabled } : w)
+    )
+  }
+
+  const changeWidgetSize = (widgetId: string, size: Widget['size']) => {
+    setWidgets((current) => 
+      (current || []).map(w => w.id === widgetId ? { ...w, size } : w)
+    )
+  }
+
   const selectedCoach = coaches.find(c => c.id === selectedCoachId)
   const selectedCoachAthlete = approvedAthletes.find(a => a.coachId === selectedCoachId)
   const selectedAthlete = approvedAthletes.find(a => a.id === selectedAthleteId)
@@ -189,43 +226,89 @@ export function ParentDashboard({
     </div>
   )
 
+  const renderWidget = (widget: Widget) => {
+    if (!widget.enabled) return null
+
+    const sizeClasses = {
+      small: 'col-span-1',
+      medium: 'col-span-1 lg:col-span-2',
+      large: 'col-span-1 lg:col-span-3',
+      xlarge: 'col-span-1 lg:col-span-4'
+    }
+
+    switch (widget.type) {
+      case 'stats-results':
+        return (
+          <div key={widget.id} className={sizeClasses[widget.size]}>
+            <StatWidget
+              title="Total Rezultate"
+              value={stats.totalResults}
+              icon={<ListNumbers size={20} weight="fill" />}
+              iconColor="text-primary"
+              subtitle={`${approvedAthletes.length} ${approvedAthletes.length === 1 ? 'copil' : 'copii'}`}
+              detailsContent={totalResultsDetails}
+            />
+          </div>
+        )
+      
+      case 'stats-events':
+        return (
+          <div key={widget.id} className={sizeClasses[widget.size]}>
+            <StatWidget
+              title="Probe Practicate"
+              value={stats.totalEvents}
+              icon={<Trophy size={20} weight="fill" />}
+              iconColor="text-accent"
+              subtitle="Diferite discipline"
+            />
+          </div>
+        )
+      
+      case 'stats-recent':
+        return (
+          <div key={widget.id} className={sizeClasses[widget.size]}>
+            <StatWidget
+              title="Ultima Lună"
+              value={stats.recentResults}
+              icon={<Calendar size={20} weight="fill" />}
+              iconColor="text-secondary"
+              subtitle="Rezultate noi"
+              detailsContent={recentActivityDetails}
+            />
+          </div>
+        )
+      
+      case 'stats-improvements':
+        return (
+          <div key={widget.id} className={sizeClasses[widget.size]}>
+            <StatWidget
+              title="Îmbunătățiri"
+              value={stats.improvements}
+              icon={<TrendUp size={20} weight="fill" />}
+              iconColor="text-green-600"
+              subtitle="Probe în progres"
+            />
+          </div>
+        )
+
+      default:
+        return null
+    }
+  }
+
   return (
     <div className="space-y-6">
       {approvedAthletes.length > 0 && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <StatWidget
-            title="Total Rezultate"
-            value={stats.totalResults}
-            icon={<ListNumbers size={20} weight="fill" />}
-            iconColor="text-primary"
-            subtitle={`${approvedAthletes.length} ${approvedAthletes.length === 1 ? 'copil' : 'copii'}`}
-            detailsContent={totalResultsDetails}
-          />
-          
-          <StatWidget
-            title="Probe Practicate"
-            value={stats.totalEvents}
-            icon={<Trophy size={20} weight="fill" />}
-            iconColor="text-accent"
-            subtitle="Diferite discipline"
-          />
-          
-          <StatWidget
-            title="Ultima Lună"
-            value={stats.recentResults}
-            icon={<Calendar size={20} weight="fill" />}
-            iconColor="text-secondary"
-            subtitle="Rezultate noi"
-            detailsContent={recentActivityDetails}
-          />
-          
-          <StatWidget
-            title="Îmbunătățiri"
-            value={stats.improvements}
-            icon={<TrendUp size={20} weight="fill" />}
-            iconColor="text-green-600"
-            subtitle="Probe în progres"
-          />
+        <div className="space-y-4">
+          <div className="flex items-center justify-end">
+            <Button variant="outline" size="sm" onClick={() => setCustomizeOpen(true)}>
+              <Gear size={16} className="mr-2" />
+              Personalizează
+            </Button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 auto-rows-auto">
+            {(widgets || []).map(renderWidget)}
+          </div>
         </div>
       )}
 
@@ -368,6 +451,47 @@ export function ParentDashboard({
                 results={getAthleteStats(selectedAthlete.id).athleteResults}
               />
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={customizeOpen} onOpenChange={setCustomizeOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Personalizează Dashboard</DialogTitle>
+            <DialogDescription>
+              Activează sau dezactivează widget-urile și ajustează dimensiunile
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {(widgets || []).map((widget) => (
+              <div key={widget.id} className="flex items-center gap-4 p-4 border rounded-lg">
+                <Checkbox
+                  id={`widget-${widget.id}`}
+                  checked={widget.enabled}
+                  onCheckedChange={() => toggleWidget(widget.id)}
+                />
+                <Label htmlFor={`widget-${widget.id}`} className="flex-1 cursor-pointer">
+                  <div className="font-medium">{widget.title}</div>
+                  <div className="text-sm text-muted-foreground">{widget.type}</div>
+                </Label>
+                <Select
+                  value={widget.size}
+                  onValueChange={(value) => changeWidgetSize(widget.id, value as Widget['size'])}
+                  disabled={!widget.enabled}
+                >
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="small">Mic</SelectItem>
+                    <SelectItem value="medium">Mediu</SelectItem>
+                    <SelectItem value="large">Mare</SelectItem>
+                    <SelectItem value="xlarge">Foarte Mare</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            ))}
           </div>
         </DialogContent>
       </Dialog>
