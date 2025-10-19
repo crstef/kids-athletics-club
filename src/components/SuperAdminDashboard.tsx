@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Users, Trophy, Target, ShieldCheck } from '@phosphor-icons/react'
+import { StatWidget } from './StatWidget'
 import type { User, Athlete, EventTypeCustom, Permission } from '@/lib/types'
 
 interface SuperAdminDashboardProps {
@@ -13,21 +14,153 @@ interface SuperAdminDashboardProps {
 
 export function SuperAdminDashboard({ users, athletes, events, permissions }: SuperAdminDashboardProps) {
   const stats = useMemo(() => {
-    const coaches = users.filter(u => u.role === 'coach').length
-    const parents = users.filter(u => u.role === 'parent').length
-    const athleteUsers = users.filter(u => u.role === 'athlete').length
-    const totalUsers = coaches + parents + athleteUsers
+    const coaches = users.filter(u => u.role === 'coach')
+    const parents = users.filter(u => u.role === 'parent')
+    const athleteUsers = users.filter(u => u.role === 'athlete')
+    const totalUsers = coaches.length + parents.length + athleteUsers.length
+    const activeUsers = users.filter(u => u.isActive).length
+    const pendingApprovals = users.filter(u => u.needsApproval).length
 
     return {
       totalUsers,
       coaches,
       parents,
       athleteUsers,
+      activeUsers,
+      pendingApprovals,
       athletes: athletes.length,
       events: events.length,
       permissions: permissions.length
     }
   }, [users, athletes, events, permissions])
+
+  const usersDetails = (
+    <div className="space-y-4">
+      <p className="text-muted-foreground">
+        Detalii despre utilizatorii din sistem
+      </p>
+      <div className="grid gap-3">
+        <div className="p-4 border rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <span className="font-medium">Antrenori</span>
+            <Badge variant="default">{stats.coaches.length}</Badge>
+          </div>
+          <div className="text-sm text-muted-foreground">
+            {stats.coaches.filter(c => c.isActive).length} activi
+          </div>
+        </div>
+        <div className="p-4 border rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <span className="font-medium">Părinți</span>
+            <Badge variant="default">{stats.parents.length}</Badge>
+          </div>
+          <div className="text-sm text-muted-foreground">
+            {stats.parents.filter(p => p.isActive).length} activi
+          </div>
+        </div>
+        <div className="p-4 border rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <span className="font-medium">Atleți (utilizatori)</span>
+            <Badge variant="default">{stats.athleteUsers.length}</Badge>
+          </div>
+          <div className="text-sm text-muted-foreground">
+            {stats.athleteUsers.filter(a => a.isActive).length} activi
+          </div>
+        </div>
+        {stats.pendingApprovals > 0 && (
+          <div className="p-4 border border-destructive/50 rounded-lg bg-destructive/5">
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-medium">Cereri Pending</span>
+              <Badge variant="destructive">{stats.pendingApprovals}</Badge>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              Necesită aprobare
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+
+  const athletesDetails = (
+    <div className="space-y-4">
+      <p className="text-muted-foreground">
+        Toți copiii înregistrați în sistem
+      </p>
+      <div className="space-y-2">
+        {athletes
+          .sort((a, b) => a.lastName.localeCompare(b.lastName))
+          .map((athlete) => (
+            <div key={athlete.id} className="flex items-center justify-between p-3 border rounded-lg">
+              <div>
+                <div className="font-medium">{athlete.firstName} {athlete.lastName}</div>
+                <div className="text-sm text-muted-foreground">
+                  {athlete.age} ani • Categoria {athlete.category}
+                </div>
+              </div>
+              <Badge variant="outline">{athlete.category}</Badge>
+            </div>
+          ))}
+        {athletes.length === 0 && (
+          <div className="text-center py-4 text-muted-foreground text-sm">
+            Niciun atlet înregistrat
+          </div>
+        )}
+      </div>
+    </div>
+  )
+
+  const eventsDetails = (
+    <div className="space-y-4">
+      <p className="text-muted-foreground">
+        Probe sportive configurate în sistem
+      </p>
+      <div className="space-y-2">
+        {events.map((event) => (
+          <div key={event.id} className="flex items-center justify-between p-3 border rounded-lg">
+            <div>
+              <div className="font-medium">{event.name}</div>
+              <div className="text-sm text-muted-foreground">{event.category}</div>
+            </div>
+            <Badge variant="secondary">{event.unit}</Badge>
+          </div>
+        ))}
+        {events.length === 0 && (
+          <div className="text-center py-4 text-muted-foreground text-sm">
+            Nicio probă configurată
+          </div>
+        )}
+      </div>
+    </div>
+  )
+
+  const permissionsDetails = (
+    <div className="space-y-4">
+      <p className="text-muted-foreground">
+        Permisiuni active în sistem
+      </p>
+      <div className="space-y-2">
+        {permissions.map((perm) => (
+          <div key={perm.id} className="p-3 border rounded-lg">
+            <div className="flex items-center justify-between mb-1">
+              <div className="font-medium">{perm.name}</div>
+              <Badge variant={perm.isActive ? 'default' : 'secondary'}>
+                {perm.isActive ? 'Activă' : 'Inactivă'}
+              </Badge>
+            </div>
+            {perm.description && (
+              <div className="text-sm text-muted-foreground">{perm.description}</div>
+            )}
+          </div>
+        ))}
+        {permissions.length === 0 && (
+          <div className="text-center py-4 text-muted-foreground text-sm">
+            Nicio permisiune configurată
+          </div>
+        )}
+      </div>
+    </div>
+  )
 
   return (
     <div className="space-y-6">
@@ -39,57 +172,41 @@ export function SuperAdminDashboard({ users, athletes, events, permissions }: Su
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-sm font-medium text-muted-foreground">Utilizatori</div>
-            <Users size={20} className="text-primary" weight="duotone" />
-          </div>
-          <div className="text-3xl font-bold mb-3">{stats.totalUsers}</div>
-          <div className="flex gap-2 flex-wrap">
-            <Badge variant="secondary" className="text-xs">
-              {stats.coaches} Antrenori
-            </Badge>
-            <Badge variant="secondary" className="text-xs">
-              {stats.parents} Părinți
-            </Badge>
-            <Badge variant="secondary" className="text-xs">
-              {stats.athleteUsers} Atleți
-            </Badge>
-          </div>
-        </Card>
+        <StatWidget
+          title="Utilizatori"
+          value={stats.totalUsers}
+          icon={<Users size={20} weight="fill" />}
+          iconColor="text-primary"
+          subtitle={`${stats.activeUsers} activi`}
+          detailsContent={usersDetails}
+        />
 
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-sm font-medium text-muted-foreground">Atleți Înregistrați</div>
-            <Trophy size={20} className="text-accent" weight="duotone" />
-          </div>
-          <div className="text-3xl font-bold">{stats.athletes}</div>
-          <div className="text-sm text-muted-foreground mt-2">
-            Copii în sistem
-          </div>
-        </Card>
+        <StatWidget
+          title="Atleți Înregistrați"
+          value={stats.athletes}
+          icon={<Trophy size={20} weight="fill" />}
+          iconColor="text-accent"
+          subtitle="Copii în sistem"
+          detailsContent={athletesDetails}
+        />
 
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-sm font-medium text-muted-foreground">Probe Sportive</div>
-            <Target size={20} className="text-secondary" weight="duotone" />
-          </div>
-          <div className="text-3xl font-bold">{stats.events}</div>
-          <div className="text-sm text-muted-foreground mt-2">
-            Probe configurate
-          </div>
-        </Card>
+        <StatWidget
+          title="Probe Sportive"
+          value={stats.events}
+          icon={<Target size={20} weight="fill" />}
+          iconColor="text-secondary"
+          subtitle="Probe configurate"
+          detailsContent={eventsDetails}
+        />
 
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-sm font-medium text-muted-foreground">Permisiuni Active</div>
-            <ShieldCheck size={20} className="text-green-500" weight="duotone" />
-          </div>
-          <div className="text-3xl font-bold">{stats.permissions}</div>
-          <div className="text-sm text-muted-foreground mt-2">
-            Drepturi acordate
-          </div>
-        </Card>
+        <StatWidget
+          title="Permisiuni Active"
+          value={stats.permissions}
+          icon={<ShieldCheck size={20} weight="fill" />}
+          iconColor="text-green-500"
+          subtitle="Drepturi acordate"
+          detailsContent={permissionsDetails}
+        />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -107,9 +224,14 @@ export function SuperAdminDashboard({ users, athletes, events, permissions }: Su
                     </div>
                     <div className="text-xs text-muted-foreground">{user.email}</div>
                   </div>
-                  <Badge variant="outline" className="text-xs">
-                    {user.role === 'coach' ? 'Antrenor' : user.role === 'parent' ? 'Părinte' : 'Atlet'}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-xs">
+                      {user.role === 'coach' ? 'Antrenor' : user.role === 'parent' ? 'Părinte' : 'Atlet'}
+                    </Badge>
+                    {user.needsApproval && (
+                      <Badge variant="destructive" className="text-xs">Pending</Badge>
+                    )}
+                  </div>
                 </div>
               ))}
             {users.length === 0 && (
