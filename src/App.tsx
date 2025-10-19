@@ -17,6 +17,7 @@ import { AthleteDetailsDialog } from '@/components/AthleteDetailsDialog'
 import { DashboardStats } from '@/components/DashboardStats'
 import { CoachAccessRequests } from '@/components/CoachAccessRequests'
 import { CoachApprovalRequests } from '@/components/CoachApprovalRequests'
+import { CoachDashboard } from '@/components/CoachDashboard'
 import { ParentDashboard } from '@/components/ParentDashboard'
 import { MessagingPanel } from '@/components/MessagingPanel'
 import { SuperAdminDashboard } from '@/components/SuperAdminDashboard'
@@ -1116,21 +1117,10 @@ function AppContent() {
 
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className={`grid w-full max-w-2xl ${isCoach ? 'grid-cols-5' : 'grid-cols-3'}`}>
+          <TabsList className={`grid w-full max-w-2xl ${isCoach ? 'grid-cols-4' : 'grid-cols-3'}`}>
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="athletes">Atleți</TabsTrigger>
             {!isCoach && <TabsTrigger value="coaches">Antrenori</TabsTrigger>}
-            {isCoach && (
-              <TabsTrigger value="approvals" className="gap-2">
-                <Envelope size={16} />
-                Aprobări
-                {approvalRequests && approvalRequests.filter(r => r.coachId === currentUser.id && r.status === 'pending' && r.requestedRole === 'parent').length > 0 && (
-                  <Badge variant="destructive" className="ml-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
-                    {approvalRequests.filter(r => r.coachId === currentUser.id && r.status === 'pending' && r.requestedRole === 'parent').length}
-                  </Badge>
-                )}
-              </TabsTrigger>
-            )}
             <TabsTrigger value="requests" className="gap-2">
               <Envelope size={16} />
               Cereri
@@ -1154,31 +1144,45 @@ function AppContent() {
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-6">
-            <DashboardStats athletes={myAthletes} results={results || []} />
-
-            {myAthletes.length === 0 ? (
-              <div className="text-center py-12 space-y-4">
-                <Trophy size={64} weight="duotone" className="text-muted-foreground mx-auto" />
-                <div>
-                  <h3 className="text-xl font-semibold mb-2">Bine ai venit!</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Începe prin a adăuga primul atlet în baza de date
-                  </p>
-                  <AddAthleteDialog onAdd={handleAddAthlete} coaches={coaches} />
-                </div>
-              </div>
+            {isCoach ? (
+              <CoachDashboard
+                coachId={currentUser.id}
+                athletes={athletes || []}
+                results={results || []}
+                users={users || []}
+                approvalRequests={approvalRequests || []}
+                onApproveAccount={handleApproveAccount}
+                onRejectAccount={handleRejectAccount}
+              />
             ) : (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {myAthletes.slice(0, 6).map((athlete) => (
-                  <AthleteCard
-                    key={athlete.id}
-                    athlete={athlete}
-                    resultsCount={getAthleteResultsCount(athlete.id)}
-                    onViewDetails={setSelectedAthlete}
-                    onDelete={handleDeleteAthlete}
-                  />
-                ))}
-              </div>
+              <>
+                <DashboardStats athletes={myAthletes} results={results || []} />
+
+                {myAthletes.length === 0 ? (
+                  <div className="text-center py-12 space-y-4">
+                    <Trophy size={64} weight="duotone" className="text-muted-foreground mx-auto" />
+                    <div>
+                      <h3 className="text-xl font-semibold mb-2">Bine ai venit!</h3>
+                      <p className="text-muted-foreground mb-4">
+                        Începe prin a adăuga primul atlet în baza de date
+                      </p>
+                      <AddAthleteDialog onAdd={handleAddAthlete} coaches={coaches} />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {myAthletes.slice(0, 6).map((athlete) => (
+                      <AthleteCard
+                        key={athlete.id}
+                        athlete={athlete}
+                        resultsCount={getAthleteResultsCount(athlete.id)}
+                        onViewDetails={setSelectedAthlete}
+                        onDelete={handleDeleteAthlete}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </TabsContent>
 
@@ -1274,19 +1278,6 @@ function AppContent() {
                   })}
                 </div>
               )}
-            </TabsContent>
-          )}
-
-          {isCoach && (
-            <TabsContent value="approvals">
-              <CoachApprovalRequests
-                coachId={currentUser.id}
-                users={users || []}
-                athletes={athletes || []}
-                approvalRequests={approvalRequests || []}
-                onApproveAccount={handleApproveAccount}
-                onRejectAccount={handleRejectAccount}
-              />
             </TabsContent>
           )}
 

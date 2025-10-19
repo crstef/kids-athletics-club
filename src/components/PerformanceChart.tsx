@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react'
 import * as d3 from 'd3'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatResult } from '@/lib/constants'
 import type { PerformanceData } from '@/lib/types'
 
@@ -114,27 +113,11 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
 
   if (data.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Evoluție {eventType}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-            Niciun rezultat înregistrat pentru această probă
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+        Niciun rezultat înregistrat pentru această probă
+      </div>
     )
   }
 
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Evoluție {eventType}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <svg ref={svgRef} width="100%" height="300" />
-      </CardContent>
-    </Card>
-  )
+  return <svg ref={svgRef} width="100%" height="300" />
 }
