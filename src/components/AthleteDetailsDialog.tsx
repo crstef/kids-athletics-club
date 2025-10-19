@@ -164,7 +164,7 @@ export function AthleteDetailsDialog({
                 <PerformanceChart
                   data={chartData}
                   eventType={selectedEvent}
-                  unit={EVENT_UNITS[selectedEvent]}
+                  unit={EVENT_UNITS[selectedEvent as EventType] || 'seconds'}
                 />
               </div>
             )}

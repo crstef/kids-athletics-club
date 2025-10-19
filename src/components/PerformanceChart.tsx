@@ -26,11 +26,15 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
     const updateDimensions = () => {
       if (containerRef.current) {
         const { width } = containerRef.current.getBoundingClientRect()
-        setDimensions({ width, height: 300 })
+        if (width > 0) {
+          setDimensions({ width, height: 300 })
+        }
       }
     }
 
     updateDimensions()
+    
+    setTimeout(updateDimensions, 100)
 
     const resizeObserver = new ResizeObserver(entries => {
       for (const entry of entries) {
@@ -46,10 +50,12 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
   }, [])
 
   useEffect(() => {
-    if (!svgRef.current || filteredData.length === 0 || dimensions.width === 0) return
-
+    if (!svgRef.current || dimensions.width === 0) return
+    
     const svg = d3.select(svgRef.current)
     svg.selectAll('*').remove()
+
+    if (filteredData.length === 0) return
 
     const isMobile = dimensions.width < 640
     const margin = { 
@@ -207,7 +213,13 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
         </div>
       ) : (
         <div ref={containerRef} className="w-full">
-          <svg ref={svgRef} width="100%" height={dimensions.height || 300} />
+          {dimensions.width > 0 ? (
+            <svg ref={svgRef} width="100%" height={dimensions.height || 300} />
+          ) : (
+            <div className="flex items-center justify-center h-[300px]">
+              <div className="animate-pulse text-muted-foreground text-sm">Se încarcă graficul...</div>
+            </div>
+          )}
         </div>
       )}
     </div>
