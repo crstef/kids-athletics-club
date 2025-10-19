@@ -202,37 +202,6 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
           </TabsList>
 
           <TabsContent value="login" className="space-y-4">
-            <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
-              <div className="font-semibold text-sm mb-2 text-primary">📋 Conturi de Test:</div>
-              <div className="text-sm space-y-2">
-                <div>
-                  <div className="font-medium text-primary">SuperAdmin:</div>
-                  <div className="flex items-center gap-2 ml-2">
-                    <span className="text-muted-foreground text-xs">Email:</span>
-                    <code className="bg-primary/20 px-2 py-0.5 rounded text-primary font-mono text-xs">
-                      admin@clubatletism.ro
-                    </code>
-                  </div>
-                  <div className="flex items-center gap-2 ml-2">
-                    <span className="text-muted-foreground text-xs">Parolă:</span>
-                    <code className="bg-primary/20 px-2 py-0.5 rounded text-primary font-mono text-xs">
-                      admin123
-                    </code>
-                  </div>
-                </div>
-                
-                <div>
-                  <div className="font-medium text-secondary-foreground">Antrenori:</div>
-                  <div className="ml-2 text-xs space-y-1">
-                    <div>• ion.popescu@clubatletism.ro (Sprint)</div>
-                    <div>• maria.ionescu@clubatletism.ro (Sărituri)</div>
-                    <div>• andrei.matei@clubatletism.ro (Alergări Lungi)</div>
-                    <div className="text-muted-foreground">Parolă pentru toți: <code className="bg-secondary/20 px-1 rounded">coach123</code></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="login-email">Email</Label>
