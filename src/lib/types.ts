@@ -19,6 +19,23 @@ export type AccessRequestStatus = 'pending' | 'approved' | 'rejected'
 
 export type PermissionType = 'view' | 'edit' | 'full'
 
+export type PermissionName = 
+  | 'view_athletes'
+  | 'edit_athletes'
+  | 'delete_athletes'
+  | 'view_results'
+  | 'edit_results'
+  | 'delete_results'
+  | 'view_events'
+  | 'edit_events'
+  | 'delete_events'
+  | 'manage_coaches'
+  | 'manage_users'
+  | 'manage_permissions'
+  | 'approve_accounts'
+  | 'view_messages'
+  | 'send_messages'
+
 export interface User {
   id: string
   email: string
@@ -27,6 +44,10 @@ export interface User {
   lastName: string
   role: UserRole
   createdAt: string
+  isActive: boolean
+  needsApproval?: boolean
+  approvedBy?: string
+  approvedAt?: string
 }
 
 export interface SuperAdmin extends User {
@@ -108,10 +129,33 @@ export interface EventTypeCustom {
 
 export interface Permission {
   id: string
+  name: PermissionName
+  description: string
+  isActive: boolean
+  createdAt: string
+  createdBy: string
+  updatedAt?: string
+}
+
+export interface UserPermission {
+  id: string
   userId: string
-  resourceType: 'athlete' | 'event' | 'result' | 'all'
+  permissionId: string
+  resourceType?: 'athlete' | 'event' | 'result'
   resourceId?: string
-  permissionType: PermissionType
   grantedBy: string
   grantedAt: string
+  expiresAt?: string
+}
+
+export interface AccountApprovalRequest {
+  id: string
+  userId: string
+  athleteId?: string
+  requestedRole: UserRole
+  status: 'pending' | 'approved' | 'rejected'
+  requestDate: string
+  responseDate?: string
+  approvedBy?: string
+  rejectionReason?: string
 }

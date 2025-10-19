@@ -42,7 +42,9 @@ export function AddCoachDialog({ onAdd }: AddCoachDialogProps) {
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       role: 'coach',
-      specialization: specialization.trim() || undefined
+      specialization: specialization.trim() || undefined,
+      isActive: true,
+      needsApproval: false
     })
 
     setEmail('')

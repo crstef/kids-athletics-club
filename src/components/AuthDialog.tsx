@@ -9,7 +9,7 @@ import { useKV } from '@github/spark/hooks'
 import { toast } from 'sonner'
 import { Eye, EyeSlash } from '@phosphor-icons/react'
 import { hashPassword, verifyPassword } from '@/lib/crypto'
-import type { User, UserRole } from '@/lib/types'
+import type { User, UserRole, AccountApprovalRequest } from '@/lib/types'
 
 interface AuthDialogProps {
   open: boolean
@@ -19,6 +19,7 @@ interface AuthDialogProps {
 
 export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
   const [users, setUsers] = useKV<User[]>('users', [])
+  const [approvalRequests, setApprovalRequests] = useKV<AccountApprovalRequest[]>('approval-requests', [])
   
   const [loginEmail, setLoginEmail] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
@@ -51,6 +52,14 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
     const passwordMatch = await verifyPassword(loginPassword, user.password)
     
     if (passwordMatch) {
+      if (!user.isActive) {
+        if (user.needsApproval) {
+          toast.error('Contul tău așteaptă aprobare de la administrator')
+        } else {
+          toast.error('Contul tău este dezactivat. Contactează administratorul.')
+        }
+        return
+      }
       onLogin(user)
       toast.success(`Bine ai revenit, ${user.firstName}!`)
       onClose()
@@ -94,7 +103,9 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
       firstName: signupFirstName.trim(),
       lastName: signupLastName.trim(),
       role: signupRole,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      isActive: signupRole === 'superadmin',
+      needsApproval: signupRole !== 'superadmin'
     }
 
     if (signupRole === 'coach' && signupSpecialization.trim()) {
@@ -102,8 +113,22 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
     }
 
     setUsers((current) => [...(current || []), newUser])
-    onLogin(newUser)
-    toast.success(`Cont creat cu succes! Bine ai venit, ${newUser.firstName}!`)
+
+    if (signupRole !== 'superadmin') {
+      const approvalRequest: AccountApprovalRequest = {
+        id: `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        userId: newUser.id,
+        requestedRole: signupRole,
+        status: 'pending',
+        requestDate: new Date().toISOString()
+      }
+      setApprovalRequests((current) => [...(current || []), approvalRequest])
+      toast.info('Contul tău așteaptă aprobare de la administrator')
+    } else {
+      onLogin(newUser)
+    }
+    
+    toast.success(`Cont creat cu succes! ${newUser.firstName}!`)
     onClose()
     resetForms()
   }

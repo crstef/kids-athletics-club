@@ -1,103 +1,58 @@
 # Planning Guide
 
-O aplicație web profesională pentru managementul atleților juniori din clubul de atletism, care permite înregistrarea sportivilor, managementul probelor sportive personalizate, adăugarea rezultatelor și urmărirea evoluției performanțelor în timp. Include sistem de autentificare securizat cu parolă criptată (SHA-256), roluri multiple (SuperAdmin, Antrenor, Părinte, Atlet), management granular al permisiunilor, cereri de acces controlate pentru vizualizarea datelor copiilor și canal de comunicare între părinți și antrenori.
+O aplicație web profesională pentru managementul atleților juniori din clubul de atletism, care permite înregistrarea sportivilor, managementul probelor sportive personalizate, adăugarea rezultatelor și urmărirea evoluției performanțelor în timp. Include sistem complet de permisiuni cu creare, editare, activare/dezactivare permisiuni, aprobare conturi noi, control granular pe resurse specifice (atleți individuali), autentificare securizată cu parolă criptată (SHA-256), roluri multiple (SuperAdmin, Antrenor, Părinte, Atlet), și canal de comunicare între părinți și antrenori.
 
 **Experience Qualities**:
 1. **Profesională** - Interfață modernă și premium cu design sofisticat, iconografie consistentă și feedback vizual immediate pentru toate acțiunile
-2. **Securizată** - Autentificare cu parolă criptată SHA-256, sistem hierarhic de roluri cu SuperAdmin care controlează toate permisiunile, cereri de aprobare pentru acces și separare clară între drepturile utilizatorilor
-3. **Flexibilă** - Management dinamic al probelor sportive personalizate, configurabile per nevoile clubului, și sistem granular de permisiuni pe resurse specifice
+2. **Securizată** - Autentificare cu parolă criptată SHA-256, sistem ierarhic de permisiuni cu SuperAdmin care controlează toate permisiunile, aprobare obligatorie pentru conturi noi, cereri de acces pentru date copii și separare clară între drepturile utilizatorilor
+3. **Flexibilă** - Management complet al sistemului de permisiuni (creare, editare, activare/dezactivare), acordare granulară pe utilizatori și resurse specifice, probe sportive personalizate configurabile per nevoile clubului
 
 **Complexity Level**: Complex Application (advanced functionality, accounts)
-  - Aplicația gestionează multiple entități cu relații complexe (atleți, probe custom, rezultate, utilizatori multi-rol, cereri, permisiuni granulare, mesagerie), sistem complet de autentificare și autorizare cu SuperAdmin, management dinamic al schemei de date (probe configurabile).
+  - Aplicația gestionează multiple entități cu relații complexe (atleți, probe custom, rezultate, utilizatori multi-rol, cereri, permisiuni dinamice, mesagerie), sistem complet de autentificare și autorizare cu SuperAdmin, management dinamic al schemei de date (probe și permisiuni configurabile), sistem de aprobare pe două niveluri (cont + acces date copil).
 
 ## Essential Features
 
+### Sistem de Permisiuni Complet
+- **Functionality**: SuperAdmin creează, editează, activează/dezactivează permisiuni în sistem. Permisiunile disponibile includ: vizualizare/editare/ștergere atleți, rezultate, probe, gestionare antrenori/utilizatori/permisiuni, aprobare conturi și trimitere mesaje
+- **Purpose**: Control total și flexibil asupra capacităților utilizatorilor în sistem
+- **Trigger**: SuperAdmin → Tab "Permisiuni" → Management permisiuni disponibile
+- **Progression**: Panou permisiuni → Creare permisiune nouă (nume, descriere) → Salvare → Activare/Dezactivare → Editare → Ștergere (cu impact pe toți utilizatorii)
+- **Success criteria**: Permisiunile pot fi create custom, activate/dezactivate pentru a controla ce e disponibil în sistem, modificate și șterse
+
+### Acordare Permisiuni pe Utilizatori
+- **Functionality**: SuperAdmin acordă permisiuni specifice utilizatorilor, fie general fie pe resurse specifice (ex: părinte poate vizualiza doar atletul X)
+- **Purpose**: Control granular al accesului la date per utilizator
+- **Trigger**: SuperAdmin → Tab "Aprobări" → Selectare utilizator → "Acordă Permisiuni"
+- **Progression**: Selectare utilizator → Alegere permisiuni din lista activă → Optio nal selectare atlet specific → Confirmare → Vizualizare permisiuni acordate per utilizator → Revocare individuală
+- **Success criteria**: Utilizatorii primesc doar permisiunile acordate explicit, pot avea acces la atleți specifici, permisiunile pot fi revocate individual
+
+### Aprobare Conturi Noi
+- **Functionality**: Utilizatorii care se înregistrează (coach, parent, athlete) trebuie aprobați de SuperAdmin înainte de a-și putea activa contul
+- **Purpose**: Control asupra cine poate accesa sistemul și prevenirea accesului neautorizat
+- **Trigger**: Înregistrare utilizator nou → Creare cerere de aprobare → SuperAdmin vizualizează în tab "Aprobări"
+- **Progression**: User se înregistrează → Cont creat dar inactiv → Cerere trimisă automat la SuperAdmin → SuperAdmin vede cereri pending → Aprobă (cont activ) sau Respinge (cu motiv opțional) → User primeşte mesaj la login
+- **Success criteria**: Conturile nou create nu pot face login până la aprobare, SuperAdmin vede toate cererile pending cu badge notificare, utilizatorii aprobați pot accesa sistemul
+
+### Acces Părinte la Date Copil
+- **Functionality**: După ce contul e aprobat de SuperAdmin, părintele trebuie să ceară acces specific la datele copilului său de la antrenorul acestuia
+- **Purpose**: Protecție suplimentară a datelor minorilor cu control de la antrenor
+- **Trigger**: Părinte aprobat → Tab "Cereri Acces" → Selectare copil → Trimitere cerere la antrenor
+- **Progression**: Părinte selectează atlet → Mesaj opțional → Trimite către antrenorul atletului → Antrenor primește notificare → Aprobă/Respinge → Părinte primește acces doar la acel atlet specific
+- **Success criteria**: Părinții aprobați pot vedea DOAR atleții pentru care au primit aprobare de acces de la antrenori, nu au vizibilitate la alți atleți
+
 ### Autentificare Securizată cu Parolă
-- **Functionality**: Sistem de login cu email și parolă, parolele sunt criptate cu SHA-256 înainte de stocare, vizibilitate parola cu toggle eye icon, validare minim 6 caractere
+- **Functionality**: Sistem de login cu email și parolă, parolele sunt criptate cu SHA-256 înainte de stocare, vizibilitate parola cu toggle eye icon, validare minim 6 caractere, verificare status activ cont
 - **Purpose**: Protecția accesului la date sensibile și asigurarea identității utilizatorilor
 - **Trigger**: Acces aplicație → Dialog autentificare → Intrare credențiale
-- **Progression**: Email + Parolă → Validare → Hash comparison → Login success/error → Redirect la panou specific rolului
-- **Success criteria**: Parolele sunt stocate criptat, autentificarea verifică corect parolele, mesaje de eroare nu dezvăluie detalii de securitate (doar "Email sau parolă incorectă")
+- **Progression**: Email + Parolă → Validare → Hash comparison → Verificare cont activ și aprobat → Login success/error → Redirect la panou specific rolului
+- **Success criteria**: Parolele sunt stocate criptat, autentificarea verifică corect parolele și statusul contului, mesaje de eroare diferențiate pentru cont neaprobat vs credențiale greșite
 
-### Înregistrare Utilizatori cu Parolă
-- **Functionality**: Formular de înregistrare care cere email, parolă (min 6 caractere), confirmare parolă, prenume, nume și rol, cu validare în timp real
-- **Purpose**: Onboarding securizat al utilizatorilor noi în sistem
+### Înregistrare Utilizatori cu Aprobare
+- **Functionality**: Formular de înregistrare care cere email, parolă (min 6 caractere), confirmare parolă, prenume, nume și rol, cu validare în timp real și creare automată cerere de aprobare
+- **Purpose**: Onboarding securizat al utilizatorilor noi în sistem cu verificare admin
 - **Trigger**: Dialog autentificare → Tab "Înregistrare" → Completare formular
-- **Progression**: Completare câmpuri → Validare parolă (lungime, match) → Hash parola → Creare cont → Login automat
-- **Success criteria**: Parolele sunt verificate că match înainte de salvare, hash-ul este generat corect, emailuri duplicate sunt blocate
-
-### Management Utilizatori cu Parolă (SuperAdmin)
-- **Functionality**: SuperAdmin poate crea utilizatori noi cu parolă setată și poate reseta parola utilizatorilor existenți (câmp opțional la editare)
-- **Purpose**: Administrarea completă a conturilor și recuperarea accesului pentru utilizatori
-- **Trigger**: SuperAdmin → Tab "Utilizatori" → Adaugă/Editează Utilizator
-- **Progression**: Formular → Email + Parolă (obligatorie la creare, opțională la editare) → Hash → Salvare → Utilizator poate folosi noua parolă
-- **Success criteria**: SuperAdmin poate seta parole inițiale, poate reseta parole, parola veche rămâne dacă câmpul este gol la editare
-
-### Sistem SuperAdmin
-- **Functionality**: Rol special de administrator care are control complet asupra sistemului - poate gestiona utilizatori, probe, permisiuni și vizualiza toate datele
-- **Purpose**: Centralizarea managementului aplicației și controlul ierarhic al drepturilor
-- **Trigger**: Autentificare cu cont SuperAdmin (admin@clubatletism.ro / parola: admin123) → Acces panou dedicat
-- **Progression**: Login SuperAdmin → Dashboard cu statistici complete → Tabs pentru Utilizatori/Permisiuni/Probe/Atleți → Acțiuni administrative
-- **Success criteria**: SuperAdmin poate vedea toate datele, modifica roluri utilizatori, reseta parole, acorda/revoca permisiuni și gestiona probele
-
-### Management Probe Personalizate
-- **Functionality**: Adăugare, editare și ștergere probe sportive custom cu nume, categorie (Alergare/Sărituri/Aruncări/Altele), unitate măsură (secunde/metri/puncte) și descriere
-- **Purpose**: Flexibilitate în adaptarea sistemului la nevoile specifice ale clubului și diversitatea probelor practicate
-- **Trigger**: SuperAdmin → Tab "Probe" → Buton "Adaugă Probă"
-- **Progression**: Click acțiune → Formular (Nume, Categorie, Unitate, Descriere) → Salvare → Afișare în listă cu iconuri și badge-uri → Utilizare în înregistrare rezultate
-- **Success criteria**: Probele custom apar în dropdown-urile de selecție, rezultatele folosesc unitatea corectă, probele pot fi șterse
-
-### Management Permisiuni Granulare
-- **Functionality**: SuperAdmin poate acorda permisiuni specifice (Vizualizare/Editare/Control Complet) pe resurse (Toți Atleții/Atlet Specific/Probe/Rezultate) către utilizatori individuali
-- **Purpose**: Control fin al accesului la date pentru scenarii complexe (ex: părinte care poate edita doar date copilului său)
-- **Trigger**: SuperAdmin → Tab "Permisiuni" → Selectare utilizator → "Acordă" → Configurare permisiune
-- **Progression**: Selectare user → Alegere tip permisiune (view/edit/full) → Alegere resursă → Confirmare → Badge vizibil pe profil user
-- **Success criteria**: Utilizatorii văd/modifică doar resursele pentru care au permisiuni, revocarea funcționează instant
-
-### Sistem Multi-Rol (4 roluri)
-- **Functionality**: Utilizatorii pot avea roluri distincte: SuperAdmin (control total), Coach (manageriază atleți proprii), Parent (vizualizează copii aprobați), Athlete (vizualizează propriile date)
-- **Purpose**: Separarea clară a responsabilităților și experienței per tip de utilizator
-- **Trigger**: Înregistrare → Selectare rol (sau SuperAdmin modifică rol existent)
-- **Progression**: Autentificare → Sistem detectează rol → Redirect la panou specific rolului → Funcționalități personalizate
-- **Success criteria**: Fiecare rol vede doar UI-ul relevant, nu poate accesa funcții din alte roluri
-
-### Dashboard Atlet
-- **Functionality**: Atleții autentificați pot vedea propriile statistici, rezultate recente și grafice de evoluție
-- **Purpose**: Implicare și motivare atleți prin vizualizarea propriului progres
-- **Trigger**: Autentificare ca Atlet → Dashboard personalizat
-- **Progression**: Login → Card profil cu categorie și antrenor → Statistici (total rezultate, probe practicate) → Listă rezultate recente → Grafic evoluție
-- **Success criteria**: Atleții văd doar datele proprii, graficele afișează progresul cronologic
-
-### Managementul Antrenorilor
-- **Functionality**: Adăugare antrenori în sistem cu email, parolă, nume și specializare opțională
-- **Purpose**: Menținerea bazei de antrenori pentru asociere cu atleții și asigurarea accesului securizat
-- **Trigger**: Click pe tab "Antrenori" → "Adaugă Antrenor"
-- **Progression**: Buton acțiune → Formular (Email, Parolă, Prenume, Nume, Specializare) → Hash parolă → Salvare → Afișare în listă
-- **Success criteria**: Antrenorii pot fi adăugați cu parolă securizată și pot face login pentru a gestiona atleții
-
-### Asociere Atlet-Antrenor
-- **Functionality**: La adăugarea unui atlet se poate selecta antrenorul responsabil din listă
-- **Purpose**: Stabilirea relației dintre atleți și antrenori pentru gestionarea accesului
-- **Trigger**: Adăugare/editare atlet → Selectare antrenor din dropdown
-- **Progression**: Formular atlet → Câmp "Antrenor" → Selectare din listă → Salvare cu asociere
-- **Success criteria**: Atleții au antrenori asociați vizibili în sistem
-
-### Cereri de Acces Părinte
-- **Functionality**: Părinții pot cere acces la datele copilului lor selectând atletul și trimitând o cerere către antrenor
-- **Purpose**: Controlul accesului la date sensibile ale minorilor
-- **Trigger**: Părinte autentificat → Tab "Cereri Acces" → Selectare atlet → Mesaj opțional
-- **Progression**: Selectare atlet → Scriere mesaj → Trimite cerere → Status "În așteptare" → Notificare antrenor
-- **Success criteria**: Cererile sunt trimise cu succes și apar în panoul antrenorului
-
-### Aprobare/Respingere Cereri (Antrenor)
-- **Functionality**: Antrenorii văd cererile în așteptare și pot aproba sau respinge accesul
-- **Purpose**: Control asupra cine poate vedea datele atleților
-- **Trigger**: Cerere nouă → Notificare în tab "Cereri" → Click Aprobă/Respinge
-- **Progression**: Vizualizare cerere cu detalii (Părinte, Atlet, Mesaj) → Decizie → Confirmare → Actualizare status
-- **Success criteria**: Cererile sunt procesate și părinții primesc acces doar dacă sunt aprobați
-
-### Vizualizare Date Copil (Părinte)
-- **Functionality**: După aprobare, părinții pot vedea atleții aprobați, rezultatele și evoluția performanțelor
+- **Progression**: Completare câmpuri → Validare parolă (lungime, match) → Hash parola → Creare cont inactiv → Creare cerere aprobare → Mesaj "Contul așteaptă aprobare" → Nu poate face login până la aprobare
+- **Success criteria**: Parolele sunt verificate că match înainte de salvare, hash-ul este generat corect, emailuri duplicate sunt blocate, cont creat dar inactiv, cerere trimisă automat
 - **Purpose**: Transparență și implicare părinților în progresul copiilor
 - **Trigger**: Acces aprobat → Dashboard părinte → Carduri atleți → Click detalii
 - **Progression**: Panou părinte → Lista copii aprobați → Click atlet → Vizualizare rezultate și grafice evoluție

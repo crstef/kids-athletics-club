@@ -20,11 +20,13 @@ import { ParentDashboard } from '@/components/ParentDashboard'
 import { MessagingPanel } from '@/components/MessagingPanel'
 import { SuperAdminDashboard } from '@/components/SuperAdminDashboard'
 import { EventManagement } from '@/components/EventManagement'
-import { PermissionsManagement } from '@/components/PermissionsManagement'
 import { AthleteDashboard } from '@/components/AthleteDashboard'
 import { UserManagement } from '@/components/UserManagement'
+import { PermissionsSystem } from '@/components/PermissionsSystem'
+import { UserPermissionsManagement } from '@/components/UserPermissionsManagement'
 import { hashPassword } from '@/lib/crypto'
-import type { Athlete, Result, AgeCategory, User, Coach, AccessRequest, Message, EventTypeCustom, Permission } from '@/lib/types'
+import { DEFAULT_PERMISSIONS } from '@/lib/permissions'
+import type { Athlete, Result, AgeCategory, User, Coach, AccessRequest, Message, EventTypeCustom, Permission, UserPermission, AccountApprovalRequest } from '@/lib/types'
 
 function AppContent() {
   const { currentUser, setCurrentUser, isCoach, isParent, isSuperAdmin, isAthlete, logout } = useAuth()
@@ -35,6 +37,8 @@ function AppContent() {
   const [messages, setMessages] = useKV<Message[]>('messages', [])
   const [events, setEvents] = useKV<EventTypeCustom[]>('events', [])
   const [permissions, setPermissions] = useKV<Permission[]>('permissions', [])
+  const [userPermissions, setUserPermissions] = useKV<UserPermission[]>('user-permissions', [])
+  const [approvalRequests, setApprovalRequests] = useKV<AccountApprovalRequest[]>('approval-requests', [])
   const [selectedAthlete, setSelectedAthlete] = useState<Athlete | null>(null)
   const [deleteAthleteId, setDeleteAthleteId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -57,9 +61,22 @@ function AppContent() {
           firstName: 'Super',
           lastName: 'Admin',
           role: 'superadmin',
-          createdAt: new Date().toISOString()
+          createdAt: new Date().toISOString(),
+          isActive: true,
+          needsApproval: false
         }
         setUsers((current) => [...(current || []), superAdmin])
+      }
+
+      const existingPerms = permissions || []
+      if (existingPerms.length === 0) {
+        const defaultPerms: Permission[] = DEFAULT_PERMISSIONS.map((perm, index) => ({
+          ...perm,
+          id: `perm-${Date.now()}-${index}`,
+          createdAt: new Date().toISOString(),
+          createdBy: 'system'
+        }))
+        setPermissions(defaultPerms)
       }
     }
     
@@ -183,19 +200,90 @@ function AppContent() {
     setEvents((current) => (current || []).filter(e => e.id !== id))
   }
 
-  const handleGrantPermission = (permData: Omit<Permission, 'id' | 'grantedAt'>) => {
+  const handleAddPermission = (permData: Omit<Permission, 'id' | 'createdAt' | 'createdBy'>) => {
     setPermissions((current) => [
       ...(current || []),
       {
         ...permData,
         id: `perm-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        createdAt: new Date().toISOString(),
+        createdBy: currentUser?.id || 'system'
+      }
+    ])
+  }
+
+  const handleUpdatePermission = (id: string, updates: Partial<Permission>) => {
+    setPermissions((current) =>
+      (current || []).map(p => p.id === id ? { ...p, ...updates } : p)
+    )
+  }
+
+  const handleDeletePermission = (id: string) => {
+    setPermissions((current) => (current || []).filter(p => p.id !== id))
+    setUserPermissions((current) => (current || []).filter(up => up.permissionId !== id))
+  }
+
+  const handleGrantUserPermission = (permData: Omit<UserPermission, 'id' | 'grantedAt'>) => {
+    setUserPermissions((current) => [
+      ...(current || []),
+      {
+        ...permData,
+        id: `up-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         grantedAt: new Date().toISOString()
       }
     ])
   }
 
-  const handleRevokePermission = (id: string) => {
-    setPermissions((current) => (current || []).filter(p => p.id !== id))
+  const handleRevokeUserPermission = (id: string) => {
+    setUserPermissions((current) => (current || []).filter(p => p.id !== id))
+  }
+
+  const handleApproveAccount = (requestId: string) => {
+    const request = (approvalRequests || []).find(r => r.id === requestId)
+    if (!request) return
+
+    setApprovalRequests((current) =>
+      (current || []).map(r =>
+        r.id === requestId
+          ? {
+              ...r,
+              status: 'approved' as const,
+              responseDate: new Date().toISOString(),
+              approvedBy: currentUser?.id
+            }
+          : r
+      )
+    )
+
+    setUsers((current) =>
+      (current || []).map(u =>
+        u.id === request.userId
+          ? {
+              ...u,
+              isActive: true,
+              needsApproval: false,
+              approvedBy: currentUser?.id,
+              approvedAt: new Date().toISOString()
+            }
+          : u
+      )
+    )
+  }
+
+  const handleRejectAccount = (requestId: string, reason?: string) => {
+    setApprovalRequests((current) =>
+      (current || []).map(r =>
+        r.id === requestId
+          ? {
+              ...r,
+              status: 'rejected' as const,
+              responseDate: new Date().toISOString(),
+              approvedBy: currentUser?.id,
+              rejectionReason: reason
+            }
+          : r
+      )
+    )
   }
 
   const handleUpdateUserRole = (userId: string, role: 'coach' | 'parent' | 'athlete') => {
@@ -228,7 +316,8 @@ function AppContent() {
     setUsers((current) => (current || []).filter(u => u.id !== userId))
     setAccessRequests((current) => (current || []).filter(r => r.parentId !== userId && r.coachId !== userId))
     setMessages((current) => (current || []).filter(m => m.fromUserId !== userId && m.toUserId !== userId))
-    setPermissions((current) => (current || []).filter(p => p.userId !== userId))
+    setUserPermissions((current) => (current || []).filter(p => p.userId !== userId))
+    setApprovalRequests((current) => (current || []).filter(r => r.userId !== userId))
   }
 
   const getAthleteResultsCount = (athleteId: string): number => {
@@ -411,8 +500,9 @@ function AppContent() {
 
         <main className="container mx-auto px-4 py-8">
           <Tabs defaultValue="dashboard" className="space-y-6">
-            <TabsList className="grid w-full max-w-4xl grid-cols-5">
+            <TabsList className="grid w-full max-w-4xl grid-cols-6">
               <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+              <TabsTrigger value="approvals">Aprobări</TabsTrigger>
               <TabsTrigger value="users">Utilizatori</TabsTrigger>
               <TabsTrigger value="permissions">Permisiuni</TabsTrigger>
               <TabsTrigger value="events">Probe</TabsTrigger>
@@ -428,6 +518,21 @@ function AppContent() {
               />
             </TabsContent>
 
+            <TabsContent value="approvals">
+              <UserPermissionsManagement
+                users={users || []}
+                permissions={permissions || []}
+                userPermissions={userPermissions || []}
+                athletes={athletes || []}
+                approvalRequests={approvalRequests || []}
+                currentUserId={currentUser.id}
+                onGrantPermission={handleGrantUserPermission}
+                onRevokePermission={handleRevokeUserPermission}
+                onApproveAccount={handleApproveAccount}
+                onRejectAccount={handleRejectAccount}
+              />
+            </TabsContent>
+
             <TabsContent value="users">
               <UserManagement
                 users={users || []}
@@ -439,14 +544,12 @@ function AppContent() {
             </TabsContent>
 
             <TabsContent value="permissions">
-              <PermissionsManagement
-                users={users || []}
-                athletes={athletes || []}
+              <PermissionsSystem
                 permissions={permissions || []}
                 currentUserId={currentUser.id}
-                onGrantPermission={handleGrantPermission}
-                onRevokePermission={handleRevokePermission}
-                onUpdateUserRole={handleUpdateUserRole}
+                onAddPermission={handleAddPermission}
+                onUpdatePermission={handleUpdatePermission}
+                onDeletePermission={handleDeletePermission}
               />
             </TabsContent>
 
