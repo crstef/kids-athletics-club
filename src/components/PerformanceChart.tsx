@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useMemo } from 'react'
 import * as d3 from 'd3'
 import { formatResult } from '@/lib/constants'
-import { PeriodFilter, getFilteredResults, getAvailableYears, type Period } from './PeriodFilter'
+import { PeriodFilter, getFilteredResults, getAvailableYears, getInitialDateRange, getFirstDataDate, type Period } from './PeriodFilter'
 import type { PerformanceData } from '@/lib/types'
 
 interface PerformanceChartProps {
@@ -14,14 +14,22 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
   const svgRef = useRef<SVGSVGElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 })
-  const [period, setPeriod] = useState<Period>('all')
+  const [period, setPeriod] = useState<Period>('7days')
   const [selectedYear, setSelectedYear] = useState<number | 'all'>('all')
+  const [dateRange, setDateRange] = useState<{ start: Date; end: Date }>(() => 
+    getInitialDateRange(data, '7days')
+  )
 
   const availableYears = useMemo(() => getAvailableYears(data), [data])
+  const firstDataDate = useMemo(() => getFirstDataDate(data), [data])
+
+  useEffect(() => {
+    setDateRange(getInitialDateRange(data, period))
+  }, [period, data])
 
   const filteredData = useMemo(() => {
-    return getFilteredResults(data, period, selectedYear)
-  }, [data, period, selectedYear])
+    return getFilteredResults(data, period, dateRange)
+  }, [data, period, dateRange])
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -239,6 +247,10 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
         selectedYear={selectedYear}
         onYearChange={setSelectedYear}
         availableYears={availableYears}
+        dateRange={dateRange}
+        onDateRangeChange={setDateRange}
+        hasData={data.length > 0}
+        firstDataDate={firstDataDate}
       />
       {filteredData.length === 0 ? (
         <div className="flex items-center justify-center h-[300px] text-muted-foreground text-sm text-center px-4">

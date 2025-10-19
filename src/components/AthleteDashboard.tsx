@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -7,7 +7,7 @@ import { Trophy, TrendUp, Calendar, Medal, Target, ChartLine } from '@phosphor-i
 import { PerformanceChart } from './PerformanceChart'
 import { StatWidget } from './StatWidget'
 import { ProgressStats } from './ProgressStats'
-import { PeriodFilter, getFilteredResults, getAvailableYears, type Period } from './PeriodFilter'
+import { PeriodFilter, getFilteredResults, getAvailableYears, getInitialDateRange, getFirstDataDate, type Period } from './PeriodFilter'
 import type { Athlete, Result, EventType, User } from '@/lib/types'
 import { formatResult } from '@/lib/constants'
 
@@ -20,7 +20,7 @@ interface AthleteDashboardProps {
 export function AthleteDashboard({ athlete, results, coaches }: AthleteDashboardProps) {
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<string>('')
-  const [period, setPeriod] = useState<Period>('all')
+  const [period, setPeriod] = useState<Period>('7days')
   const [selectedYear, setSelectedYear] = useState<number | 'all'>('all')
 
   const athleteResults = useMemo(() => {
@@ -28,11 +28,20 @@ export function AthleteDashboard({ athlete, results, coaches }: AthleteDashboard
     return results.filter(r => r.athleteId === athlete.id)
   }, [athlete, results])
 
+  const [dateRange, setDateRange] = useState<{ start: Date; end: Date }>(() => 
+    getInitialDateRange(athleteResults, '7days')
+  )
+
   const availableYears = useMemo(() => getAvailableYears(athleteResults), [athleteResults])
+  const firstDataDate = useMemo(() => getFirstDataDate(athleteResults), [athleteResults])
+
+  useEffect(() => {
+    setDateRange(getInitialDateRange(athleteResults, period))
+  }, [period, athleteResults])
 
   const filteredAthleteResults = useMemo(() => {
-    return getFilteredResults(athleteResults, period, selectedYear)
-  }, [athleteResults, period, selectedYear])
+    return getFilteredResults(athleteResults, period, dateRange)
+  }, [athleteResults, period, dateRange])
 
   const stats = useMemo(() => {
     const totalResults = filteredAthleteResults.length
@@ -218,6 +227,10 @@ export function AthleteDashboard({ athlete, results, coaches }: AthleteDashboard
             selectedYear={selectedYear}
             onYearChange={setSelectedYear}
             availableYears={availableYears}
+            dateRange={dateRange}
+            onDateRangeChange={setDateRange}
+            hasData={athleteResults.length > 0}
+            firstDataDate={firstDataDate}
           />
         </div>
       </Card>

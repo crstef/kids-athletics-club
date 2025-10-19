@@ -1,9 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { TrendUp, TrendDown, Trophy, Target, Calendar } from '@phosphor-icons/react'
-import { PeriodFilter, getFilteredResults, getAvailableYears, type Period } from './PeriodFilter'
+import { PeriodFilter, getFilteredResults, getAvailableYears, getInitialDateRange, getFirstDataDate, type Period } from './PeriodFilter'
 import type { Result, EventType } from '@/lib/types'
 import { formatResult } from '@/lib/constants'
 
@@ -13,14 +13,22 @@ interface ProgressStatsProps {
 }
 
 export function ProgressStats({ athleteName, results }: ProgressStatsProps) {
-  const [period, setPeriod] = useState<Period>('all')
+  const [period, setPeriod] = useState<Period>('7days')
   const [selectedYear, setSelectedYear] = useState<number | 'all'>('all')
+  const [dateRange, setDateRange] = useState<{ start: Date; end: Date }>(() => 
+    getInitialDateRange(results, '7days')
+  )
 
   const availableYears = useMemo(() => getAvailableYears(results), [results])
+  const firstDataDate = useMemo(() => getFirstDataDate(results), [results])
+
+  useEffect(() => {
+    setDateRange(getInitialDateRange(results, period))
+  }, [period, results])
 
   const filteredResults = useMemo(() => {
-    return getFilteredResults(results, period, selectedYear)
-  }, [results, period, selectedYear])
+    return getFilteredResults(results, period, dateRange)
+  }, [results, period, dateRange])
   const eventProgress = useMemo(() => {
     const eventGroups = filteredResults.reduce((acc, result) => {
       if (!acc[result.eventType]) {
@@ -108,6 +116,10 @@ export function ProgressStats({ athleteName, results }: ProgressStatsProps) {
         selectedYear={selectedYear}
         onYearChange={setSelectedYear}
         availableYears={availableYears}
+        dateRange={dateRange}
+        onDateRangeChange={setDateRange}
+        hasData={results.length > 0}
+        firstDataDate={firstDataDate}
         className="justify-center sm:justify-start" 
       />
       

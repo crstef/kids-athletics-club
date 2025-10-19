@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useKV } from '@github/spark/hooks'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -8,7 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Users, Trophy, ListNumbers, TrendUp, ArrowRight, Gear } from '@phosphor-icons/react'
 import { StatWidget } from './StatWidget'
-import { PeriodFilter, getFilteredResults, getAvailableYears, type Period } from './PeriodFilter'
+import { PeriodFilter, getFilteredResults, getAvailableYears, getInitialDateRange, getFirstDataDate, type Period } from './PeriodFilter'
 import { formatResult } from '@/lib/constants'
 import type { Athlete, Result } from '@/lib/types'
 
@@ -41,14 +41,22 @@ export function DashboardStats({ athletes, results, onNavigateToAthletes, onView
     { id: 'w4', type: 'stats-probes', title: 'Probe Active', size: 'small', enabled: true }
   ])
   const [customizeOpen, setCustomizeOpen] = useState(false)
-  const [period, setPeriod] = useState<Period>('all')
+  const [period, setPeriod] = useState<Period>('7days')
   const [selectedYear, setSelectedYear] = useState<number | 'all'>('all')
+  const [dateRange, setDateRange] = useState<{ start: Date; end: Date }>(() => 
+    getInitialDateRange(results, '7days')
+  )
   
   const availableYears = useMemo(() => getAvailableYears(results), [results])
+  const firstDataDate = useMemo(() => getFirstDataDate(results), [results])
+
+  useEffect(() => {
+    setDateRange(getInitialDateRange(results, period))
+  }, [period, results])
 
   const filteredResults = useMemo(() => {
-    return getFilteredResults(results, period, selectedYear)
-  }, [results, period, selectedYear])
+    return getFilteredResults(results, period, dateRange)
+  }, [results, period, dateRange])
   
   const totalAthletes = athletes.length
   const totalResults = filteredResults.length
@@ -306,6 +314,10 @@ export function DashboardStats({ athletes, results, onNavigateToAthletes, onView
           selectedYear={selectedYear}
           onYearChange={setSelectedYear}
           availableYears={availableYears}
+          dateRange={dateRange}
+          onDateRangeChange={setDateRange}
+          hasData={results.length > 0}
+          firstDataDate={firstDataDate}
         />
         <Button variant="outline" size="sm" onClick={() => setCustomizeOpen(true)} className="text-xs sm:text-sm">
           <Gear size={14} className="sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />

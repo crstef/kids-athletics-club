@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useKV } from '@github/spark/hooks'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -24,7 +24,7 @@ import {
 } from '@phosphor-icons/react'
 import { CoachApprovalRequests } from './CoachApprovalRequests'
 import { PerformanceChart } from './PerformanceChart'
-import { PeriodFilter, getFilteredResults, getAvailableYears, type Period } from './PeriodFilter'
+import { PeriodFilter, getFilteredResults, getAvailableYears, getInitialDateRange, getFirstDataDate, type Period } from './PeriodFilter'
 import type { Athlete, Result, User, AccountApprovalRequest } from '@/lib/types'
 
 type WidgetType = 
@@ -78,7 +78,7 @@ export function CoachDashboard({
     { id: 'w9', type: 'recent-improvements', title: 'Îmbunătățiri Recente', size: 'medium', enabled: false }
   ])
   const [customizeOpen, setCustomizeOpen] = useState(false)
-  const [period, setPeriod] = useState<Period>('all')
+  const [period, setPeriod] = useState<Period>('7days')
   const [selectedYear, setSelectedYear] = useState<number | 'all'>('all')
 
   const myAthletes = useMemo(() => {
@@ -90,11 +90,20 @@ export function CoachDashboard({
     return results.filter(r => athleteIds.has(r.athleteId))
   }, [myAthletes, results])
 
+  const [dateRange, setDateRange] = useState<{ start: Date; end: Date }>(() => 
+    getInitialDateRange(myResults, '7days')
+  )
+
   const availableYears = useMemo(() => getAvailableYears(myResults), [myResults])
+  const firstDataDate = useMemo(() => getFirstDataDate(myResults), [myResults])
+
+  useEffect(() => {
+    setDateRange(getInitialDateRange(myResults, period))
+  }, [period, myResults])
 
   const filteredMyResults = useMemo(() => {
-    return getFilteredResults(myResults, period, selectedYear)
-  }, [myResults, period, selectedYear])
+    return getFilteredResults(myResults, period, dateRange)
+  }, [myResults, period, dateRange])
 
   const stats = useMemo(() => {
     const totalAthletes = myAthletes.length
@@ -491,6 +500,10 @@ export function CoachDashboard({
             selectedYear={selectedYear}
             onYearChange={setSelectedYear}
             availableYears={availableYears}
+            dateRange={dateRange}
+            onDateRangeChange={setDateRange}
+            hasData={myResults.length > 0}
+            firstDataDate={firstDataDate}
           />
           <Button variant="outline" onClick={() => setCustomizeOpen(true)} className="w-full sm:w-auto">
             <Gear size={16} className="mr-2" />
