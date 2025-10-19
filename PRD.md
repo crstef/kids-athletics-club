@@ -41,11 +41,11 @@ O aplicație web profesională pentru managementul atleților juniori din clubul
 - **Success criteria**: Conturile nou create nu pot face login până la aprobare, SuperAdmin vede toate cererile pending cu badge notificare, utilizatorii aprobați pot accesa sistemul
 
 ### Acces Părinte la Date Copil
-- **Functionality**: După ce contul e aprobat de SuperAdmin, părintele trebuie să ceară acces specific la datele copilului său de la antrenorul acestuia
-- **Purpose**: Protecție suplimentară a datelor minorilor cu control de la antrenor
-- **Trigger**: Părinte aprobat → Tab "Cereri Acces" → Selectare copil → Trimitere cerere la antrenor
-- **Progression**: Părinte selectează atlet → Mesaj opțional → Trimite către antrenorul atletului → Antrenor primește notificare → Aprobă/Respinge → Părinte primește acces doar la acel atlet specific
-- **Success criteria**: Părinții aprobați pot vedea DOAR atleții pentru care au primit aprobare de acces de la antrenori, nu au vizibilitate la alți atleți
+- **Functionality**: Părintele se înregistrează selectând direct antrenorul copilului și copilul din lista antrenorului. Cererea de aprobare merge direct la antrenorul respectiv (nu la SuperAdmin). După ce antrenorul aprobă, părintele primește automat și cont activ și acces la datele copilului simultan
+- **Purpose**: Simplificare proces de aprobare și protecție datelor minorilor cu control direct de la antrenor
+- **Trigger**: Înregistrare părinte → Selectare antrenor → Selectare copil din lista antrenorului → Trimite cerere → Antrenor aprobă
+- **Progression**: Părinte completează formular înregistrare → Selectează antrenor din dropdown → Dropdown copii din subordinea antrenorului se populează → Selectează copil → Opțional mesaj → Trimite cerere → Cererea apare la antrenor în tab "Aprobări" → Antrenor vede: nume părinte, email, copilul pentru care solicită, mesaj → Aprobă în un singur pas → Părintele poate loga și are acces imediat la datele copilului
+- **Success criteria**: Părinții aprobați pot vedea DOAR atleții pentru care au primit aprobare de la antrenori, aprobarea se face într-un singur pas (nu două ca înainte), cererea apare doar la antrenorul selectat, nu la SuperAdmin
 
 ### Autentificare Securizată cu Parolă
 - **Functionality**: Sistem de login cu email și parolă, parolele sunt criptate cu SHA-256 înainte de stocare, vizibilitate parola cu toggle eye icon, validare minim 6 caractere, verificare status activ cont
@@ -94,6 +94,7 @@ O aplicație web profesională pentru managementul atleților juniori din clubul
 - **Success criteria**: Graficul afișează corect datele și permite identificarea rapidă a trendurilor
 
 ## Edge Case Handling
+- **Date de Test**: La prima rulare, aplicația creează automat date de test pentru facilitatea testării: 3 antrenori (Ion Popescu - Sprint, Maria Ionescu - Sărituri, Andrei Matei - Alergări Lungi, toți cu parola "coach123"), 8 atleți distribuiți între cei 3 antrenori și câteva rezultate sample
 - **Email duplicat**: Validare la înregistrare/adăugare utilizator pentru a preveni duplicate
 - **Parolă scurtă**: Validare minim 6 caractere la toate formularele cu feedback clar
 - **Parolă nepotrivită**: La înregistrare, confirmarea trebuie să match exact cu parola

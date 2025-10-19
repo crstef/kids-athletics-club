@@ -173,6 +173,7 @@ export function UserPermissionsManagement({
               {pendingRequests.map((request) => {
                 const user = users.find(u => u.id === request.userId)
                 const athleteName = getAthleteName(request.athleteId)
+                const coach = request.coachId ? users.find(u => u.id === request.coachId) : null
                 
                 if (!user) return null
 
@@ -187,14 +188,14 @@ export function UserPermissionsManagement({
                       </div>
                       <div className="flex gap-2 items-center flex-wrap">
                         <Badge variant="outline">{request.requestedRole}</Badge>
-                        {request.childName && (
-                          <span className="text-sm text-muted-foreground">
-                            👤 Copil: <strong>{request.childName}</strong>
-                          </span>
-                        )}
                         {athleteName && (
                           <span className="text-sm text-muted-foreground">
-                            🏃 Atlet asociat: {athleteName}
+                            👤 Copil: <strong>{athleteName}</strong>
+                          </span>
+                        )}
+                        {coach && (
+                          <span className="text-sm text-muted-foreground">
+                            🎓 Antrenor: <strong>{coach.firstName} {coach.lastName}</strong>
                           </span>
                         )}
                       </div>

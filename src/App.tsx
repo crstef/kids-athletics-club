@@ -16,6 +16,7 @@ import { AthleteCard } from '@/components/AthleteCard'
 import { AthleteDetailsDialog } from '@/components/AthleteDetailsDialog'
 import { DashboardStats } from '@/components/DashboardStats'
 import { CoachAccessRequests } from '@/components/CoachAccessRequests'
+import { CoachApprovalRequests } from '@/components/CoachApprovalRequests'
 import { ParentDashboard } from '@/components/ParentDashboard'
 import { MessagingPanel } from '@/components/MessagingPanel'
 import { SuperAdminDashboard } from '@/components/SuperAdminDashboard'
@@ -68,6 +69,182 @@ function AppContent() {
           needsApproval: false
         }
         setUsers((current) => [...(current || []), superAdmin])
+      }
+
+      const hasCoaches = existingUsers.some(u => u.role === 'coach')
+      if (!hasCoaches) {
+        const coachPassword = await hashPassword('coach123')
+        const testCoaches: User[] = [
+          {
+            id: 'coach-1',
+            email: 'ion.popescu@clubatletism.ro',
+            password: coachPassword,
+            firstName: 'Ion',
+            lastName: 'Popescu',
+            role: 'coach',
+            specialization: 'Sprint',
+            createdAt: new Date().toISOString(),
+            isActive: true,
+            needsApproval: false
+          } as any,
+          {
+            id: 'coach-2',
+            email: 'maria.ionescu@clubatletism.ro',
+            password: coachPassword,
+            firstName: 'Maria',
+            lastName: 'Ionescu',
+            role: 'coach',
+            specialization: 'Sărituri',
+            createdAt: new Date().toISOString(),
+            isActive: true,
+            needsApproval: false
+          } as any,
+          {
+            id: 'coach-3',
+            email: 'andrei.matei@clubatletism.ro',
+            password: coachPassword,
+            firstName: 'Andrei',
+            lastName: 'Matei',
+            role: 'coach',
+            specialization: 'Alergări Lungi',
+            createdAt: new Date().toISOString(),
+            isActive: true,
+            needsApproval: false
+          } as any
+        ]
+        setUsers((current) => [...(current || []), ...testCoaches])
+      }
+
+      const existingAthletes = athletes || []
+      const hasAthletes = existingAthletes.length > 0
+      if (!hasAthletes) {
+        const testAthletes: Athlete[] = [
+          {
+            id: 'athlete-1',
+            firstName: 'Alex',
+            lastName: 'Georgescu',
+            age: 12,
+            category: 'U12',
+            dateJoined: '2024-01-15',
+            coachId: 'coach-1'
+          },
+          {
+            id: 'athlete-2',
+            firstName: 'Elena',
+            lastName: 'Dumitrescu',
+            age: 14,
+            category: 'U14',
+            dateJoined: '2024-02-01',
+            coachId: 'coach-1'
+          },
+          {
+            id: 'athlete-3',
+            firstName: 'Mihai',
+            lastName: 'Stanescu',
+            age: 16,
+            category: 'U16',
+            dateJoined: '2024-01-20',
+            coachId: 'coach-1'
+          },
+          {
+            id: 'athlete-4',
+            firstName: 'Sofia',
+            lastName: 'Radu',
+            age: 13,
+            category: 'U14',
+            dateJoined: '2024-02-10',
+            coachId: 'coach-2'
+          },
+          {
+            id: 'athlete-5',
+            firstName: 'David',
+            lastName: 'Popa',
+            age: 15,
+            category: 'U16',
+            dateJoined: '2024-01-25',
+            coachId: 'coach-2'
+          },
+          {
+            id: 'athlete-6',
+            firstName: 'Ana',
+            lastName: 'Marin',
+            age: 11,
+            category: 'U12',
+            dateJoined: '2024-02-15',
+            coachId: 'coach-2'
+          },
+          {
+            id: 'athlete-7',
+            firstName: 'Cristian',
+            lastName: 'Vasile',
+            age: 17,
+            category: 'U18',
+            dateJoined: '2024-01-10',
+            coachId: 'coach-3'
+          },
+          {
+            id: 'athlete-8',
+            firstName: 'Ioana',
+            lastName: 'Constantin',
+            age: 14,
+            category: 'U14',
+            dateJoined: '2024-02-05',
+            coachId: 'coach-3'
+          }
+        ]
+        setAthletes(testAthletes)
+      }
+
+      const existingResults = results || []
+      const hasResults = existingResults.length > 0
+      if (!hasResults) {
+        const testResults: Result[] = [
+          {
+            id: 'result-1',
+            athleteId: 'athlete-1',
+            eventType: '100m',
+            value: 13.5,
+            unit: 'seconds',
+            date: '2024-03-01',
+            notes: 'Competiție locală'
+          },
+          {
+            id: 'result-2',
+            athleteId: 'athlete-1',
+            eventType: '100m',
+            value: 13.2,
+            unit: 'seconds',
+            date: '2024-03-15',
+            notes: 'Record personal'
+          },
+          {
+            id: 'result-3',
+            athleteId: 'athlete-2',
+            eventType: 'Long Jump',
+            value: 4.5,
+            unit: 'meters',
+            date: '2024-03-05',
+            notes: 'Campionat regional'
+          },
+          {
+            id: 'result-4',
+            athleteId: 'athlete-3',
+            eventType: '200m',
+            value: 24.8,
+            unit: 'seconds',
+            date: '2024-03-10',
+          },
+          {
+            id: 'result-5',
+            athleteId: 'athlete-4',
+            eventType: 'High Jump',
+            value: 1.45,
+            unit: 'meters',
+            date: '2024-03-12',
+            notes: 'Nou record'
+          }
+        ]
+        setResults(testResults)
       }
 
       const existingPerms = permissions || []
@@ -311,6 +488,19 @@ function AppContent() {
           : u
       )
     )
+
+    if (request.requestedRole === 'parent' && request.athleteId && request.coachId) {
+      const newAccessRequest: AccessRequest = {
+        id: `access-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        parentId: request.userId,
+        athleteId: request.athleteId,
+        coachId: request.coachId,
+        status: 'approved',
+        requestDate: new Date().toISOString(),
+        responseDate: new Date().toISOString()
+      }
+      setAccessRequests((current) => [...(current || []), newAccessRequest])
+    }
   }
 
   const handleRejectAccount = (requestId: string, reason?: string) => {
@@ -755,10 +945,21 @@ function AppContent() {
 
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className={`grid w-full max-w-2xl ${isCoach ? 'grid-cols-4' : 'grid-cols-3'}`}>
+          <TabsList className={`grid w-full max-w-2xl ${isCoach ? 'grid-cols-5' : 'grid-cols-3'}`}>
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="athletes">Atleți</TabsTrigger>
             {!isCoach && <TabsTrigger value="coaches">Antrenori</TabsTrigger>}
+            {isCoach && (
+              <TabsTrigger value="approvals" className="gap-2">
+                <Envelope size={16} />
+                Aprobări
+                {approvalRequests && approvalRequests.filter(r => r.coachId === currentUser.id && r.status === 'pending' && r.requestedRole === 'parent').length > 0 && (
+                  <Badge variant="destructive" className="ml-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
+                    {approvalRequests.filter(r => r.coachId === currentUser.id && r.status === 'pending' && r.requestedRole === 'parent').length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+            )}
             <TabsTrigger value="requests" className="gap-2">
               <Envelope size={16} />
               Cereri
@@ -902,6 +1103,19 @@ function AppContent() {
                   })}
                 </div>
               )}
+            </TabsContent>
+          )}
+
+          {isCoach && (
+            <TabsContent value="approvals">
+              <CoachApprovalRequests
+                coachId={currentUser.id}
+                users={users || []}
+                athletes={athletes || []}
+                approvalRequests={approvalRequests || []}
+                onApproveAccount={handleApproveAccount}
+                onRejectAccount={handleRejectAccount}
+              />
             </TabsContent>
           )}
 

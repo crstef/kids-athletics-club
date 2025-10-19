@@ -191,6 +191,7 @@ export interface UserPermission {
 export interface AccountApprovalRequest {
   id: string
   userId: string
+  coachId?: string
   athleteId?: string
   requestedRole: UserRole
   status: 'pending' | 'approved' | 'rejected'

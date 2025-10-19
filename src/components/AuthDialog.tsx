@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,7 +9,7 @@ import { useKV } from '@github/spark/hooks'
 import { toast } from 'sonner'
 import { Eye, EyeSlash } from '@phosphor-icons/react'
 import { hashPassword, verifyPassword } from '@/lib/crypto'
-import type { User, UserRole, AccountApprovalRequest } from '@/lib/types'
+import type { User, UserRole, AccountApprovalRequest, Athlete } from '@/lib/types'
 
 interface AuthDialogProps {
   open: boolean
@@ -19,6 +19,7 @@ interface AuthDialogProps {
 
 export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
   const [users, setUsers] = useKV<User[]>('users', [])
+  const [athletes, setAthletes] = useKV<Athlete[]>('athletes', [])
   const [approvalRequests, setApprovalRequests] = useKV<AccountApprovalRequest[]>('approval-requests', [])
   
   const [loginEmail, setLoginEmail] = useState('')
@@ -30,11 +31,22 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
   const [signupLastName, setSignupLastName] = useState('')
   const [signupRole, setSignupRole] = useState<UserRole>('parent')
   const [signupSpecialization, setSignupSpecialization] = useState('')
+  const [selectedCoachId, setSelectedCoachId] = useState<string>('')
+  const [selectedAthleteId, setSelectedAthleteId] = useState<string>('')
   const [childName, setChildName] = useState('')
   const [approvalNotes, setApprovalNotes] = useState('')
   const [showLoginPassword, setShowLoginPassword] = useState(false)
   const [showSignupPassword, setShowSignupPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  
+  const coaches = useMemo(() => {
+    return (users || []).filter(u => u.role === 'coach')
+  }, [users])
+  
+  const athletesByCoach = useMemo(() => {
+    if (!selectedCoachId) return []
+    return (athletes || []).filter(a => a.coachId === selectedCoachId)
+  }, [athletes, selectedCoachId])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -79,9 +91,15 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
       return
     }
 
-    if (signupRole === 'parent' && !childName.trim()) {
-      toast.error('Specifică numele copilului pentru care soliciți acces')
-      return
+    if (signupRole === 'parent') {
+      if (!selectedCoachId) {
+        toast.error('Selectează antrenorul copilului tău')
+        return
+      }
+      if (!selectedAthleteId) {
+        toast.error('Selectează copilul tău din listă')
+        return
+      }
     }
 
     if (signupPassword.length < 6) {
@@ -122,22 +140,31 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
     setUsers((current) => [...(current || []), newUser])
 
     if (signupRole !== 'superadmin') {
+      const selectedAthlete = athletesByCoach.find(a => a.id === selectedAthleteId)
+      
       const approvalRequest: AccountApprovalRequest = {
         id: `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         userId: newUser.id,
         requestedRole: signupRole,
+        coachId: selectedCoachId || undefined,
+        athleteId: selectedAthleteId || undefined,
         status: 'pending',
         requestDate: new Date().toISOString(),
-        childName: childName.trim() || undefined,
+        childName: selectedAthlete ? `${selectedAthlete.firstName} ${selectedAthlete.lastName}` : childName.trim() || undefined,
         approvalNotes: approvalNotes.trim() || undefined
       }
       setApprovalRequests((current) => [...(current || []), approvalRequest])
-      toast.info('Contul tău așteaptă aprobare de la administrator')
+      
+      if (signupRole === 'parent') {
+        toast.info('Cererea ta a fost trimisă la antrenor pentru aprobare')
+      } else {
+        toast.info('Contul tău așteaptă aprobare de la administrator')
+      }
     } else {
       onLogin(newUser)
     }
     
-    toast.success(`Cont creat cu succes! ${newUser.firstName}!`)
+    toast.success(`Cont creat cu succes!`)
     onClose()
     resetForms()
   }
@@ -152,6 +179,8 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
     setSignupLastName('')
     setSignupRole('parent')
     setSignupSpecialization('')
+    setSelectedCoachId('')
+    setSelectedAthleteId('')
     setChildName('')
     setApprovalNotes('')
     setShowLoginPassword(false)
@@ -174,22 +203,32 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
 
           <TabsContent value="login" className="space-y-4">
             <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
-              <div className="font-semibold text-sm mb-2 text-primary">📋 Acces SuperAdmin:</div>
-              <div className="text-sm space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">Email:</span>
-                  <code className="bg-primary/20 px-2 py-0.5 rounded text-primary font-mono text-xs">
-                    admin@clubatletism.ro
-                  </code>
+              <div className="font-semibold text-sm mb-2 text-primary">📋 Conturi de Test:</div>
+              <div className="text-sm space-y-2">
+                <div>
+                  <div className="font-medium text-primary">SuperAdmin:</div>
+                  <div className="flex items-center gap-2 ml-2">
+                    <span className="text-muted-foreground text-xs">Email:</span>
+                    <code className="bg-primary/20 px-2 py-0.5 rounded text-primary font-mono text-xs">
+                      admin@clubatletism.ro
+                    </code>
+                  </div>
+                  <div className="flex items-center gap-2 ml-2">
+                    <span className="text-muted-foreground text-xs">Parolă:</span>
+                    <code className="bg-primary/20 px-2 py-0.5 rounded text-primary font-mono text-xs">
+                      admin123
+                    </code>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">Parolă:</span>
-                  <code className="bg-primary/20 px-2 py-0.5 rounded text-primary font-mono text-xs">
-                    admin123
-                  </code>
-                </div>
-                <div className="text-xs text-muted-foreground mt-2">
-                  Introdu credențialele de mai sus pentru a accesa panoul SuperAdmin
+                
+                <div>
+                  <div className="font-medium text-secondary-foreground">Antrenori:</div>
+                  <div className="ml-2 text-xs space-y-1">
+                    <div>• ion.popescu@clubatletism.ro (Sprint)</div>
+                    <div>• maria.ionescu@clubatletism.ro (Sărituri)</div>
+                    <div>• andrei.matei@clubatletism.ro (Alergări Lungi)</div>
+                    <div className="text-muted-foreground">Parolă pentru toți: <code className="bg-secondary/20 px-1 rounded">coach123</code></div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -239,6 +278,16 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
           </TabsContent>
 
           <TabsContent value="signup">
+            <div className="bg-accent/10 border border-accent/20 rounded-lg p-4 mb-4">
+              <div className="font-semibold text-sm mb-2 text-accent">💡 Înregistrare Părinte:</div>
+              <div className="text-sm text-muted-foreground space-y-1">
+                <p>• Selectează antrenorul copilului tău din listă</p>
+                <p>• Apoi selectează copilul din lista antrenorului</p>
+                <p>• Cererea va fi trimisă la antrenor pentru aprobare</p>
+                <p className="text-xs italic mt-2">Există 3 antrenori de test cu 8 atleți în sistem pentru testare</p>
+              </div>
+            </div>
+            
             <form onSubmit={handleSignup} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="signup-role">Tip Cont *</Label>
@@ -255,14 +304,66 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
               </div>
 
               {signupRole === 'parent' && (
-                <div className="bg-accent/10 border border-accent/20 rounded-lg p-4 space-y-2">
-                  <div className="font-semibold text-sm text-accent">ℹ️ Informații Părinte:</div>
-                  <div className="text-sm text-muted-foreground space-y-1">
-                    <p>• Contul va necesita aprobare de la administrator</p>
-                    <p>• Vei primi notificare când contul este aprobat</p>
-                    <p>• Specifică pentru ce copil soliciți acces</p>
+                <>
+                  <div className="bg-accent/10 border border-accent/20 rounded-lg p-4 space-y-2">
+                    <div className="font-semibold text-sm text-accent">ℹ️ Informații Părinte:</div>
+                    <div className="text-sm text-muted-foreground space-y-1">
+                      <p>• Selectează antrenorul copilului tău</p>
+                      <p>• Selectează copilul din lista antrenorului</p>
+                      <p>• Cererea va fi trimisă la antrenor pentru aprobare</p>
+                    </div>
                   </div>
-                </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-coach">Selectează Antrenorul *</Label>
+                    <Select value={selectedCoachId} onValueChange={(v) => {
+                      setSelectedCoachId(v)
+                      setSelectedAthleteId('')
+                    }}>
+                      <SelectTrigger id="signup-coach">
+                        <SelectValue placeholder="Alege antrenorul..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {coaches.length === 0 ? (
+                          <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                            Nu există antrenori disponibili
+                          </div>
+                        ) : (
+                          coaches.map((coach) => (
+                            <SelectItem key={coach.id} value={coach.id}>
+                              {coach.firstName} {coach.lastName}
+                              {(coach as any).specialization && ` - ${(coach as any).specialization}`}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {selectedCoachId && (
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-athlete">Selectează Copilul *</Label>
+                      <Select value={selectedAthleteId} onValueChange={setSelectedAthleteId}>
+                        <SelectTrigger id="signup-athlete">
+                          <SelectValue placeholder="Alege copilul..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {athletesByCoach.length === 0 ? (
+                            <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                              Acest antrenor nu are atleți înregistrați
+                            </div>
+                          ) : (
+                            athletesByCoach.map((athlete) => (
+                              <SelectItem key={athlete.id} value={athlete.id}>
+                                {athlete.firstName} {athlete.lastName} ({athlete.category})
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </>
               )}
 
               {signupRole === 'athlete' && (
@@ -378,21 +479,17 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
 
               {signupRole === 'parent' && (
                 <div className="space-y-2">
-                  <Label htmlFor="signup-child-name">Nume Copil *</Label>
+                  <Label htmlFor="signup-notes">Notițe Aprobare (opțional)</Label>
                   <Input
-                    id="signup-child-name"
-                    value={childName}
-                    onChange={(e) => setChildName(e.target.value)}
-                    placeholder="ex: Maria Popescu"
-                    required
+                    id="signup-notes"
+                    value={approvalNotes}
+                    onChange={(e) => setApprovalNotes(e.target.value)}
+                    placeholder="ex: Informații suplimentare..."
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Numele copilului pentru care soliciți acces
-                  </p>
                 </div>
               )}
 
-              {(signupRole === 'parent' || signupRole === 'athlete') && (
+              {signupRole === 'athlete' && (
                 <div className="space-y-2">
                   <Label htmlFor="signup-notes">Notițe Aprobare (opțional)</Label>
                   <Input
