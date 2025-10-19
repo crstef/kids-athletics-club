@@ -23,6 +23,7 @@ import { EventManagement } from '@/components/EventManagement'
 import { PermissionsManagement } from '@/components/PermissionsManagement'
 import { AthleteDashboard } from '@/components/AthleteDashboard'
 import { UserManagement } from '@/components/UserManagement'
+import { hashPassword } from '@/lib/crypto'
 import type { Athlete, Result, AgeCategory, User, Coach, AccessRequest, Message, EventTypeCustom, Permission } from '@/lib/types'
 
 function AppContent() {
@@ -48,9 +49,11 @@ function AppContent() {
       const hasSuperAdmin = existingUsers.some(u => u.role === 'superadmin')
       
       if (!hasSuperAdmin) {
+        const hashedPassword = await hashPassword('admin123')
         const superAdmin: User = {
           id: 'superadmin-1',
           email: 'admin@clubatletism.ro',
+          password: hashedPassword,
           firstName: 'Super',
           lastName: 'Admin',
           role: 'superadmin',

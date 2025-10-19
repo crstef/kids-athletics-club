@@ -7,6 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useKV } from '@github/spark/hooks'
 import { toast } from 'sonner'
+import { Eye, EyeSlash } from '@phosphor-icons/react'
+import { hashPassword, verifyPassword } from '@/lib/crypto'
 import type { User, UserRole } from '@/lib/types'
 
 interface AuthDialogProps {
@@ -19,37 +21,60 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
   const [users, setUsers] = useKV<User[]>('users', [])
   
   const [loginEmail, setLoginEmail] = useState('')
+  const [loginPassword, setLoginPassword] = useState('')
   const [signupEmail, setSignupEmail] = useState('')
+  const [signupPassword, setSignupPassword] = useState('')
+  const [signupConfirmPassword, setSignupConfirmPassword] = useState('')
   const [signupFirstName, setSignupFirstName] = useState('')
   const [signupLastName, setSignupLastName] = useState('')
   const [signupRole, setSignupRole] = useState<UserRole>('parent')
   const [signupSpecialization, setSignupSpecialization] = useState('')
+  const [showLoginPassword, setShowLoginPassword] = useState(false)
+  const [showSignupPassword, setShowSignupPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!loginEmail.trim()) {
-      toast.error('Introdu adresa de email')
+    if (!loginEmail.trim() || !loginPassword) {
+      toast.error('Introdu email și parolă')
       return
     }
 
     const user = (users || []).find(u => u.email.toLowerCase() === loginEmail.toLowerCase().trim())
     
-    if (user) {
+    if (!user) {
+      toast.error('Email sau parolă incorectă')
+      return
+    }
+
+    const passwordMatch = await verifyPassword(loginPassword, user.password)
+    
+    if (passwordMatch) {
       onLogin(user)
       toast.success(`Bine ai revenit, ${user.firstName}!`)
       onClose()
       resetForms()
     } else {
-      toast.error('Cont inexistent. Înregistrează-te mai întâi.')
+      toast.error('Email sau parolă incorectă')
     }
   }
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!signupEmail.trim() || !signupFirstName.trim() || !signupLastName.trim()) {
+    if (!signupEmail.trim() || !signupPassword || !signupFirstName.trim() || !signupLastName.trim()) {
       toast.error('Completează toate câmpurile obligatorii')
+      return
+    }
+
+    if (signupPassword.length < 6) {
+      toast.error('Parola trebuie să aibă minim 6 caractere')
+      return
+    }
+
+    if (signupPassword !== signupConfirmPassword) {
+      toast.error('Parolele nu corespund')
       return
     }
 
@@ -60,9 +85,12 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
       return
     }
 
+    const hashedPassword = await hashPassword(signupPassword)
+
     const newUser: User = {
       id: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       email: signupEmail.trim(),
+      password: hashedPassword,
       firstName: signupFirstName.trim(),
       lastName: signupLastName.trim(),
       role: signupRole,
@@ -82,11 +110,17 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
 
   const resetForms = () => {
     setLoginEmail('')
+    setLoginPassword('')
     setSignupEmail('')
+    setSignupPassword('')
+    setSignupConfirmPassword('')
     setSignupFirstName('')
     setSignupLastName('')
     setSignupRole('parent')
     setSignupSpecialization('')
+    setShowLoginPassword(false)
+    setShowSignupPassword(false)
+    setShowConfirmPassword(false)
   }
 
   return (
@@ -112,8 +146,14 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
                     admin@clubatletism.ro
                   </code>
                 </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">Parolă:</span>
+                  <code className="bg-primary/20 px-2 py-0.5 rounded text-primary font-mono text-xs">
+                    admin123
+                  </code>
+                </div>
                 <div className="text-xs text-muted-foreground mt-2">
-                  Introdu emailul de mai sus pentru a accesa panoul SuperAdmin
+                  Introdu credențialele de mai sus pentru a accesa panoul SuperAdmin
                 </div>
               </div>
             </div>
@@ -129,6 +169,32 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
                   placeholder="exemplu@email.ro"
                   required
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="login-password">Parolă</Label>
+                <div className="relative">
+                  <Input
+                    id="login-password"
+                    type={showLoginPassword ? "text" : "password"}
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowLoginPassword(!showLoginPassword)}
+                  >
+                    {showLoginPassword ? (
+                      <EyeSlash size={18} className="text-muted-foreground" />
+                    ) : (
+                      <Eye size={18} className="text-muted-foreground" />
+                    )}
+                  </Button>
+                </div>
               </div>
               <Button type="submit" className="w-full">
                 Autentificare
@@ -148,6 +214,59 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
                   placeholder="exemplu@email.ro"
                   required
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="signup-password">Parolă</Label>
+                <div className="relative">
+                  <Input
+                    id="signup-password"
+                    type={showSignupPassword ? "text" : "password"}
+                    value={signupPassword}
+                    onChange={(e) => setSignupPassword(e.target.value)}
+                    placeholder="Minim 6 caractere"
+                    required
+                    minLength={6}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowSignupPassword(!showSignupPassword)}
+                  >
+                    {showSignupPassword ? (
+                      <EyeSlash size={18} className="text-muted-foreground" />
+                    ) : (
+                      <Eye size={18} className="text-muted-foreground" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="signup-confirm-password">Confirmă Parola</Label>
+                <div className="relative">
+                  <Input
+                    id="signup-confirm-password"
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={signupConfirmPassword}
+                    onChange={(e) => setSignupConfirmPassword(e.target.value)}
+                    placeholder="Reintroduceți parola"
+                    required
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    {showConfirmPassword ? (
+                      <EyeSlash size={18} className="text-muted-foreground" />
+                    ) : (
+                      <Eye size={18} className="text-muted-foreground" />
+                    )}
+                  </Button>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">

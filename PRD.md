@@ -1,10 +1,10 @@
 # Planning Guide
 
-O aplicație web profesională pentru managementul atleților juniori din clubul de atletism, care permite înregistrarea sportivilor, managementul probelor sportive personalizate, adăugarea rezultatelor și urmărirea evoluției performanțelor în timp. Include sistem de autentificare cu roluri multiple (SuperAdmin, Antrenor, Părinte, Atlet), management granular al permisiunilor, cereri de acces controlate pentru vizualizarea datelor copiilor și canal de comunicare între părinți și antrenori.
+O aplicație web profesională pentru managementul atleților juniori din clubul de atletism, care permite înregistrarea sportivilor, managementul probelor sportive personalizate, adăugarea rezultatelor și urmărirea evoluției performanțelor în timp. Include sistem de autentificare securizat cu parolă criptată (SHA-256), roluri multiple (SuperAdmin, Antrenor, Părinte, Atlet), management granular al permisiunilor, cereri de acces controlate pentru vizualizarea datelor copiilor și canal de comunicare între părinți și antrenori.
 
 **Experience Qualities**:
 1. **Profesională** - Interfață modernă și premium cu design sofisticat, iconografie consistentă și feedback vizual immediate pentru toate acțiunile
-2. **Securizată** - Sistem hierarhic de roluri cu SuperAdmin care controlează toate permisiunile, cereri de aprobare pentru acces și separare clară între drepturile utilizatorilor
+2. **Securizată** - Autentificare cu parolă criptată SHA-256, sistem hierarhic de roluri cu SuperAdmin care controlează toate permisiunile, cereri de aprobare pentru acces și separare clară între drepturile utilizatorilor
 3. **Flexibilă** - Management dinamic al probelor sportive personalizate, configurabile per nevoile clubului, și sistem granular de permisiuni pe resurse specifice
 
 **Complexity Level**: Complex Application (advanced functionality, accounts)
@@ -12,12 +12,33 @@ O aplicație web profesională pentru managementul atleților juniori din clubul
 
 ## Essential Features
 
+### Autentificare Securizată cu Parolă
+- **Functionality**: Sistem de login cu email și parolă, parolele sunt criptate cu SHA-256 înainte de stocare, vizibilitate parola cu toggle eye icon, validare minim 6 caractere
+- **Purpose**: Protecția accesului la date sensibile și asigurarea identității utilizatorilor
+- **Trigger**: Acces aplicație → Dialog autentificare → Intrare credențiale
+- **Progression**: Email + Parolă → Validare → Hash comparison → Login success/error → Redirect la panou specific rolului
+- **Success criteria**: Parolele sunt stocate criptat, autentificarea verifică corect parolele, mesaje de eroare nu dezvăluie detalii de securitate (doar "Email sau parolă incorectă")
+
+### Înregistrare Utilizatori cu Parolă
+- **Functionality**: Formular de înregistrare care cere email, parolă (min 6 caractere), confirmare parolă, prenume, nume și rol, cu validare în timp real
+- **Purpose**: Onboarding securizat al utilizatorilor noi în sistem
+- **Trigger**: Dialog autentificare → Tab "Înregistrare" → Completare formular
+- **Progression**: Completare câmpuri → Validare parolă (lungime, match) → Hash parola → Creare cont → Login automat
+- **Success criteria**: Parolele sunt verificate că match înainte de salvare, hash-ul este generat corect, emailuri duplicate sunt blocate
+
+### Management Utilizatori cu Parolă (SuperAdmin)
+- **Functionality**: SuperAdmin poate crea utilizatori noi cu parolă setată și poate reseta parola utilizatorilor existenți (câmp opțional la editare)
+- **Purpose**: Administrarea completă a conturilor și recuperarea accesului pentru utilizatori
+- **Trigger**: SuperAdmin → Tab "Utilizatori" → Adaugă/Editează Utilizator
+- **Progression**: Formular → Email + Parolă (obligatorie la creare, opțională la editare) → Hash → Salvare → Utilizator poate folosi noua parolă
+- **Success criteria**: SuperAdmin poate seta parole inițiale, poate reseta parole, parola veche rămâne dacă câmpul este gol la editare
+
 ### Sistem SuperAdmin
 - **Functionality**: Rol special de administrator care are control complet asupra sistemului - poate gestiona utilizatori, probe, permisiuni și vizualiza toate datele
 - **Purpose**: Centralizarea managementului aplicației și controlul ierarhic al drepturilor
-- **Trigger**: Autentificare cu cont SuperAdmin (admin@clubatletism.ro) → Acces panou dedicat
-- **Progression**: Login SuperAdmin → Dashboard cu statistici complete → Tabs pentru Permisiuni/Probe/Atleți → Acțiuni administrative
-- **Success criteria**: SuperAdmin poate vedea toate datele, modifica roluri utilizatori, acorda/revoca permisiuni și gestiona probele
+- **Trigger**: Autentificare cu cont SuperAdmin (admin@clubatletism.ro / parola: admin123) → Acces panou dedicat
+- **Progression**: Login SuperAdmin → Dashboard cu statistici complete → Tabs pentru Utilizatori/Permisiuni/Probe/Atleți → Acțiuni administrative
+- **Success criteria**: SuperAdmin poate vedea toate datele, modifica roluri utilizatori, reseta parole, acorda/revoca permisiuni și gestiona probele
 
 ### Management Probe Personalizate
 - **Functionality**: Adăugare, editare și ștergere probe sportive custom cu nume, categorie (Alergare/Sărituri/Aruncări/Altele), unitate măsură (secunde/metri/puncte) și descriere
@@ -48,11 +69,11 @@ O aplicație web profesională pentru managementul atleților juniori din clubul
 - **Success criteria**: Atleții văd doar datele proprii, graficele afișează progresul cronologic
 
 ### Managementul Antrenorilor
-- **Functionality**: Adăugare antrenori în sistem cu email, nume și specializare opțională
-- **Purpose**: Menținerea bazei de antrenori pentru asociere cu atleții
+- **Functionality**: Adăugare antrenori în sistem cu email, parolă, nume și specializare opțională
+- **Purpose**: Menținerea bazei de antrenori pentru asociere cu atleții și asigurarea accesului securizat
 - **Trigger**: Click pe tab "Antrenori" → "Adaugă Antrenor"
-- **Progression**: Buton acțiune → Formular (Email, Prenume, Nume, Specializare) → Salvare → Afișare în listă
-- **Success criteria**: Antrenorii pot fi adăugați și asociați cu atleții
+- **Progression**: Buton acțiune → Formular (Email, Parolă, Prenume, Nume, Specializare) → Hash parolă → Salvare → Afișare în listă
+- **Success criteria**: Antrenorii pot fi adăugați cu parolă securizată și pot face login pentru a gestiona atleții
 
 ### Asociere Atlet-Antrenor
 - **Functionality**: La adăugarea unui atlet se poate selecta antrenorul responsabil din listă
@@ -111,8 +132,13 @@ O aplicație web profesională pentru managementul atleților juniori din clubul
 - **Success criteria**: Graficul afișează corect datele și permite identificarea rapidă a trendurilor
 
 ## Edge Case Handling
-- **Email duplicat**: Validare la înregistrare/adăugare antrenor pentru a preveni duplicate
-- **SuperAdmin implicit**: La prima rulare se creează automat cont SuperAdmin (admin@clubatletism.ro)
+- **Email duplicat**: Validare la înregistrare/adăugare utilizator pentru a preveni duplicate
+- **Parolă scurtă**: Validare minim 6 caractere la toate formularele cu feedback clar
+- **Parolă nepotrivită**: La înregistrare, confirmarea trebuie să match exact cu parola
+- **Login eșuat**: Mesaj generic "Email sau parolă incorectă" pentru a nu dezvălui ce câmp e greșit
+- **SuperAdmin implicit**: La prima rulare se creează automat cont SuperAdmin (admin@clubatletism.ro / admin123) cu parolă pre-criptată
+- **Resetare parolă**: SuperAdmin poate seta parolă nouă pentru orice utilizator (câmp opțional la editare)
+- **Vizibilitate parolă**: Toggle eye/eye-slash pentru a afișa/ascunde parola în toate formularele
 - **Probe șterse**: La ștergerea unei probe, rezultatele existente rămân dar fără referință (arhivare)
 - **Permisiuni conflictuale**: Ultima permisiune acordată suprascrie pe anterioara pentru aceeași resursă
 - **Rol modificat**: Când SuperAdmin schimbă rolul unui user, permisiunile existente rămân active
@@ -198,6 +224,7 @@ Animații profesionale, subtile și rapide care ghidează utilizatorul fără s�
   - ShieldCheck pentru SuperAdmin și sistem permisiuni
   - UserCircle pentru autentificare și utilizatori
   - SignOut pentru deconectare
+  - Eye / EyeSlash pentru toggle vizibilitate parolă în formulare
   - Envelope pentru cereri de acces și notificări
   - ChatCircleDots pentru mesagerie
   - Trophy pentru dashboard și performanțe atleți

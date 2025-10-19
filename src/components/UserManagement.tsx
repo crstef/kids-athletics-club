@@ -8,8 +8,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { MagnifyingGlass, Plus, PencilSimple, Trash, UserCircle } from '@phosphor-icons/react'
+import { MagnifyingGlass, Plus, PencilSimple, Trash, UserCircle, Eye, EyeSlash } from '@phosphor-icons/react'
 import { toast } from 'sonner'
+import { hashPassword } from '@/lib/crypto'
 import type { User, UserRole } from '@/lib/types'
 
 interface UserManagementProps {
@@ -29,10 +30,12 @@ export function UserManagement({ users, currentUserId, onAddUser, onUpdateUser, 
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
 
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [role, setRole] = useState<UserRole>('parent')
   const [specialization, setSpecialization] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
 
   const filteredUsers = useMemo(() => {
     let filtered = users
@@ -57,10 +60,12 @@ export function UserManagement({ users, currentUserId, onAddUser, onUpdateUser, 
 
   const resetForm = () => {
     setEmail('')
+    setPassword('')
     setFirstName('')
     setLastName('')
     setRole('parent')
     setSpecialization('')
+    setShowPassword(false)
   }
 
   const handleOpenAdd = () => {
@@ -83,11 +88,16 @@ export function UserManagement({ users, currentUserId, onAddUser, onUpdateUser, 
     setDeleteDialogOpen(true)
   }
 
-  const handleAdd = (e: React.FormEvent) => {
+  const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!email.trim() || !firstName.trim() || !lastName.trim()) {
+    if (!email.trim() || !password || !firstName.trim() || !lastName.trim()) {
       toast.error('Completează toate câmpurile obligatorii')
+      return
+    }
+
+    if (password.length < 6) {
+      toast.error('Parola trebuie să aibă minim 6 caractere')
       return
     }
 
@@ -98,8 +108,11 @@ export function UserManagement({ users, currentUserId, onAddUser, onUpdateUser, 
       return
     }
 
+    const hashedPassword = await hashPassword(password)
+
     const userData: any = {
       email: email.trim(),
+      password: hashedPassword,
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       role
@@ -115,11 +128,16 @@ export function UserManagement({ users, currentUserId, onAddUser, onUpdateUser, 
     resetForm()
   }
 
-  const handleEdit = (e: React.FormEvent) => {
+  const handleEdit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!selectedUser || !email.trim() || !firstName.trim() || !lastName.trim()) {
       toast.error('Completează toate câmpurile obligatorii')
+      return
+    }
+
+    if (password && password.length < 6) {
+      toast.error('Parola trebuie să aibă minim 6 caractere')
       return
     }
 
@@ -137,6 +155,10 @@ export function UserManagement({ users, currentUserId, onAddUser, onUpdateUser, 
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       role
+    }
+
+    if (password) {
+      userData.password = await hashPassword(password)
     }
 
     if (role === 'coach') {
@@ -313,6 +335,33 @@ export function UserManagement({ users, currentUserId, onAddUser, onUpdateUser, 
                 required
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="add-password">Parolă *</Label>
+              <div className="relative">
+                <Input
+                  id="add-password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Minim 6 caractere"
+                  required
+                  minLength={6}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeSlash size={18} className="text-muted-foreground" />
+                  ) : (
+                    <Eye size={18} className="text-muted-foreground" />
+                  )}
+                </Button>
+              </div>
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="add-firstName">Prenume *</Label>
@@ -386,6 +435,35 @@ export function UserManagement({ users, currentUserId, onAddUser, onUpdateUser, 
                 placeholder="exemplu@email.ro"
                 required
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-password">Parolă Nouă (opțional)</Label>
+              <div className="relative">
+                <Input
+                  id="edit-password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Lasă gol pentru a păstra parola actuală"
+                  minLength={6}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeSlash size={18} className="text-muted-foreground" />
+                  ) : (
+                    <Eye size={18} className="text-muted-foreground" />
+                  )}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Lasă câmpul gol dacă nu vrei să schimbi parola
+              </p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
