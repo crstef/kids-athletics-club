@@ -62,6 +62,8 @@ function AppContent() {
 
   useEffect(() => {
     const initSuperAdmin = async () => {
+      setApprovalRequests([])
+      
       const existingProbes = probes || []
       if (existingProbes.length === 0) {
         const defaultProbes: CoachProbe[] = [
@@ -551,6 +553,10 @@ function AppContent() {
     toast.success('Cerere respinsă')
   }
 
+  const handleDeleteApprovalRequest = (requestId: string) => {
+    setApprovalRequests((current) => (current || []).filter(r => r.id !== requestId))
+  }
+
   const handleUpdateUserRole = (userId: string, role: 'coach' | 'parent' | 'athlete') => {
     setUsers((current) =>
       (current || []).map(u =>
@@ -867,6 +873,7 @@ function AppContent() {
                 onApproveAccount={handleApproveAccount}
                 onRejectAccount={handleRejectAccount}
                 onUpdateUser={handleUpdateUser}
+                onDeleteRequest={handleDeleteApprovalRequest}
               />
               {pendingRequestsCount > 0 && superAdminActiveTab !== 'approvals' && (
                 <Button

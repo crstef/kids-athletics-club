@@ -26,6 +26,7 @@ interface UserPermissionsManagementProps {
   onApproveAccount: (requestId: string) => void
   onRejectAccount: (requestId: string, reason?: string) => void
   onUpdateUser: (userId: string, updates: Partial<User>) => void
+  onDeleteRequest?: (requestId: string) => void
 }
 
 export function UserPermissionsManagement({
@@ -39,7 +40,8 @@ export function UserPermissionsManagement({
   onRevokePermission,
   onApproveAccount,
   onRejectAccount,
-  onUpdateUser
+  onUpdateUser,
+  onDeleteRequest
 }: UserPermissionsManagementProps) {
   const [selectedUserId, setSelectedUserId] = useState<string>('')
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -262,6 +264,13 @@ export function UserPermissionsManagement({
     setViewRequestDialogOpen(true)
   }
 
+  const handleDeleteRequest = (requestId: string) => {
+    if (confirm('Sigur vrei să ștergi această cerere din istoric?')) {
+      onDeleteRequest?.(requestId)
+      toast.success('Cerere ștearsă din istoric')
+    }
+  }
+
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'pending' | 'processed')} className="space-y-4">
@@ -413,13 +422,33 @@ export function UserPermissionsManagement({
           {processedRequests.length > 0 ? (
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Check size={24} weight="fill" className="text-primary" />
-                  Istoric Cereri Procesate
-                </CardTitle>
-                <CardDescription>
-                  Ultimele 10 cereri aprobate sau respinse
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Check size={24} weight="fill" className="text-primary" />
+                      Istoric Cereri Procesate
+                    </CardTitle>
+                    <CardDescription>
+                      Ultimele 10 cereri aprobate sau respinse
+                    </CardDescription>
+                  </div>
+                  {onDeleteRequest && processedRequests.length > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (confirm(`Sigur vrei să ștergi toate cele ${processedRequests.length} cereri procesate din istoric?`)) {
+                          processedRequests.forEach(req => onDeleteRequest(req.id))
+                          toast.success('Toate cererile procesate au fost șterse')
+                        }
+                      }}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash size={16} className="mr-2" />
+                      Șterge Istoric
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
@@ -456,14 +485,25 @@ export function UserPermissionsManagement({
                             </div>
                           )}
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleViewRequest(request)}
-                          className="ml-4"
-                        >
-                          <MagnifyingGlass size={16} />
-                        </Button>
+                        <div className="flex gap-2 ml-4">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleViewRequest(request)}
+                          >
+                            <MagnifyingGlass size={16} />
+                          </Button>
+                          {onDeleteRequest && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteRequest(request.id)}
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <Trash size={16} />
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     )
                   })}
