@@ -226,7 +226,7 @@ function AppContent() {
     toast.success(`Atlet adăugat: ${athleteData.firstName} ${athleteData.lastName}`)
   }
 
-  const handleAddCoach = (coachData: Omit<Coach, 'id' | 'createdAt'>) => {
+  const handleAddCoach = (coachData: Omit<Coach, 'id' | 'createdAt'>, requiresApproval: boolean) => {
     const existingUser = (users || []).find(u => u.email.toLowerCase() === coachData.email.toLowerCase())
     
     if (existingUser) {
@@ -241,7 +241,20 @@ function AppContent() {
     }
 
     setUsers((current) => [...(current || []), newCoach])
-    toast.success('Antrenor adăugat cu succes!')
+
+    if (requiresApproval) {
+      const approvalRequest: AccountApprovalRequest = {
+        id: `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        userId: newCoach.id,
+        requestedRole: 'coach',
+        status: 'pending',
+        requestDate: new Date().toISOString()
+      }
+      setApprovalRequests((current) => [...(current || []), approvalRequest])
+      toast.success('Antrenor adăugat! Contul așteaptă aprobare.')
+    } else {
+      toast.success('Antrenor adăugat cu succes!')
+    }
   }
 
   const handleDeleteAthlete = (id: string) => {
@@ -443,30 +456,13 @@ function AppContent() {
   }
 
   const handleApproveAccount = (requestId: string) => {
-    const request = (approvalRequests || []).find(r => r.id === requestId)
-    if (!request) {
-      toast.error('Cererea nu a fost găsită')
-      return
-    }
+    setApprovalRequests((currentRequests) => {
+      const request = (currentRequests || []).find(r => r.id === requestId)
+      if (!request || request.status !== 'pending') {
+        return currentRequests || []
+      }
 
-    if (request.status !== 'pending') {
-      toast.error('Această cerere a fost deja procesată')
-      return
-    }
-
-    const user = (users || []).find(u => u.id === request.userId)
-    if (!user) {
-      toast.error('Utilizatorul nu a fost găsit')
-      return
-    }
-
-    if (user.isActive && !user.needsApproval) {
-      toast.error('Acest utilizator este deja activ')
-      return
-    }
-
-    setApprovalRequests((current) =>
-      (current || []).map(r =>
+      return (currentRequests || []).map(r =>
         r.id === requestId
           ? {
               ...r,
@@ -476,10 +472,18 @@ function AppContent() {
             }
           : r
       )
-    )
+    })
 
-    setUsers((current) =>
-      (current || []).map(u =>
+    setUsers((currentUsers) => {
+      const request = (approvalRequests || []).find(r => r.id === requestId)
+      if (!request) return currentUsers || []
+      
+      const user = (currentUsers || []).find(u => u.id === request.userId)
+      if (!user || (user.isActive && !user.needsApproval)) {
+        return currentUsers || []
+      }
+
+      return (currentUsers || []).map(u =>
         u.id === request.userId
           ? {
               ...u,
@@ -490,46 +494,48 @@ function AppContent() {
             }
           : u
       )
-    )
+    })
 
-    if (request.requestedRole === 'parent' && request.athleteId && request.coachId) {
-      const existingAccess = (accessRequests || []).find(
-        ar => ar.parentId === request.userId && 
-              ar.athleteId === request.athleteId && 
-              ar.coachId === request.coachId
-      )
+    const request = (approvalRequests || []).find(r => r.id === requestId)
+    if (request && request.requestedRole === 'parent' && request.athleteId && request.coachId) {
+      setAccessRequests((currentAccess) => {
+        const existingAccess = (currentAccess || []).find(
+          ar => ar.parentId === request.userId && 
+                ar.athleteId === request.athleteId && 
+                ar.coachId === request.coachId
+        )
 
-      if (!existingAccess) {
-        const newAccessRequest: AccessRequest = {
-          id: `access-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          parentId: request.userId,
-          athleteId: request.athleteId,
-          coachId: request.coachId,
-          status: 'approved',
-          requestDate: new Date().toISOString(),
-          responseDate: new Date().toISOString()
+        if (!existingAccess) {
+          const newAccessRequest: AccessRequest = {
+            id: `access-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            parentId: request.userId,
+            athleteId: request.athleteId!,
+            coachId: request.coachId!,
+            status: 'approved',
+            requestDate: new Date().toISOString(),
+            responseDate: new Date().toISOString()
+          }
+          return [...(currentAccess || []), newAccessRequest]
         }
-        setAccessRequests((current) => [...(current || []), newAccessRequest])
-      }
+        
+        return currentAccess || []
+      })
     }
 
-    toast.success(`Contul lui ${user.firstName} ${user.lastName} a fost aprobat!`)
+    const user = (users || []).find(u => u.id === request?.userId)
+    if (user) {
+      toast.success(`Contul lui ${user.firstName} ${user.lastName} a fost aprobat!`)
+    }
   }
 
   const handleRejectAccount = (requestId: string, reason?: string) => {
-    const request = (approvalRequests || []).find(r => r.id === requestId)
-    if (!request) {
-      toast.error('Cererea nu a fost găsită')
-      return
-    }
+    setApprovalRequests((currentRequests) => {
+      const request = (currentRequests || []).find(r => r.id === requestId)
+      if (!request || request.status !== 'pending') {
+        return currentRequests || []
+      }
 
-    if (request.status !== 'pending') {
-      toast.error('Această cerere a fost deja procesată')
-      return
-    }
-
-    setApprovalRequests((current) =>
-      (current || []).map(r =>
+      return (currentRequests || []).map(r =>
         r.id === requestId
           ? {
               ...r,
@@ -540,7 +546,7 @@ function AppContent() {
             }
           : r
       )
-    )
+    })
 
     toast.success('Cerere respinsă')
   }

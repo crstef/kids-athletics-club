@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Plus, Eye, EyeSlash } from '@phosphor-icons/react'
 import { hashPassword } from '@/lib/crypto'
 import { toast } from 'sonner'
@@ -11,7 +12,7 @@ import type { Coach, CoachProbe } from '@/lib/types'
 
 interface AddCoachDialogProps {
   probes: CoachProbe[]
-  onAdd: (coach: Omit<Coach, 'id' | 'createdAt'>) => void
+  onAdd: (coach: Omit<Coach, 'id' | 'createdAt'>, requiresApproval: boolean) => void
 }
 
 export function AddCoachDialog({ probes, onAdd }: AddCoachDialogProps) {
@@ -22,6 +23,7 @@ export function AddCoachDialog({ probes, onAdd }: AddCoachDialogProps) {
   const [lastName, setLastName] = useState('')
   const [probeId, setProbeId] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [requiresApproval, setRequiresApproval] = useState(false)
   
   const activeProbes = probes.filter(p => p.isActive)
 
@@ -47,9 +49,9 @@ export function AddCoachDialog({ probes, onAdd }: AddCoachDialogProps) {
       lastName: lastName.trim(),
       role: 'coach',
       probeId: probeId || undefined,
-      isActive: true,
-      needsApproval: false
-    })
+      isActive: !requiresApproval,
+      needsApproval: requiresApproval
+    }, requiresApproval)
 
     setEmail('')
     setPassword('')
@@ -57,6 +59,7 @@ export function AddCoachDialog({ probes, onAdd }: AddCoachDialogProps) {
     setLastName('')
     setProbeId('')
     setShowPassword(false)
+    setRequiresApproval(false)
     setOpen(false)
   }
 
@@ -146,6 +149,19 @@ export function AddCoachDialog({ probes, onAdd }: AddCoachDialogProps) {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+          <div className="flex items-center space-x-2 py-2">
+            <Checkbox
+              id="coach-approval"
+              checked={requiresApproval}
+              onCheckedChange={(checked) => setRequiresApproval(checked as boolean)}
+            />
+            <label
+              htmlFor="coach-approval"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+            >
+              Contul necesită aprobare
+            </label>
           </div>
           <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
