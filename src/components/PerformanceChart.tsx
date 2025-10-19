@@ -23,10 +23,21 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
   useEffect(() => {
     if (!containerRef.current) return
 
+    const updateDimensions = () => {
+      if (containerRef.current) {
+        const { width } = containerRef.current.getBoundingClientRect()
+        setDimensions({ width, height: 300 })
+      }
+    }
+
+    updateDimensions()
+
     const resizeObserver = new ResizeObserver(entries => {
       for (const entry of entries) {
         const { width } = entry.contentRect
-        setDimensions({ width, height: 300 })
+        if (width > 0) {
+          setDimensions({ width, height: 300 })
+        }
       }
     })
 
@@ -50,21 +61,43 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
     const width = dimensions.width - margin.left - margin.right
     const height = dimensions.height - margin.top - margin.bottom
 
+    if (width <= 0 || height <= 0) return
+
     const g = svg
       .append('g')
       .attr('transform', `translate(${margin.left},${margin.top})`)
 
     const sortedData = [...filteredData].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
 
+    let dateExtent = d3.extent(sortedData, d => new Date(d.date)) as [Date, Date]
+    if (!dateExtent[0] || !dateExtent[1]) return
+
+    if (sortedData.length === 1) {
+      const singleDate = dateExtent[0]
+      const dayBefore = new Date(singleDate)
+      dayBefore.setDate(dayBefore.getDate() - 1)
+      const dayAfter = new Date(singleDate)
+      dayAfter.setDate(dayAfter.getDate() + 1)
+      dateExtent = [dayBefore, dayAfter]
+    }
+
     const x = d3.scaleTime()
-      .domain(d3.extent(sortedData, d => new Date(d.date)) as [Date, Date])
+      .domain(dateExtent)
       .range([0, width])
 
+    const minValue = d3.min(sortedData, d => d.value)
+    const maxValue = d3.max(sortedData, d => d.value)
+    if (minValue === undefined || maxValue === undefined) return
+
+    let yDomain: [number, number]
+    if (minValue === maxValue) {
+      yDomain = [minValue * 0.9, minValue * 1.1]
+    } else {
+      yDomain = [minValue * 0.95, maxValue * 1.05]
+    }
+
     const y = d3.scaleLinear()
-      .domain([
-        d3.min(sortedData, d => d.value)! * 0.95,
-        d3.max(sortedData, d => d.value)! * 1.05
-      ])
+      .domain(yDomain)
       .range([height, 0])
 
     const tickCount = isMobile ? Math.min(3, sortedData.length) : Math.min(5, sortedData.length)
