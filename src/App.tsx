@@ -327,6 +327,85 @@ function AppContent() {
         ]
         setAgeCategories(defaultAgeCategories)
       }
+
+      const existingApprovals = approvalRequests || []
+      const hasPendingUsers = existingUsers.some(u => u.id === 'user-parent-1' || u.id === 'user-parent-2' || u.id === 'user-coach-pending')
+      
+      if (!hasPendingUsers && existingApprovals.length === 0) {
+        const parentPassword = await hashPassword('parent123')
+        const coachPassword = await hashPassword('coach123')
+        
+        const pendingUsers: User[] = [
+          {
+            id: 'user-parent-1',
+            email: 'gheorghe.georgescu@email.ro',
+            password: parentPassword,
+            firstName: 'Gheorghe',
+            lastName: 'Georgescu',
+            role: 'parent',
+            createdAt: new Date('2024-03-15T10:30:00.000Z').toISOString(),
+            isActive: false,
+            needsApproval: true
+          },
+          {
+            id: 'user-parent-2',
+            email: 'elena.radu@email.ro',
+            password: parentPassword,
+            firstName: 'Elena',
+            lastName: 'Radu',
+            role: 'parent',
+            createdAt: new Date('2024-03-16T14:20:00.000Z').toISOString(),
+            isActive: false,
+            needsApproval: true
+          },
+          {
+            id: 'user-coach-pending',
+            email: 'bogdan.nicolae@clubatletism.ro',
+            password: coachPassword,
+            firstName: 'Bogdan',
+            lastName: 'Nicolae',
+            role: 'coach',
+            createdAt: new Date('2024-03-17T09:15:00.000Z').toISOString(),
+            isActive: false,
+            needsApproval: true
+          } as any
+        ]
+        
+        setUsers((current) => [...(current || []), ...pendingUsers])
+
+        const testApprovals: AccountApprovalRequest[] = [
+          {
+            id: 'approval-req-1',
+            userId: 'user-parent-1',
+            requestedRole: 'parent',
+            status: 'pending',
+            requestDate: new Date('2024-03-15T10:30:00.000Z').toISOString(),
+            athleteId: 'athlete-1',
+            coachId: 'coach-1',
+            approvalNotes: 'Sunt părintele lui Alex Georgescu și doresc acces la rezultatele sale.'
+          },
+          {
+            id: 'approval-req-2',
+            userId: 'user-parent-2',
+            requestedRole: 'parent',
+            status: 'pending',
+            requestDate: new Date('2024-03-16T14:20:00.000Z').toISOString(),
+            athleteId: 'athlete-4',
+            coachId: 'coach-2',
+            approvalNotes: 'Mama Sofiei Radu. Aș dori să monitorizez progresul fiicei mele.'
+          },
+          {
+            id: 'approval-req-3',
+            userId: 'user-coach-pending',
+            requestedRole: 'coach',
+            status: 'pending',
+            requestDate: new Date('2024-03-17T09:15:00.000Z').toISOString(),
+            approvalNotes: 'Antrenor certificat cu 10 ani experiență în atletism, specializare alergări de sprint și mijlocie.'
+          }
+        ]
+        
+        setApprovalRequests(testApprovals)
+      }
     }
     
     initSuperAdmin()

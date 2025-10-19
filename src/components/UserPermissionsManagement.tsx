@@ -45,7 +45,11 @@ export function UserPermissionsManagement({
   const [resourceType, setResourceType] = useState<'athlete' | 'all'>('all')
   const [resourceId, setResourceId] = useState<string>('')
   const [searchQuery, setSearchQuery] = useState('')
+  const [rejectionDialogOpen, setRejectionDialogOpen] = useState(false)
+  const [selectedRequestForRejection, setSelectedRequestForRejection] = useState<string | null>(null)
   const [rejectionReason, setRejectionReason] = useState('')
+  const [approvalDialogOpen, setApprovalDialogOpen] = useState(false)
+  const [selectedRequestForApproval, setSelectedRequestForApproval] = useState<string | null>(null)
   const [associateDialogOpen, setAssociateDialogOpen] = useState(false)
   const [selectedAthleteUser, setSelectedAthleteUser] = useState<User | null>(null)
   const [selectedAthleteId, setSelectedAthleteId] = useState<string>('')
@@ -109,13 +113,43 @@ export function UserPermissionsManagement({
   }
 
   const handleApprove = (requestId: string) => {
-    onApproveAccount(requestId)
-    toast.success('Cont aprobat cu succes')
+    setSelectedRequestForApproval(requestId)
+    setApprovalDialogOpen(true)
   }
 
-  const handleReject = (requestId: string) => {
-    onRejectAccount(requestId, rejectionReason)
+  const handleConfirmApproval = () => {
+    if (!selectedRequestForApproval) return
+    
+    onApproveAccount(selectedRequestForApproval)
+    toast.success('Cont aprobat cu succes! Utilizatorul are acum acces la sistem.')
+    setApprovalDialogOpen(false)
+    setSelectedRequestForApproval(null)
+  }
+
+  const handleCancelApproval = () => {
+    setApprovalDialogOpen(false)
+    setSelectedRequestForApproval(null)
+  }
+
+  const handleOpenRejectDialog = (requestId: string) => {
+    setSelectedRequestForRejection(requestId)
+    setRejectionDialogOpen(true)
+    setRejectionReason('')
+  }
+
+  const handleReject = () => {
+    if (!selectedRequestForRejection) return
+    
+    onRejectAccount(selectedRequestForRejection, rejectionReason || undefined)
     toast.success('Cont respins')
+    setRejectionDialogOpen(false)
+    setSelectedRequestForRejection(null)
+    setRejectionReason('')
+  }
+
+  const handleCancelReject = () => {
+    setRejectionDialogOpen(false)
+    setSelectedRequestForRejection(null)
     setRejectionReason('')
   }
 
@@ -209,40 +243,14 @@ export function UserPermissionsManagement({
                       </div>
                     </div>
                     <div className="flex gap-2 sm:flex-col lg:flex-row">
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button variant="outline" size="sm">
-                            <X size={16} className="mr-2" />
-                            Respinge
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Respinge Cerere</DialogTitle>
-                            <DialogDescription>
-                              Opțional, adaugă un motiv pentru respingere
-                            </DialogDescription>
-                          </DialogHeader>
-                          <div className="space-y-4">
-                            <div className="space-y-2">
-                              <Label>Motiv (opțional)</Label>
-                              <Input
-                                value={rejectionReason}
-                                onChange={(e) => setRejectionReason(e.target.value)}
-                                placeholder="Ex: Date incomplete..."
-                              />
-                            </div>
-                          </div>
-                          <DialogFooter>
-                            <Button variant="outline" onClick={() => setRejectionReason('')}>
-                              Anulează
-                            </Button>
-                            <Button variant="destructive" onClick={() => handleReject(request.id)}>
-                              Respinge
-                            </Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleOpenRejectDialog(request.id)}
+                      >
+                        <X size={16} className="mr-2" />
+                        Respinge
+                      </Button>
                       <Button size="sm" onClick={() => handleApprove(request.id)}>
                         <Check size={16} className="mr-2" />
                         Aprobă
@@ -581,6 +589,94 @@ export function UserPermissionsManagement({
             </Button>
             <Button onClick={handleAssociateAthlete}>
               Asociază
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={approvalDialogOpen} onOpenChange={setApprovalDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmă Aprobarea</DialogTitle>
+            <DialogDescription>
+              Ești sigur că vrei să aprobi această cerere?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {selectedRequestForApproval && (() => {
+              const request = approvalRequests.find(r => r.id === selectedRequestForApproval)
+              const user = request ? users.find(u => u.id === request.userId) : null
+              const athleteName = request ? getAthleteName(request.athleteId) : null
+              const coach = request?.coachId ? users.find(u => u.id === request.coachId) : null
+              
+              return (
+                <div className="bg-muted p-4 rounded-lg space-y-2">
+                  {user && (
+                    <>
+                      <div className="font-medium">
+                        {user.firstName} {user.lastName}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        Email: {user.email}
+                      </div>
+                      <div className="text-sm">
+                        Rol: <Badge variant="outline">{request?.requestedRole}</Badge>
+                      </div>
+                      {athleteName && (
+                        <div className="text-sm text-muted-foreground">
+                          👤 Copil: <strong>{athleteName}</strong>
+                        </div>
+                      )}
+                      {coach && (
+                        <div className="text-sm text-muted-foreground">
+                          🎓 Antrenor: <strong>{coach.firstName} {coach.lastName}</strong>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )
+            })()}
+            <p className="text-sm text-muted-foreground">
+              Utilizatorul va primi acces complet la sistem și va putea să se autentifice.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCancelApproval}>
+              Anulează
+            </Button>
+            <Button onClick={handleConfirmApproval}>
+              <Check size={16} className="mr-2" />
+              Aprobă Contul
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={rejectionDialogOpen} onOpenChange={setRejectionDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Respinge Cerere</DialogTitle>
+            <DialogDescription>
+              Opțional, adaugă un motiv pentru respingere
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Motiv (opțional)</Label>
+              <Input
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="Ex: Date incomplete, informații lipsă..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCancelReject}>
+              Anulează
+            </Button>
+            <Button variant="destructive" onClick={handleReject}>
+              Respinge
             </Button>
           </DialogFooter>
         </DialogContent>
