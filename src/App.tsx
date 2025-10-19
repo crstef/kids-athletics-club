@@ -661,27 +661,27 @@ function AppContent() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 flex items-center justify-center p-4">
         <Toaster position="top-right" richColors />
-        <div className="text-center space-y-8 p-8 max-w-md w-full">
+        <div className="text-center space-y-6 sm:space-y-8 p-4 sm:p-8 max-w-md w-full">
           <div className="relative">
             <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 blur-3xl rounded-full" />
-            <Trophy size={80} weight="fill" className="text-accent mx-auto relative animate-in zoom-in duration-500" />
+            <Trophy size={64} weight="fill" className="sm:w-20 sm:h-20 text-accent mx-auto relative animate-in zoom-in duration-500" />
           </div>
-          <div className="space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <h1 className="text-5xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent" style={{ fontFamily: 'Outfit', letterSpacing: '-0.02em' }}>
+          <div className="space-y-2 sm:space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <h1 className="text-3xl sm:text-5xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent" style={{ fontFamily: 'Outfit', letterSpacing: '-0.02em' }}>
               Club Atletism
             </h1>
-            <p className="text-lg text-muted-foreground">Management Atleți Juniori</p>
-            <p className="text-sm text-muted-foreground/80 max-w-sm mx-auto">
+            <p className="text-base sm:text-lg text-muted-foreground">Management Atleți Juniori</p>
+            <p className="text-xs sm:text-sm text-muted-foreground/80 max-w-sm mx-auto">
               Sistem profesional pentru monitorizarea progresului sportivilor
             </p>
           </div>
           <Button 
             size="lg" 
             onClick={() => setAuthDialogOpen(true)}
-            className="group relative overflow-hidden"
+            className="group relative overflow-hidden w-full sm:w-auto"
           >
-            <span className="relative z-10 flex items-center gap-2">
-              <UserCircle size={20} />
+            <span className="relative z-10 flex items-center gap-2 text-sm sm:text-base">
+              <UserCircle size={18} className="sm:w-5 sm:h-5" />
               Autentificare / Înregistrare
             </span>
             <div className="absolute inset-0 bg-gradient-to-r from-primary to-accent opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -702,29 +702,29 @@ function AppContent() {
         <Toaster position="top-right" richColors />
         
         <header className="border-b bg-gradient-to-r from-card via-card/80 to-card backdrop-blur-md sticky top-0 z-10 shadow-sm">
-          <div className="container mx-auto px-4 py-4">
+          <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-br from-accent/10 to-accent/5 rounded-xl">
-                  <Trophy size={28} weight="fill" className="text-accent" />
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-1.5 sm:p-2 bg-gradient-to-br from-accent/10 to-accent/5 rounded-xl">
+                  <Trophy size={20} weight="fill" className="sm:w-7 sm:h-7 text-accent" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold" style={{ fontFamily: 'Outfit', letterSpacing: '-0.02em' }}>
+                  <h1 className="text-lg sm:text-2xl font-bold" style={{ fontFamily: 'Outfit', letterSpacing: '-0.02em' }}>
                     Club Atletism
                   </h1>
-                  <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+                  <p className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1 sm:gap-1.5">
+                    <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-accent animate-pulse" />
                     Panou Părinte
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3">
                 <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-secondary/10 rounded-full">
                   <div className="w-2 h-2 rounded-full bg-secondary" />
                   <span className="text-sm font-medium">{currentUser.firstName} {currentUser.lastName}</span>
                 </div>
-                <Button variant="outline" size="sm" onClick={logout} className="gap-2">
-                  <SignOut size={16} />
+                <Button variant="outline" size="sm" onClick={logout} className="gap-1.5 sm:gap-2 h-8 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm">
+                  <SignOut size={14} className="sm:w-4 sm:h-4" />
                   <span className="hidden sm:inline">Deconectare</span>
                 </Button>
               </div>
@@ -732,7 +732,7 @@ function AppContent() {
           </div>
         </header>
 
-        <main className="container mx-auto px-4 py-8">
+        <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
           <ParentDashboard
             parentId={currentUser.id}
             athletes={athletes || []}
@@ -764,29 +764,29 @@ function AppContent() {
         <Toaster position="top-right" richColors />
         
         <header className="border-b bg-gradient-to-r from-primary/10 via-primary/5 to-accent/10 backdrop-blur-md sticky top-0 z-10 shadow-sm">
-          <div className="container mx-auto px-4 py-4">
+          <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-br from-primary/20 to-primary/10 rounded-xl">
-                  <ShieldCheck size={28} weight="fill" className="text-primary" />
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-1.5 sm:p-2 bg-gradient-to-br from-primary/20 to-primary/10 rounded-xl">
+                  <ShieldCheck size={20} weight="fill" className="sm:w-7 sm:h-7 text-primary" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold" style={{ fontFamily: 'Outfit', letterSpacing: '-0.02em' }}>
+                  <h1 className="text-lg sm:text-2xl font-bold" style={{ fontFamily: 'Outfit', letterSpacing: '-0.02em' }}>
                     Club Atletism
                   </h1>
-                  <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                  <p className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1 sm:gap-1.5">
+                    <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-primary animate-pulse" />
                     Panou SuperAdmin
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3">
                 <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-full">
                   <ShieldCheck size={16} weight="fill" className="text-primary" />
                   <span className="text-sm font-medium">{currentUser.firstName} {currentUser.lastName}</span>
                 </div>
-                <Button variant="outline" size="sm" onClick={logout} className="gap-2">
-                  <SignOut size={16} />
+                <Button variant="outline" size="sm" onClick={logout} className="gap-1.5 sm:gap-2 h-8 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm">
+                  <SignOut size={14} className="sm:w-4 sm:h-4" />
                   <span className="hidden sm:inline">Deconectare</span>
                 </Button>
               </div>
@@ -794,9 +794,9 @@ function AppContent() {
           </div>
         </header>
 
-        <main className="container mx-auto px-4 py-8">
-          <Tabs value={superAdminActiveTab} onValueChange={setSuperAdminActiveTab} className="space-y-6">
-            <div className="overflow-x-auto -mx-4 px-4 pb-2">
+        <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
+          <Tabs value={superAdminActiveTab} onValueChange={setSuperAdminActiveTab} className="space-y-4 sm:space-y-6">
+            <div className="overflow-x-auto -mx-3 sm:-mx-4 px-3 sm:px-4 pb-2">
               <TabsList className="inline-flex w-auto min-w-full bg-muted/50 p-1.5 rounded-xl">
                 <TabsTrigger value="dashboard" className="data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap text-xs sm:text-sm">Dashboard</TabsTrigger>
                 <TabsTrigger value="approvals" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap text-xs sm:text-sm">
@@ -984,29 +984,29 @@ function AppContent() {
         <Toaster position="top-right" richColors />
         
         <header className="border-b bg-gradient-to-r from-card via-card/80 to-card backdrop-blur-md sticky top-0 z-10 shadow-sm">
-          <div className="container mx-auto px-4 py-4">
+          <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-br from-accent/10 to-accent/5 rounded-xl">
-                  <Trophy size={28} weight="fill" className="text-accent" />
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-1.5 sm:p-2 bg-gradient-to-br from-accent/10 to-accent/5 rounded-xl">
+                  <Trophy size={20} weight="fill" className="sm:w-7 sm:h-7 text-accent" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold" style={{ fontFamily: 'Outfit', letterSpacing: '-0.02em' }}>
+                  <h1 className="text-lg sm:text-2xl font-bold" style={{ fontFamily: 'Outfit', letterSpacing: '-0.02em' }}>
                     Club Atletism
                   </h1>
-                  <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+                  <p className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1 sm:gap-1.5">
+                    <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-accent animate-pulse" />
                     Panou Atlet
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3">
                 <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-accent/10 rounded-full">
                   <Trophy size={16} weight="fill" className="text-accent" />
                   <span className="text-sm font-medium">{currentUser.firstName} {currentUser.lastName}</span>
                 </div>
-                <Button variant="outline" size="sm" onClick={logout} className="gap-2">
-                  <SignOut size={16} />
+                <Button variant="outline" size="sm" onClick={logout} className="gap-1.5 sm:gap-2 h-8 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm">
+                  <SignOut size={14} className="sm:w-4 sm:h-4" />
                   <span className="hidden sm:inline">Deconectare</span>
                 </Button>
               </div>
@@ -1014,7 +1014,7 @@ function AppContent() {
           </div>
         </header>
 
-        <main className="container mx-auto px-4 py-8">
+        <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
           <AthleteDashboard
             athlete={currentAthlete}
             results={results || []}
@@ -1030,23 +1030,23 @@ function AppContent() {
       <Toaster position="top-right" richColors />
       
         <header className="border-b bg-gradient-to-r from-card via-card/80 to-card backdrop-blur-md sticky top-0 z-10 shadow-sm">
-          <div className="container mx-auto px-4 py-4">
+          <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-br from-secondary/10 to-secondary/5 rounded-xl">
-                  <Trophy size={28} weight="fill" className="text-secondary" />
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-1.5 sm:p-2 bg-gradient-to-br from-secondary/10 to-secondary/5 rounded-xl">
+                  <Trophy size={20} weight="fill" className="sm:w-7 sm:h-7 text-secondary" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold" style={{ fontFamily: 'Outfit', letterSpacing: '-0.02em' }}>
+                  <h1 className="text-lg sm:text-2xl font-bold" style={{ fontFamily: 'Outfit', letterSpacing: '-0.02em' }}>
                     Club Atletism
                   </h1>
-                  <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse" />
+                  <p className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1 sm:gap-1.5">
+                    <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-secondary animate-pulse" />
                     {isCoach ? 'Panou Antrenor' : 'Management Atleți Juniori'}
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3">
                 <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-secondary/10 rounded-full">
                   <div className="w-2 h-2 rounded-full bg-secondary" />
                   <div className="flex flex-col items-end">
@@ -1056,8 +1056,8 @@ function AppContent() {
                     </span>
                   </div>
                 </div>
-                <Button variant="outline" size="sm" onClick={logout} className="gap-2">
-                  <SignOut size={16} />
+                <Button variant="outline" size="sm" onClick={logout} className="gap-1.5 sm:gap-2 h-8 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm">
+                  <SignOut size={14} className="sm:w-4 sm:h-4" />
                   <span className="hidden sm:inline">Deconectare</span>
                 </Button>
               </div>
@@ -1065,9 +1065,9 @@ function AppContent() {
           </div>
         </header>
 
-      <main className="container mx-auto px-4 py-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <div className="overflow-x-auto -mx-4 px-4 pb-2">
+      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
+          <div className="overflow-x-auto -mx-3 sm:-mx-4 px-3 sm:px-4 pb-2">
             <TabsList className="inline-flex w-auto min-w-full bg-muted/50 p-1.5 rounded-xl">
               <TabsTrigger value="dashboard" className="data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap text-xs sm:text-sm">Dashboard</TabsTrigger>
               <TabsTrigger value="athletes" className="data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap text-xs sm:text-sm">Atleți</TabsTrigger>

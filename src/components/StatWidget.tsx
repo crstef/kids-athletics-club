@@ -71,16 +71,18 @@ export function StatWidget({
           onClick={handleClick}
         >
           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-          <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10 p-4 sm:p-6">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
               {title}
             </CardTitle>
-            <div className={`${iconColor} p-2 rounded-lg bg-gradient-to-br from-muted/50 to-muted/30 group-hover:scale-110 transition-transform duration-300`}>
-              {icon}
+            <div className={`${iconColor} p-1.5 sm:p-2 rounded-lg bg-gradient-to-br from-muted/50 to-muted/30 group-hover:scale-110 transition-transform duration-300`}>
+              <div className="w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center">
+                {icon}
+              </div>
             </div>
           </CardHeader>
-          <CardContent className="relative z-10">
-            <div className="text-4xl font-bold mb-1 bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text" style={{ fontFamily: 'Outfit', letterSpacing: '-0.02em' }}>
+          <CardContent className="relative z-10 p-4 sm:p-6 pt-0">
+            <div className="text-2xl sm:text-4xl font-bold mb-1 bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text" style={{ fontFamily: 'Outfit', letterSpacing: '-0.02em' }}>
               {value}
             </div>
             {subtitle && (
@@ -96,7 +98,7 @@ export function StatWidget({
               </Badge>
             )}
             {isClickable && detailsContent && (
-              <p className="text-xs text-primary/60 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <p className="text-xs text-primary/60 mt-2 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:block">
                 Click pentru detalii →
               </p>
             )}
@@ -106,10 +108,10 @@ export function StatWidget({
 
       {detailsContent && (
         <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto p-4 sm:p-6">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-3 text-xl">
-                <div className={`${iconColor} p-2 rounded-lg bg-gradient-to-br from-muted/50 to-muted/30`}>
+              <DialogTitle className="flex items-center gap-2 sm:gap-3 text-lg sm:text-xl">
+                <div className={`${iconColor} p-1.5 sm:p-2 rounded-lg bg-gradient-to-br from-muted/50 to-muted/30`}>
                   {icon}
                 </div>
                 {title}

@@ -79,19 +79,19 @@ export function DashboardStats({ athletes, results, onNavigateToAthletes, onView
 
   const totalAthletesDetails = (
     <div className="space-y-4">
-      <p className="text-muted-foreground">
+      <p className="text-muted-foreground text-sm">
         Distribuția atletilor pe categorii de vârstă
       </p>
       <div className="space-y-3">
         {categoryBreakdown.map(({ category, count }) => (
-          <div key={category} className="flex items-center justify-between p-3 border rounded-lg">
-            <div className="flex items-center gap-3">
-              <Badge variant="outline" className="text-lg px-3 py-1">
+          <div key={category} className="flex items-center justify-between p-2 sm:p-3 border rounded-lg">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <Badge variant="outline" className="text-sm sm:text-lg px-2 sm:px-3 py-0.5 sm:py-1">
                 {category}
               </Badge>
-              <span className="font-medium">{count} atleți</span>
+              <span className="font-medium text-sm sm:text-base">{count} atleți</span>
             </div>
-            <div className="w-24 bg-muted rounded-full h-2 overflow-hidden">
+            <div className="w-16 sm:w-24 bg-muted rounded-full h-2 overflow-hidden">
               <div 
                 className="bg-primary h-full transition-all"
                 style={{ width: `${(count / totalAthletes) * 100}%` }}
@@ -101,7 +101,7 @@ export function DashboardStats({ athletes, results, onNavigateToAthletes, onView
         ))}
       </div>
       {onNavigateToAthletes && (
-        <Button onClick={onNavigateToAthletes} className="w-full mt-4">
+        <Button onClick={onNavigateToAthletes} className="w-full mt-4 text-sm sm:text-base">
           Vezi toți atletii <ArrowRight size={16} className="ml-2" />
         </Button>
       )}
@@ -110,7 +110,7 @@ export function DashboardStats({ athletes, results, onNavigateToAthletes, onView
 
   const activeAthletesDetails = (
     <div className="space-y-4">
-      <p className="text-muted-foreground">
+      <p className="text-muted-foreground text-sm">
         Atleți cu cel puțin un rezultat înregistrat
       </p>
       <div className="space-y-2">
@@ -121,25 +121,25 @@ export function DashboardStats({ athletes, results, onNavigateToAthletes, onView
             return (
               <div 
                 key={athlete.id} 
-                className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/5 hover:border-accent/50 transition-all cursor-pointer"
+                className="flex items-center justify-between p-2 sm:p-3 border rounded-lg hover:bg-accent/5 hover:border-accent/50 transition-all cursor-pointer"
                 onClick={() => onViewAthleteDetails?.(athlete)}
               >
-                <div>
-                  <div className="font-medium">{athlete.firstName} {athlete.lastName}</div>
-                  <div className="text-sm text-muted-foreground">Categoria {athlete.category}</div>
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium text-sm sm:text-base truncate">{athlete.firstName} {athlete.lastName}</div>
+                  <div className="text-xs sm:text-sm text-muted-foreground">Categoria {athlete.category}</div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="text-lg px-3 py-1">
+                <div className="flex items-center gap-2 ml-2">
+                  <Badge variant="secondary" className="text-sm sm:text-lg px-2 sm:px-3 py-0.5 sm:py-1">
                     {athleteResults.length}
                   </Badge>
-                  <ArrowRight size={16} className="text-muted-foreground" />
+                  <ArrowRight size={16} className="text-muted-foreground flex-shrink-0" />
                 </div>
               </div>
             )
           })}
       </div>
       {onNavigateToAthletes && (
-        <Button onClick={onNavigateToAthletes} className="w-full mt-4">
+        <Button onClick={onNavigateToAthletes} className="w-full mt-4 text-sm sm:text-base">
           Vezi toți atletii <ArrowRight size={16} className="ml-2" />
         </Button>
       )}
@@ -148,7 +148,7 @@ export function DashboardStats({ athletes, results, onNavigateToAthletes, onView
 
   const totalResultsDetails = (
     <div className="space-y-4">
-      <p className="text-muted-foreground">
+      <p className="text-muted-foreground text-sm">
         Ultimele 10 rezultate înregistrate
       </p>
       <div className="space-y-2">
@@ -157,20 +157,20 @@ export function DashboardStats({ athletes, results, onNavigateToAthletes, onView
           return (
             <div 
               key={result.id} 
-              className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/5 hover:border-accent/50 transition-all cursor-pointer"
+              className="flex items-center justify-between p-2 sm:p-3 border rounded-lg hover:bg-accent/5 hover:border-accent/50 transition-all cursor-pointer"
               onClick={() => athlete && onViewAthleteDetails?.(athlete)}
             >
-              <div>
-                <div className="font-medium">{athlete?.firstName} {athlete?.lastName}</div>
-                <div className="text-sm text-muted-foreground">
+              <div className="min-w-0 flex-1">
+                <div className="font-medium text-sm sm:text-base truncate">{athlete?.firstName} {athlete?.lastName}</div>
+                <div className="text-xs sm:text-sm text-muted-foreground truncate">
                   {result.eventType} • {new Date(result.date).toLocaleDateString('ro-RO')}
                 </div>
               </div>
-              <div className="text-right flex items-center gap-2">
-                <div className="font-bold text-primary">
+              <div className="text-right flex items-center gap-2 ml-2">
+                <div className="font-bold text-primary text-sm sm:text-base whitespace-nowrap">
                   {formatResult(result.value, result.unit)}
                 </div>
-                <ArrowRight size={16} className="text-muted-foreground" />
+                <ArrowRight size={16} className="text-muted-foreground flex-shrink-0" />
               </div>
             </div>
           )
@@ -181,17 +181,17 @@ export function DashboardStats({ athletes, results, onNavigateToAthletes, onView
 
   const probesDetails = (
     <div className="space-y-4">
-      <p className="text-muted-foreground">
+      <p className="text-muted-foreground text-sm">
         Distribuția rezultatelor pe probe sportive
       </p>
       <div className="space-y-3">
         {probeBreakdown.map(({ probe, count }) => (
-          <div key={probe} className="flex items-center justify-between p-3 border rounded-lg">
-            <div>
-              <div className="font-medium">{probe}</div>
-              <div className="text-sm text-muted-foreground">{count} rezultate</div>
+          <div key={probe} className="flex items-center justify-between p-2 sm:p-3 border rounded-lg">
+            <div className="min-w-0 flex-1">
+              <div className="font-medium text-sm sm:text-base truncate">{probe}</div>
+              <div className="text-xs sm:text-sm text-muted-foreground">{count} rezultate</div>
             </div>
-            <div className="w-24 bg-muted rounded-full h-2 overflow-hidden">
+            <div className="w-16 sm:w-24 bg-muted rounded-full h-2 overflow-hidden ml-2">
               <div 
                 className="bg-accent h-full transition-all"
                 style={{ width: `${(count / totalResults) * 100}%` }}
@@ -290,42 +290,42 @@ export function DashboardStats({ athletes, results, onNavigateToAthletes, onView
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-end">
-        <Button variant="outline" size="sm" onClick={() => setCustomizeOpen(true)}>
-          <Gear size={16} className="mr-2" />
+        <Button variant="outline" size="sm" onClick={() => setCustomizeOpen(true)} className="text-xs sm:text-sm">
+          <Gear size={14} className="sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
           Personalizează
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 auto-rows-auto">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 auto-rows-auto">
         {(widgets || []).map(renderWidget)}
       </div>
 
       <Dialog open={customizeOpen} onOpenChange={setCustomizeOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle>Personalizează Dashboard</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-lg sm:text-xl">Personalizează Dashboard</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm">
               Activează sau dezactivează widget-urile și ajustează dimensiunile
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-3 sm:space-y-4 py-4">
             {(widgets || []).map((widget) => (
-              <div key={widget.id} className="flex items-center gap-4 p-4 border rounded-lg">
+              <div key={widget.id} className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 border rounded-lg">
                 <Checkbox
                   id={`widget-${widget.id}`}
                   checked={widget.enabled}
                   onCheckedChange={() => toggleWidget(widget.id)}
                 />
-                <Label htmlFor={`widget-${widget.id}`} className="flex-1 cursor-pointer">
-                  <div className="font-medium">{widget.title}</div>
-                  <div className="text-sm text-muted-foreground">{widget.type}</div>
+                <Label htmlFor={`widget-${widget.id}`} className="flex-1 cursor-pointer min-w-0">
+                  <div className="font-medium text-sm sm:text-base truncate">{widget.title}</div>
+                  <div className="text-xs sm:text-sm text-muted-foreground">{widget.type}</div>
                 </Label>
                 <Select
                   value={widget.size}
                   onValueChange={(value) => changeWidgetSize(widget.id, value as Widget['size'])}
                   disabled={!widget.enabled}
                 >
-                  <SelectTrigger className="w-32">
+                  <SelectTrigger className="w-24 sm:w-32 text-xs sm:text-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

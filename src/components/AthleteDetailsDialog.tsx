@@ -56,37 +56,37 @@ export function AthleteDetailsDialog({
 
   return (
     <Dialog open={!!athlete} onOpenChange={() => onClose()}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <div className="flex items-start justify-between">
-            <div className="flex items-center gap-4">
-              <Avatar className="h-16 w-16">
-                <AvatarFallback className={`${avatarColor} text-white font-semibold text-xl`}>
+            <div className="flex items-center gap-3 sm:gap-4">
+              <Avatar className="h-12 w-12 sm:h-16 sm:w-16">
+                <AvatarFallback className={`${avatarColor} text-white font-semibold text-lg sm:text-xl`}>
                   {getInitials(athlete.firstName, athlete.lastName)}
                 </AvatarFallback>
               </Avatar>
               <div>
-                <DialogTitle className="text-2xl">
+                <DialogTitle className="text-xl sm:text-2xl">
                   {athlete.firstName} {athlete.lastName}
                 </DialogTitle>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="text-sm text-muted-foreground">{athlete.age} ani</span>
-                  <Badge variant="secondary">{athlete.category}</Badge>
+                  <span className="text-xs sm:text-sm text-muted-foreground">{athlete.age} ani</span>
+                  <Badge variant="secondary" className="text-xs">{athlete.category}</Badge>
                 </div>
               </div>
             </div>
           </div>
         </DialogHeader>
 
-        <Tabs defaultValue="results" className="mt-6">
+        <Tabs defaultValue="results" className="mt-4 sm:mt-6">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="results">Rezultate</TabsTrigger>
-            <TabsTrigger value="evolution">Evoluție</TabsTrigger>
+            <TabsTrigger value="results" className="text-xs sm:text-sm">Rezultate</TabsTrigger>
+            <TabsTrigger value="evolution" className="text-xs sm:text-sm">Evoluție</TabsTrigger>
           </TabsList>
 
           <TabsContent value="results" className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold">Istoric Rezultate</h3>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <h3 className="text-base sm:text-lg font-semibold">Istoric Rezultate</h3>
               <AddResultDialog
                 athleteId={athlete.id}
                 athleteName={`${athlete.firstName} ${athlete.lastName}`}
@@ -95,28 +95,28 @@ export function AthleteDetailsDialog({
             </div>
 
             {athleteResults.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
+              <div className="text-center py-12 text-muted-foreground text-sm">
                 Niciun rezultat înregistrat încă
               </div>
             ) : (
-              <div className="border rounded-lg">
+              <div className="border rounded-lg overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Probă</TableHead>
-                      <TableHead>Rezultat</TableHead>
-                      <TableHead>Data</TableHead>
-                      <TableHead>Notițe</TableHead>
-                      <TableHead className="w-[50px]"></TableHead>
+                      <TableHead className="text-xs sm:text-sm">Probă</TableHead>
+                      <TableHead className="text-xs sm:text-sm">Rezultat</TableHead>
+                      <TableHead className="text-xs sm:text-sm whitespace-nowrap">Data</TableHead>
+                      <TableHead className="hidden md:table-cell text-xs sm:text-sm">Notițe</TableHead>
+                      <TableHead className="w-[40px] sm:w-[50px]"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {athleteResults.map((result) => (
                       <TableRow key={result.id}>
-                        <TableCell className="font-medium">{result.eventType}</TableCell>
-                        <TableCell>{formatResult(result.value, result.unit)}</TableCell>
-                        <TableCell>{new Date(result.date).toLocaleDateString('ro-RO')}</TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
+                        <TableCell className="font-medium text-xs sm:text-sm">{result.eventType}</TableCell>
+                        <TableCell className="text-xs sm:text-sm whitespace-nowrap">{formatResult(result.value, result.unit)}</TableCell>
+                        <TableCell className="text-xs sm:text-sm whitespace-nowrap">{new Date(result.date).toLocaleDateString('ro-RO')}</TableCell>
+                        <TableCell className="hidden md:table-cell text-muted-foreground text-xs sm:text-sm">
                           {result.notes || '-'}
                         </TableCell>
                         <TableCell>
@@ -124,9 +124,9 @@ export function AthleteDetailsDialog({
                             size="sm"
                             variant="ghost"
                             onClick={() => onDeleteResult(result.id)}
-                            className="text-destructive hover:text-destructive"
+                            className="text-destructive hover:text-destructive h-8 w-8 p-0"
                           >
-                            <X size={16} />
+                            <X size={14} className="sm:w-4 sm:h-4" />
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -139,9 +139,9 @@ export function AthleteDetailsDialog({
 
           <TabsContent value="evolution" className="space-y-4">
             <div className="space-y-2">
-              <h3 className="text-lg font-semibold">Evoluție Performanțe</h3>
+              <h3 className="text-base sm:text-lg font-semibold">Evoluție Performanțe</h3>
               <Select value={selectedEvent} onValueChange={(v) => setSelectedEvent(v as EventType | 'all')}>
-                <SelectTrigger className="w-[250px]">
+                <SelectTrigger className="w-full sm:w-[250px]">
                   <SelectValue placeholder="Selectează proba" />
                 </SelectTrigger>
                 <SelectContent>
@@ -156,15 +156,17 @@ export function AthleteDetailsDialog({
             </div>
 
             {selectedEvent === 'all' ? (
-              <div className="text-center py-12 text-muted-foreground">
+              <div className="text-center py-12 text-muted-foreground text-sm">
                 Selectează o probă pentru a vedea evoluția
               </div>
             ) : (
-              <PerformanceChart
-                data={chartData}
-                eventType={selectedEvent}
-                unit={EVENT_UNITS[selectedEvent]}
-              />
+              <div className="mt-4">
+                <PerformanceChart
+                  data={chartData}
+                  eventType={selectedEvent}
+                  unit={EVENT_UNITS[selectedEvent]}
+                />
+              </div>
             )}
           </TabsContent>
         </Tabs>

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import * as d3 from 'd3'
 import { formatResult } from '@/lib/constants'
 import type { PerformanceData } from '@/lib/types'
@@ -11,16 +11,38 @@ interface PerformanceChartProps {
 
 export function PerformanceChart({ data, eventType, unit }: PerformanceChartProps) {
   const svgRef = useRef<SVGSVGElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 })
 
   useEffect(() => {
-    if (!svgRef.current || data.length === 0) return
+    if (!containerRef.current) return
+
+    const resizeObserver = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        const { width } = entry.contentRect
+        setDimensions({ width, height: 300 })
+      }
+    })
+
+    resizeObserver.observe(containerRef.current)
+    return () => resizeObserver.disconnect()
+  }, [])
+
+  useEffect(() => {
+    if (!svgRef.current || data.length === 0 || dimensions.width === 0) return
 
     const svg = d3.select(svgRef.current)
     svg.selectAll('*').remove()
 
-    const margin = { top: 20, right: 30, bottom: 40, left: 60 }
-    const width = svgRef.current.clientWidth - margin.left - margin.right
-    const height = 300 - margin.top - margin.bottom
+    const isMobile = dimensions.width < 640
+    const margin = { 
+      top: 20, 
+      right: isMobile ? 10 : 30, 
+      bottom: isMobile ? 60 : 40, 
+      left: isMobile ? 45 : 60 
+    }
+    const width = dimensions.width - margin.left - margin.right
+    const height = dimensions.height - margin.top - margin.bottom
 
     const g = svg
       .append('g')
@@ -39,16 +61,28 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
       ])
       .range([height, 0])
 
-    g.append('g')
-      .attr('transform', `translate(0,${height})`)
-      .call(d3.axisBottom(x).ticks(5).tickFormat(d => d3.timeFormat('%d/%m/%y')(d as Date)))
-      .selectAll('text')
-      .style('font-size', '12px')
+    const tickCount = isMobile ? Math.min(3, sortedData.length) : Math.min(5, sortedData.length)
 
     g.append('g')
-      .call(d3.axisLeft(y).ticks(6).tickFormat(d => formatResult(d as number, unit)))
+      .attr('transform', `translate(0,${height})`)
+      .call(d3.axisBottom(x)
+        .ticks(tickCount)
+        .tickFormat(d => d3.timeFormat(isMobile ? '%d/%m' : '%d/%m/%y')(d as Date))
+      )
       .selectAll('text')
-      .style('font-size', '12px')
+      .style('font-size', isMobile ? '10px' : '12px')
+      .style('text-anchor', isMobile ? 'end' : 'middle')
+      .attr('dx', isMobile ? '-0.5em' : '0')
+      .attr('dy', isMobile ? '0.5em' : '0.71em')
+      .attr('transform', isMobile ? 'rotate(-45)' : 'rotate(0)')
+
+    g.append('g')
+      .call(d3.axisLeft(y)
+        .ticks(isMobile ? 4 : 6)
+        .tickFormat(d => formatResult(d as number, unit))
+      )
+      .selectAll('text')
+      .style('font-size', isMobile ? '10px' : '12px')
 
     const line = d3.line<PerformanceData>()
       .x(d => x(new Date(d.date)))
@@ -59,8 +93,10 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
       .datum(sortedData)
       .attr('fill', 'none')
       .attr('stroke', 'oklch(0.55 0.20 250)')
-      .attr('stroke-width', 2.5)
+      .attr('stroke-width', isMobile ? 2 : 2.5)
       .attr('d', line)
+
+    const dotSize = isMobile ? 4 : 5
 
     g.selectAll('.dot')
       .data(sortedData)
@@ -69,55 +105,63 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
       .attr('class', 'dot')
       .attr('cx', d => x(new Date(d.date)))
       .attr('cy', d => y(d.value))
-      .attr('r', 5)
+      .attr('r', dotSize)
       .attr('fill', 'oklch(0.68 0.19 40)')
       .attr('stroke', 'white')
-      .attr('stroke-width', 2)
+      .attr('stroke-width', isMobile ? 1.5 : 2)
       .style('cursor', 'pointer')
-      .on('mouseenter', function(event, d) {
+      .on('mouseenter touchstart', function(event, d) {
+        event.preventDefault()
         d3.select(this)
           .transition()
           .duration(150)
-          .attr('r', 7)
+          .attr('r', dotSize + 2)
 
         const tooltip = g.append('g')
           .attr('class', 'tooltip')
           .attr('transform', `translate(${x(new Date(d.date))},${y(d.value) - 20})`)
 
+        const tooltipWidth = isMobile ? 80 : 100
+        const tooltipHeight = isMobile ? 22 : 25
+
         tooltip.append('rect')
-          .attr('x', -50)
-          .attr('y', -30)
-          .attr('width', 100)
-          .attr('height', 25)
+          .attr('x', -tooltipWidth / 2)
+          .attr('y', -tooltipHeight - 5)
+          .attr('width', tooltipWidth)
+          .attr('height', tooltipHeight)
           .attr('fill', 'oklch(0.20 0 0)')
           .attr('rx', 4)
 
         tooltip.append('text')
           .attr('text-anchor', 'middle')
-          .attr('y', -13)
+          .attr('y', -tooltipHeight / 2 - 3)
           .attr('fill', 'white')
-          .style('font-size', '12px')
+          .style('font-size', isMobile ? '11px' : '12px')
           .style('font-weight', '600')
           .text(formatResult(d.value, unit))
       })
-      .on('mouseleave', function() {
+      .on('mouseleave touchend', function() {
         d3.select(this)
           .transition()
           .duration(150)
-          .attr('r', 5)
+          .attr('r', dotSize)
 
         g.selectAll('.tooltip').remove()
       })
 
-  }, [data, unit])
+  }, [data, unit, dimensions])
 
   if (data.length === 0) {
     return (
-      <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+      <div className="flex items-center justify-center h-[300px] text-muted-foreground text-sm text-center px-4">
         Niciun rezultat înregistrat pentru această probă
       </div>
     )
   }
 
-  return <svg ref={svgRef} width="100%" height="300" />
+  return (
+    <div ref={containerRef} className="w-full">
+      <svg ref={svgRef} width="100%" height={dimensions.height || 300} />
+    </div>
+  )
 }
