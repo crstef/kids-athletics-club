@@ -64,6 +64,15 @@ export function UserPermissionsManagement({
     [approvalRequests]
   )
 
+  const processedRequests = useMemo(() =>
+    approvalRequests.filter(r => r.status !== 'pending').sort((a, b) => {
+      const dateA = a.responseDate ? new Date(a.responseDate).getTime() : 0
+      const dateB = b.responseDate ? new Date(b.responseDate).getTime() : 0
+      return dateB - dateA
+    }).slice(0, 10),
+    [approvalRequests]
+  )
+
   const selectedUser = users.find(u => u.id === selectedUserId)
 
   const userPermissionsForSelected = useMemo(() => {
@@ -113,6 +122,17 @@ export function UserPermissionsManagement({
   }
 
   const handleApprove = (requestId: string) => {
+    const request = approvalRequests.find(r => r.id === requestId)
+    if (!request) {
+      toast.error('Cererea nu a fost găsită')
+      return
+    }
+
+    if (request.status !== 'pending') {
+      toast.error('Această cerere a fost deja procesată')
+      return
+    }
+
     setSelectedRequestForApproval(requestId)
     setApprovalDialogOpen(true)
   }
@@ -120,8 +140,22 @@ export function UserPermissionsManagement({
   const handleConfirmApproval = () => {
     if (!selectedRequestForApproval) return
     
+    const request = approvalRequests.find(r => r.id === selectedRequestForApproval)
+    if (!request) {
+      toast.error('Cererea nu a fost găsită')
+      setApprovalDialogOpen(false)
+      setSelectedRequestForApproval(null)
+      return
+    }
+
+    if (request.status !== 'pending') {
+      toast.error('Această cerere a fost deja procesată')
+      setApprovalDialogOpen(false)
+      setSelectedRequestForApproval(null)
+      return
+    }
+
     onApproveAccount(selectedRequestForApproval)
-    toast.success('Cont aprobat cu succes! Utilizatorul are acum acces la sistem.')
     setApprovalDialogOpen(false)
     setSelectedRequestForApproval(null)
   }
@@ -132,6 +166,17 @@ export function UserPermissionsManagement({
   }
 
   const handleOpenRejectDialog = (requestId: string) => {
+    const request = approvalRequests.find(r => r.id === requestId)
+    if (!request) {
+      toast.error('Cererea nu a fost găsită')
+      return
+    }
+
+    if (request.status !== 'pending') {
+      toast.error('Această cerere a fost deja procesată')
+      return
+    }
+
     setSelectedRequestForRejection(requestId)
     setRejectionDialogOpen(true)
     setRejectionReason('')
@@ -139,9 +184,23 @@ export function UserPermissionsManagement({
 
   const handleReject = () => {
     if (!selectedRequestForRejection) return
+
+    const request = approvalRequests.find(r => r.id === selectedRequestForRejection)
+    if (!request) {
+      toast.error('Cererea nu a fost găsită')
+      setRejectionDialogOpen(false)
+      setSelectedRequestForRejection(null)
+      return
+    }
+
+    if (request.status !== 'pending') {
+      toast.error('Această cerere a fost deja procesată')
+      setRejectionDialogOpen(false)
+      setSelectedRequestForRejection(null)
+      return
+    }
     
     onRejectAccount(selectedRequestForRejection, rejectionReason || undefined)
-    toast.success('Cont respins')
     setRejectionDialogOpen(false)
     setSelectedRequestForRejection(null)
     setRejectionReason('')
@@ -211,11 +270,17 @@ export function UserPermissionsManagement({
                 
                 if (!user) return null
 
+                const isProcessed = request.status !== 'pending'
+                const isUserActive = user.isActive && !user.needsApproval
+
                 return (
                   <div key={request.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg gap-4">
                     <div className="space-y-1 flex-1">
                       <div className="font-medium">
                         {user.firstName} {user.lastName}
+                        {isUserActive && (
+                          <Badge variant="default" className="ml-2">Activ</Badge>
+                        )}
                       </div>
                       <div className="text-sm text-muted-foreground">
                         {user.email}
@@ -247,14 +312,70 @@ export function UserPermissionsManagement({
                         variant="outline" 
                         size="sm"
                         onClick={() => handleOpenRejectDialog(request.id)}
+                        disabled={isProcessed || isUserActive}
                       >
                         <X size={16} className="mr-2" />
                         Respinge
                       </Button>
-                      <Button size="sm" onClick={() => handleApprove(request.id)}>
+                      <Button 
+                        size="sm" 
+                        onClick={() => handleApprove(request.id)}
+                        disabled={isProcessed || isUserActive}
+                      >
                         <Check size={16} className="mr-2" />
                         Aprobă
                       </Button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {processedRequests.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Check size={24} weight="fill" className="text-primary" />
+              Istoric Cereri Procesate
+            </CardTitle>
+            <CardDescription>
+              Ultimele 10 cereri aprobate sau respinse
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {processedRequests.map((request) => {
+                const user = users.find(u => u.id === request.userId)
+                const athleteName = getAthleteName(request.athleteId)
+                const approver = request.approvedBy ? users.find(u => u.id === request.approvedBy) : null
+                
+                if (!user) return null
+
+                return (
+                  <div key={request.id} className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
+                    <div className="space-y-1 flex-1">
+                      <div className="font-medium text-sm">
+                        {user.firstName} {user.lastName}
+                        <Badge 
+                          variant={request.status === 'approved' ? 'default' : 'destructive'} 
+                          className="ml-2"
+                        >
+                          {request.status === 'approved' ? 'Aprobat' : 'Respins'}
+                        </Badge>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {athleteName && `Copil: ${athleteName} • `}
+                        {request.responseDate && `${new Date(request.responseDate).toLocaleString('ro-RO')}`}
+                        {approver && ` • De: ${approver.firstName} ${approver.lastName}`}
+                      </div>
+                      {request.rejectionReason && (
+                        <div className="text-xs text-destructive mt-1">
+                          Motiv: {request.rejectionReason}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )

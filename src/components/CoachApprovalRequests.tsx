@@ -43,23 +43,60 @@ export function CoachApprovalRequests({
   }
 
   const handleApprove = (requestId: string) => {
+    const request = approvalRequests.find(r => r.id === requestId)
+    if (!request) {
+      toast.error('Cererea nu a fost găsită')
+      return
+    }
+
+    if (request.status !== 'pending') {
+      toast.error('Această cerere a fost deja procesată')
+      return
+    }
+
     onApproveAccount(requestId)
-    toast.success('Cerere aprobată! Părintele are acum acces la datele copilului.')
   }
 
   const handleOpenReject = (requestId: string) => {
+    const request = approvalRequests.find(r => r.id === requestId)
+    if (!request) {
+      toast.error('Cererea nu a fost găsită')
+      return
+    }
+
+    if (request.status !== 'pending') {
+      toast.error('Această cerere a fost deja procesată')
+      return
+    }
+
     setSelectedRequestId(requestId)
     setRejectDialogOpen(true)
   }
 
   const handleReject = () => {
-    if (selectedRequestId) {
-      onRejectAccount(selectedRequestId, rejectionReason)
-      toast.success('Cerere respinsă')
+    if (!selectedRequestId) return
+
+    const request = approvalRequests.find(r => r.id === selectedRequestId)
+    if (!request) {
+      toast.error('Cererea nu a fost găsită')
       setRejectDialogOpen(false)
       setRejectionReason('')
       setSelectedRequestId('')
+      return
     }
+
+    if (request.status !== 'pending') {
+      toast.error('Această cerere a fost deja procesată')
+      setRejectDialogOpen(false)
+      setRejectionReason('')
+      setSelectedRequestId('')
+      return
+    }
+
+    onRejectAccount(selectedRequestId, rejectionReason)
+    setRejectDialogOpen(false)
+    setRejectionReason('')
+    setSelectedRequestId('')
   }
 
   if (pendingRequests.length === 0) {
