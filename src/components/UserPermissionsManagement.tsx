@@ -247,21 +247,21 @@ export function UserPermissionsManagement({
 
   return (
     <div className="space-y-6">
-      {pendingRequests.length > 0 && (
-        <Card className="border-accent">
-          <CardHeader>
+      {pendingRequests.length > 0 ? (
+        <Card className="border-accent shadow-lg">
+          <CardHeader className="bg-gradient-to-r from-accent/10 to-accent/5">
             <CardTitle className="flex items-center gap-2">
               <Clock size={24} weight="fill" className="text-accent" />
               Cereri de Aprobare Cont
-              <Badge variant="default" className="ml-2">
-                {pendingRequests.length}
+              <Badge variant="default" className="ml-2 animate-pulse">
+                {pendingRequests.length} {pendingRequests.length === 1 ? 'cerere' : 'cereri'}
               </Badge>
             </CardTitle>
             <CardDescription>
-              Noi utilizatori așteaptă aprobarea contului
+              Noi utilizatori așteaptă aprobarea contului pentru a accesa sistemul
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <div className="space-y-4">
               {pendingRequests.map((request) => {
                 const user = users.find(u => u.id === request.userId)
@@ -274,61 +274,86 @@ export function UserPermissionsManagement({
                 const isUserActive = user.isActive && !user.needsApproval
 
                 return (
-                  <div key={request.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg gap-4">
-                    <div className="space-y-1 flex-1">
-                      <div className="font-medium">
-                        {user.firstName} {user.lastName}
+                  <div key={request.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-5 border-2 border-accent/20 rounded-xl gap-4 bg-gradient-to-br from-card to-accent/5 hover:shadow-md transition-all">
+                    <div className="space-y-2 flex-1">
+                      <div className="flex items-center gap-2">
+                        <div className="font-semibold text-lg">
+                          {user.firstName} {user.lastName}
+                        </div>
                         {isUserActive && (
-                          <Badge variant="default" className="ml-2">Activ</Badge>
+                          <Badge variant="default" className="ml-2">✓ Activ</Badge>
                         )}
                       </div>
-                      <div className="text-sm text-muted-foreground">
-                        {user.email}
+                      <div className="text-sm text-muted-foreground flex items-center gap-1.5">
+                        📧 {user.email}
                       </div>
                       <div className="flex gap-2 items-center flex-wrap">
-                        <Badge variant="outline">{request.requestedRole}</Badge>
+                        <Badge variant="secondary" className="font-medium">
+                          Rol: {request.requestedRole === 'coach' ? 'Antrenor' : request.requestedRole === 'parent' ? 'Părinte' : request.requestedRole}
+                        </Badge>
                         {athleteName && (
-                          <span className="text-sm text-muted-foreground">
+                          <span className="text-sm bg-primary/10 px-3 py-1 rounded-full font-medium">
                             👤 Copil: <strong>{athleteName}</strong>
                           </span>
                         )}
                         {coach && (
-                          <span className="text-sm text-muted-foreground">
+                          <span className="text-sm bg-secondary/10 px-3 py-1 rounded-full font-medium">
                             🎓 Antrenor: <strong>{coach.firstName} {coach.lastName}</strong>
                           </span>
                         )}
                       </div>
                       {request.approvalNotes && (
-                        <div className="text-sm text-muted-foreground bg-muted/50 p-2 rounded mt-2">
-                          <strong>Notițe:</strong> {request.approvalNotes}
+                        <div className="text-sm bg-muted p-3 rounded-lg border-l-4 border-accent mt-2">
+                          <strong className="text-accent">Mesaj de la utilizator:</strong>
+                          <p className="mt-1 text-muted-foreground">{request.approvalNotes}</p>
                         </div>
                       )}
-                      <div className="text-xs text-muted-foreground">
-                        Cerere făcută: {new Date(request.requestDate).toLocaleString('ro-RO')}
+                      <div className="text-xs text-muted-foreground flex items-center gap-1.5 mt-2">
+                        📅 Cerere trimisă: <strong>{new Date(request.requestDate).toLocaleString('ro-RO')}</strong>
                       </div>
                     </div>
-                    <div className="flex gap-2 sm:flex-col lg:flex-row">
+                    <div className="flex gap-2 sm:flex-col lg:flex-row shrink-0">
                       <Button 
                         variant="outline" 
                         size="sm"
                         onClick={() => handleOpenRejectDialog(request.id)}
                         disabled={isProcessed || isUserActive}
+                        className="gap-2"
                       >
-                        <X size={16} className="mr-2" />
+                        <X size={16} />
                         Respinge
                       </Button>
                       <Button 
                         size="sm" 
                         onClick={() => handleApprove(request.id)}
                         disabled={isProcessed || isUserActive}
+                        className="gap-2 bg-accent hover:bg-accent/90"
                       >
-                        <Check size={16} className="mr-2" />
+                        <Check size={16} weight="bold" />
                         Aprobă
                       </Button>
                     </div>
                   </div>
                 )
               })}
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-muted-foreground">
+              <Check size={24} weight="fill" />
+              Cereri de Aprobare Cont
+            </CardTitle>
+            <CardDescription>
+              Nu există cereri de aprobare în așteptare
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-8 text-muted-foreground">
+              <Check size={48} className="mx-auto mb-2 opacity-50" weight="duotone" />
+              <p className="text-sm">Toate cererile au fost procesate</p>
             </div>
           </CardContent>
         </Card>

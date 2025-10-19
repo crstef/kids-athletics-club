@@ -868,13 +868,17 @@ function AppContent() {
                 onRejectAccount={handleRejectAccount}
                 onUpdateUser={handleUpdateUser}
               />
-              {pendingRequestsCount > 0 && (
-                <div className="fixed bottom-4 right-4 bg-primary text-primary-foreground px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
-                  <Badge variant="secondary" className="h-6 w-6 rounded-full p-0 flex items-center justify-center">
+              {pendingRequestsCount > 0 && superAdminActiveTab !== 'approvals' && (
+                <Button
+                  size="lg"
+                  className="fixed bottom-6 right-6 h-14 rounded-full shadow-2xl animate-pulse hover:animate-none transition-all hover:scale-105 z-50"
+                  onClick={() => setSuperAdminActiveTab('approvals')}
+                >
+                  <Badge variant="secondary" className="h-6 w-6 rounded-full p-0 flex items-center justify-center mr-2">
                     {pendingRequestsCount}
                   </Badge>
-                  <span className="font-medium">Cereri pendinte</span>
-                </div>
+                  <span className="font-semibold">Cereri Aprobare</span>
+                </Button>
               )}
             </TabsContent>
 
@@ -1408,6 +1412,19 @@ function AppContent() {
             </TabsContent>
           )}
         </Tabs>
+
+        {isCoach && pendingRequestsCount > 0 && activeTab !== 'requests' && (
+          <Button
+            size="lg"
+            className="fixed bottom-6 right-6 h-14 rounded-full shadow-2xl animate-pulse hover:animate-none transition-all hover:scale-105 z-50"
+            onClick={() => setActiveTab('requests')}
+          >
+            <Badge variant="secondary" className="h-6 w-6 rounded-full p-0 flex items-center justify-center mr-2">
+              {pendingRequestsCount}
+            </Badge>
+            <span className="font-semibold">Cereri Aprobare</span>
+          </Button>
+        )}
       </main>
 
       <AthleteDetailsDialog

@@ -103,8 +103,8 @@ export function CoachApprovalRequests({
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock size={24} weight="fill" className="text-muted-foreground" />
+          <CardTitle className="flex items-center gap-2 text-muted-foreground">
+            <Check size={24} weight="fill" />
             Cereri de Aprobare
           </CardTitle>
           <CardDescription>
@@ -113,8 +113,8 @@ export function CoachApprovalRequests({
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 text-muted-foreground">
-            <Clock size={48} className="mx-auto mb-2 opacity-50" />
-            <p>Nu există cereri în așteptare</p>
+            <Check size={48} className="mx-auto mb-2 opacity-50" weight="duotone" />
+            <p>Toate cererile au fost procesate</p>
           </div>
         </CardContent>
       </Card>
@@ -123,20 +123,20 @@ export function CoachApprovalRequests({
 
   return (
     <>
-      <Card className="border-accent">
-        <CardHeader>
+      <Card className="border-accent shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-accent/10 to-accent/5">
           <CardTitle className="flex items-center gap-2">
             <Clock size={24} weight="fill" className="text-accent" />
             Cereri de Aprobare
-            <Badge variant="default" className="ml-2">
-              {pendingRequests.length}
+            <Badge variant="default" className="ml-2 animate-pulse">
+              {pendingRequests.length} {pendingRequests.length === 1 ? 'cerere' : 'cereri'}
             </Badge>
           </CardTitle>
           <CardDescription>
             Părinți care solicită acces la datele copiilor lor
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <div className="space-y-4">
             {pendingRequests.map((request) => {
               const user = users.find(u => u.id === request.userId)
@@ -145,42 +145,45 @@ export function CoachApprovalRequests({
               if (!user) return null
 
               return (
-                <div key={request.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg gap-4 bg-card">
-                  <div className="space-y-1 flex-1">
-                    <div className="font-medium text-lg">
+                <div key={request.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-5 border-2 border-accent/20 rounded-xl gap-4 bg-gradient-to-br from-card to-accent/5 hover:shadow-md transition-all">
+                  <div className="space-y-2 flex-1">
+                    <div className="font-semibold text-lg">
                       {user.firstName} {user.lastName}
                     </div>
-                    <div className="text-sm text-muted-foreground">
+                    <div className="text-sm text-muted-foreground flex items-center gap-1.5">
                       📧 {user.email}
                     </div>
                     {athleteName && (
-                      <div className="text-sm font-medium text-primary mt-2">
+                      <div className="text-sm font-medium bg-primary/10 px-3 py-1.5 rounded-full inline-block mt-2">
                         👤 Solicită acces pentru: <strong>{athleteName}</strong>
                       </div>
                     )}
                     {request.approvalNotes && (
-                      <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded mt-2">
-                        <strong>Mesaj:</strong> {request.approvalNotes}
+                      <div className="text-sm bg-muted p-3 rounded-lg border-l-4 border-accent mt-2">
+                        <strong className="text-accent">Mesaj de la părinte:</strong>
+                        <p className="mt-1 text-muted-foreground">{request.approvalNotes}</p>
                       </div>
                     )}
-                    <div className="text-xs text-muted-foreground mt-2">
-                      📅 Cerere trimisă: {new Date(request.requestDate).toLocaleString('ro-RO')}
+                    <div className="text-xs text-muted-foreground flex items-center gap-1.5 mt-2">
+                      📅 Cerere trimisă: <strong>{new Date(request.requestDate).toLocaleString('ro-RO')}</strong>
                     </div>
                   </div>
-                  <div className="flex gap-2 sm:flex-col lg:flex-row">
+                  <div className="flex gap-2 sm:flex-col lg:flex-row shrink-0">
                     <Button 
                       variant="outline" 
                       size="sm"
                       onClick={() => handleOpenReject(request.id)}
+                      className="gap-2"
                     >
-                      <X size={16} className="mr-2" />
+                      <X size={16} />
                       Respinge
                     </Button>
                     <Button 
                       size="sm" 
                       onClick={() => handleApprove(request.id)}
+                      className="gap-2 bg-accent hover:bg-accent/90"
                     >
-                      <Check size={16} className="mr-2" />
+                      <Check size={16} weight="bold" />
                       Aprobă
                     </Button>
                   </div>
