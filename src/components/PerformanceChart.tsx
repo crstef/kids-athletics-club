@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useMemo } from 'react'
 import * as d3 from 'd3'
 import { formatResult } from '@/lib/constants'
-import { PeriodFilter, getFilteredResults, getAvailableYears, getInitialDateRange, getFirstDataDate, type Period } from './PeriodFilter'
+import { PeriodFilter, getFilteredResults, getInitialDateRange, getFirstDataDate, type Period } from './PeriodFilter'
 import type { PerformanceData } from '@/lib/types'
 
 interface PerformanceChartProps {
@@ -15,12 +15,10 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
   const containerRef = useRef<HTMLDivElement>(null)
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 })
   const [period, setPeriod] = useState<Period>('7days')
-  const [selectedYear, setSelectedYear] = useState<number | 'all'>('all')
   const [dateRange, setDateRange] = useState<{ start: Date; end: Date }>(() => 
     getInitialDateRange(data, '7days')
   )
 
-  const availableYears = useMemo(() => getAvailableYears(data), [data])
   const firstDataDate = useMemo(() => getFirstDataDate(data), [data])
 
   useEffect(() => {
@@ -244,9 +242,6 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
       <PeriodFilter 
         value={period} 
         onChange={setPeriod}
-        selectedYear={selectedYear}
-        onYearChange={setSelectedYear}
-        availableYears={availableYears}
         dateRange={dateRange}
         onDateRangeChange={setDateRange}
         hasData={data.length > 0}

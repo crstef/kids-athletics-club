@@ -8,7 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Users, Trophy, ListNumbers, TrendUp, ArrowRight, Gear } from '@phosphor-icons/react'
 import { StatWidget } from './StatWidget'
-import { PeriodFilter, getFilteredResults, getAvailableYears, getInitialDateRange, getFirstDataDate, type Period } from './PeriodFilter'
+import { PeriodFilter, getFilteredResults, getInitialDateRange, getFirstDataDate, type Period } from './PeriodFilter'
 import { formatResult } from '@/lib/constants'
 import type { Athlete, Result } from '@/lib/types'
 
@@ -42,12 +42,10 @@ export function DashboardStats({ athletes, results, onNavigateToAthletes, onView
   ])
   const [customizeOpen, setCustomizeOpen] = useState(false)
   const [period, setPeriod] = useState<Period>('7days')
-  const [selectedYear, setSelectedYear] = useState<number | 'all'>('all')
   const [dateRange, setDateRange] = useState<{ start: Date; end: Date }>(() => 
     getInitialDateRange(results, '7days')
   )
   
-  const availableYears = useMemo(() => getAvailableYears(results), [results])
   const firstDataDate = useMemo(() => getFirstDataDate(results), [results])
 
   useEffect(() => {
@@ -311,9 +309,6 @@ export function DashboardStats({ athletes, results, onNavigateToAthletes, onView
         <PeriodFilter 
           value={period} 
           onChange={setPeriod}
-          selectedYear={selectedYear}
-          onYearChange={setSelectedYear}
-          availableYears={availableYears}
           dateRange={dateRange}
           onDateRangeChange={setDateRange}
           hasData={results.length > 0}

@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { TrendUp, TrendDown, Trophy, Target, Calendar } from '@phosphor-icons/react'
-import { PeriodFilter, getFilteredResults, getAvailableYears, getInitialDateRange, getFirstDataDate, type Period } from './PeriodFilter'
+import { PeriodFilter, getFilteredResults, getInitialDateRange, getFirstDataDate, type Period } from './PeriodFilter'
 import type { Result, EventType } from '@/lib/types'
 import { formatResult } from '@/lib/constants'
 
@@ -14,12 +14,10 @@ interface ProgressStatsProps {
 
 export function ProgressStats({ athleteName, results }: ProgressStatsProps) {
   const [period, setPeriod] = useState<Period>('7days')
-  const [selectedYear, setSelectedYear] = useState<number | 'all'>('all')
   const [dateRange, setDateRange] = useState<{ start: Date; end: Date }>(() => 
     getInitialDateRange(results, '7days')
   )
 
-  const availableYears = useMemo(() => getAvailableYears(results), [results])
   const firstDataDate = useMemo(() => getFirstDataDate(results), [results])
 
   useEffect(() => {
@@ -113,9 +111,6 @@ export function ProgressStats({ athleteName, results }: ProgressStatsProps) {
       <PeriodFilter 
         value={period} 
         onChange={setPeriod} 
-        selectedYear={selectedYear}
-        onYearChange={setSelectedYear}
-        availableYears={availableYears}
         dateRange={dateRange}
         onDateRangeChange={setDateRange}
         hasData={results.length > 0}

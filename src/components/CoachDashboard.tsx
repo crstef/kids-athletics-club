@@ -24,7 +24,7 @@ import {
 } from '@phosphor-icons/react'
 import { CoachApprovalRequests } from './CoachApprovalRequests'
 import { PerformanceChart } from './PerformanceChart'
-import { PeriodFilter, getFilteredResults, getAvailableYears, getInitialDateRange, getFirstDataDate, type Period } from './PeriodFilter'
+import { PeriodFilter, getFilteredResults, getInitialDateRange, getFirstDataDate, type Period } from './PeriodFilter'
 import type { Athlete, Result, User, AccountApprovalRequest } from '@/lib/types'
 
 type WidgetType = 
@@ -94,7 +94,6 @@ export function CoachDashboard({
     getInitialDateRange(myResults, '7days')
   )
 
-  const availableYears = useMemo(() => getAvailableYears(myResults), [myResults])
   const firstDataDate = useMemo(() => getFirstDataDate(myResults), [myResults])
 
   useEffect(() => {
@@ -497,9 +496,6 @@ export function CoachDashboard({
           <PeriodFilter 
             value={period} 
             onChange={setPeriod}
-            selectedYear={selectedYear}
-            onYearChange={setSelectedYear}
-            availableYears={availableYears}
             dateRange={dateRange}
             onDateRangeChange={setDateRange}
             hasData={myResults.length > 0}

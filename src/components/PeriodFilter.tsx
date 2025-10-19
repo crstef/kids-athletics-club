@@ -8,9 +8,6 @@ export type Period = '7days' | '4weeks' | '6months' | '1year' | 'all'
 interface PeriodFilterProps {
   value: Period
   onChange: (period: Period) => void
-  selectedYear?: number | 'all'
-  onYearChange?: (year: number | 'all') => void
-  availableYears?: number[]
   className?: string
   dateRange?: { start: Date; end: Date }
   onDateRangeChange?: (range: { start: Date; end: Date }) => void
@@ -21,9 +18,6 @@ interface PeriodFilterProps {
 export function PeriodFilter({ 
   value, 
   onChange, 
-  selectedYear,
-  onYearChange,
-  availableYears = [],
   className = '',
   dateRange,
   onDateRangeChange,
@@ -36,8 +30,6 @@ export function PeriodFilter({
     { value: '6months', label: '6 Luni' },
     { value: '1year', label: '1 An' }
   ]
-
-  const showYearFilter = availableYears.length > 0 && onYearChange
 
   const canNavigate = dateRange && onDateRangeChange && value !== 'all' && hasData
 
@@ -154,38 +146,18 @@ export function PeriodFilter({
         </div>
       )}
       
-      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-        <div className="flex flex-wrap gap-1.5 sm:gap-2">
-          {periods.map((period) => (
-            <Button
-              key={period.value}
-              size="sm"
-              variant={value === period.value ? 'default' : 'outline'}
-              onClick={() => onChange(period.value)}
-              className="text-xs sm:text-sm px-2 sm:px-3 h-7 sm:h-8"
-            >
-              {period.label}
-            </Button>
-          ))}
-        </div>
-        {showYearFilter && (
-          <Select 
-            value={selectedYear?.toString() || 'all'} 
-            onValueChange={(v) => onYearChange(v === 'all' ? 'all' : parseInt(v))}
+      <div className="flex flex-wrap gap-1.5 sm:gap-2">
+        {periods.map((period) => (
+          <Button
+            key={period.value}
+            size="sm"
+            variant={value === period.value ? 'default' : 'outline'}
+            onClick={() => onChange(period.value)}
+            className="text-xs sm:text-sm px-2 sm:px-3 h-7 sm:h-8"
           >
-            <SelectTrigger className="w-[130px] h-7 sm:h-8 text-xs sm:text-sm">
-              <SelectValue placeholder="Selectează anul" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Toți anii</SelectItem>
-              {availableYears.map((year) => (
-                <SelectItem key={year} value={year.toString()}>
-                  {year}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
+            {period.label}
+          </Button>
+        ))}
       </div>
     </div>
   )
@@ -267,15 +239,4 @@ export function getFirstDataDate(results: Array<{ date: string }>): Date | undef
   const firstDate = new Date(Math.min(...results.map(r => new Date(r.date).getTime())))
   firstDate.setHours(0, 0, 0, 0)
   return firstDate
-}
-
-export function getAvailableYears<T extends { date: string }>(results: T[]): number[] {
-  const currentYear = new Date().getFullYear()
-  const years: number[] = []
-  
-  for (let i = 0; i <= 10; i++) {
-    years.push(currentYear - i)
-  }
-  
-  return years
 }

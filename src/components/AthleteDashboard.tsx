@@ -7,7 +7,7 @@ import { Trophy, TrendUp, Calendar, Medal, Target, ChartLine } from '@phosphor-i
 import { PerformanceChart } from './PerformanceChart'
 import { StatWidget } from './StatWidget'
 import { ProgressStats } from './ProgressStats'
-import { PeriodFilter, getFilteredResults, getAvailableYears, getInitialDateRange, getFirstDataDate, type Period } from './PeriodFilter'
+import { PeriodFilter, getFilteredResults, getInitialDateRange, getFirstDataDate, type Period } from './PeriodFilter'
 import type { Athlete, Result, EventType, User } from '@/lib/types'
 import { formatResult } from '@/lib/constants'
 
@@ -21,7 +21,6 @@ export function AthleteDashboard({ athlete, results, coaches }: AthleteDashboard
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<string>('')
   const [period, setPeriod] = useState<Period>('7days')
-  const [selectedYear, setSelectedYear] = useState<number | 'all'>('all')
 
   const athleteResults = useMemo(() => {
     if (!athlete) return []
@@ -32,7 +31,6 @@ export function AthleteDashboard({ athlete, results, coaches }: AthleteDashboard
     getInitialDateRange(athleteResults, '7days')
   )
 
-  const availableYears = useMemo(() => getAvailableYears(athleteResults), [athleteResults])
   const firstDataDate = useMemo(() => getFirstDataDate(athleteResults), [athleteResults])
 
   useEffect(() => {
@@ -224,9 +222,6 @@ export function AthleteDashboard({ athlete, results, coaches }: AthleteDashboard
           <PeriodFilter 
             value={period} 
             onChange={setPeriod}
-            selectedYear={selectedYear}
-            onYearChange={setSelectedYear}
-            availableYears={availableYears}
             dateRange={dateRange}
             onDateRangeChange={setDateRange}
             hasData={athleteResults.length > 0}
