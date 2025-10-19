@@ -1,5 +1,18 @@
 export type AgeCategory = 'U10' | 'U12' | 'U14' | 'U16' | 'U18'
 
+export interface AgeCategoryCustom {
+  id: string
+  name: string
+  ageFrom: number
+  ageTo: number
+  description?: string
+  isActive: boolean
+  createdAt: string
+  createdBy: string
+  updatedAt?: string
+  updatedBy?: string
+}
+
 export type EventType = 
   | '60m' 
   | '100m' 

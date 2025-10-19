@@ -26,9 +26,10 @@ import { UserManagement } from '@/components/UserManagement'
 import { PermissionsSystem } from '@/components/PermissionsSystem'
 import { UserPermissionsManagement } from '@/components/UserPermissionsManagement'
 import { RoleManagement } from '@/components/RoleManagement'
+import { AgeCategoryManagement } from '@/components/AgeCategoryManagement'
 import { hashPassword } from '@/lib/crypto'
 import { DEFAULT_PERMISSIONS, DEFAULT_ROLES } from '@/lib/permissions'
-import type { Athlete, Result, AgeCategory, User, Coach, AccessRequest, Message, EventTypeCustom, Permission, UserPermission, AccountApprovalRequest, Role } from '@/lib/types'
+import type { Athlete, Result, AgeCategory, User, Coach, AccessRequest, Message, EventTypeCustom, Permission, UserPermission, AccountApprovalRequest, Role, AgeCategoryCustom } from '@/lib/types'
 
 function AppContent() {
   const { currentUser, setCurrentUser, isCoach, isParent, isSuperAdmin, isAthlete, logout } = useAuth()
@@ -42,6 +43,7 @@ function AppContent() {
   const [userPermissions, setUserPermissions] = useKV<UserPermission[]>('user-permissions', [])
   const [approvalRequests, setApprovalRequests] = useKV<AccountApprovalRequest[]>('approval-requests', [])
   const [roles, setRoles] = useKV<Role[]>('roles', [])
+  const [ageCategories, setAgeCategories] = useKV<AgeCategoryCustom[]>('age-categories', [])
   const [selectedAthlete, setSelectedAthlete] = useState<Athlete | null>(null)
   const [deleteAthleteId, setDeleteAthleteId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -268,6 +270,63 @@ function AppContent() {
         }))
         setRoles(defaultRoles)
       }
+
+      const existingAgeCategories = ageCategories || []
+      if (existingAgeCategories.length === 0) {
+        const defaultAgeCategories: AgeCategoryCustom[] = [
+          {
+            id: `cat-${Date.now()}-1`,
+            name: 'U10',
+            ageFrom: 8,
+            ageTo: 9,
+            description: 'Categoria Under 10 - Copii',
+            isActive: true,
+            createdAt: new Date().toISOString(),
+            createdBy: 'system'
+          },
+          {
+            id: `cat-${Date.now()}-2`,
+            name: 'U12',
+            ageFrom: 10,
+            ageTo: 11,
+            description: 'Categoria Under 12 - Copii',
+            isActive: true,
+            createdAt: new Date().toISOString(),
+            createdBy: 'system'
+          },
+          {
+            id: `cat-${Date.now()}-3`,
+            name: 'U14',
+            ageFrom: 12,
+            ageTo: 13,
+            description: 'Categoria Under 14 - Juniori IV',
+            isActive: true,
+            createdAt: new Date().toISOString(),
+            createdBy: 'system'
+          },
+          {
+            id: `cat-${Date.now()}-4`,
+            name: 'U16',
+            ageFrom: 14,
+            ageTo: 15,
+            description: 'Categoria Under 16 - Juniori III',
+            isActive: true,
+            createdAt: new Date().toISOString(),
+            createdBy: 'system'
+          },
+          {
+            id: `cat-${Date.now()}-5`,
+            name: 'U18',
+            ageFrom: 16,
+            ageTo: 17,
+            description: 'Categoria Under 18 - Juniori II',
+            isActive: true,
+            createdAt: new Date().toISOString(),
+            createdBy: 'system'
+          }
+        ]
+        setAgeCategories(defaultAgeCategories)
+      }
     }
     
     initSuperAdmin()
@@ -456,6 +515,28 @@ function AppContent() {
     setUsers((current) =>
       (current || []).map(u => u.roleId === roleId ? { ...u, roleId: undefined } : u)
     )
+  }
+
+  const handleAddAgeCategory = (categoryData: Omit<AgeCategoryCustom, 'id' | 'createdAt' | 'createdBy'>) => {
+    setAgeCategories((current) => [
+      ...(current || []),
+      {
+        ...categoryData,
+        id: `cat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        createdAt: new Date().toISOString(),
+        createdBy: currentUser?.id || 'system'
+      }
+    ])
+  }
+
+  const handleUpdateAgeCategory = (categoryId: string, updates: Partial<AgeCategoryCustom>) => {
+    setAgeCategories((current) =>
+      (current || []).map(c => c.id === categoryId ? { ...c, ...updates } : c)
+    )
+  }
+
+  const handleDeleteAgeCategory = (categoryId: string) => {
+    setAgeCategories((current) => (current || []).filter(c => c.id !== categoryId))
   }
 
   const handleApproveAccount = (requestId: string) => {
@@ -733,12 +814,13 @@ function AppContent() {
 
         <main className="container mx-auto px-4 py-8">
           <Tabs defaultValue="dashboard" className="space-y-6">
-            <TabsList className="grid w-full max-w-5xl grid-cols-7">
+            <TabsList className="grid w-full max-w-6xl grid-cols-8">
               <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
               <TabsTrigger value="approvals">Aprobări</TabsTrigger>
               <TabsTrigger value="users">Utilizatori</TabsTrigger>
               <TabsTrigger value="roles">Roluri</TabsTrigger>
               <TabsTrigger value="permissions">Permisiuni</TabsTrigger>
+              <TabsTrigger value="categories">Categorii</TabsTrigger>
               <TabsTrigger value="events">Probe</TabsTrigger>
               <TabsTrigger value="athletes">Atleți</TabsTrigger>
             </TabsList>
@@ -796,6 +878,16 @@ function AppContent() {
                 onAddPermission={handleAddPermission}
                 onUpdatePermission={handleUpdatePermission}
                 onDeletePermission={handleDeletePermission}
+              />
+            </TabsContent>
+
+            <TabsContent value="categories">
+              <AgeCategoryManagement
+                ageCategories={ageCategories || []}
+                currentUserId={currentUser.id}
+                onAddCategory={handleAddAgeCategory}
+                onUpdateCategory={handleUpdateAgeCategory}
+                onDeleteCategory={handleDeleteAgeCategory}
               />
             </TabsContent>
 
