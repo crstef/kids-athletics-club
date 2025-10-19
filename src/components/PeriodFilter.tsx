@@ -41,19 +41,16 @@ export function PeriodFilter({
   }
 
   const handlePrevious = () => {
-    if (!dateRange || !onDateRangeChange) return
+    if (!dateRange || !onDateRangeChange || !firstDataDate) return
     
-    const newEnd = new Date(dateRange.start)
-    newEnd.setDate(newEnd.getDate() - 1)
-    
-    const newStart = new Date(newEnd)
+    const newStart = new Date(dateRange.start)
     
     switch (value) {
       case '7days':
-        newStart.setDate(newStart.getDate() - 6)
+        newStart.setDate(newStart.getDate() - 7)
         break
       case '4weeks':
-        newStart.setDate(newStart.getDate() - 27)
+        newStart.setDate(newStart.getDate() - 28)
         break
       case '6months':
         newStart.setMonth(newStart.getMonth() - 6)
@@ -63,18 +60,9 @@ export function PeriodFilter({
         break
     }
     
-    if (firstDataDate && newStart < firstDataDate) {
-      return
+    if (newStart < firstDataDate) {
+      newStart.setTime(firstDataDate.getTime())
     }
-    
-    onDateRangeChange({ start: newStart, end: newEnd })
-  }
-
-  const handleNext = () => {
-    if (!dateRange || !onDateRangeChange) return
-    
-    const newStart = new Date(dateRange.end)
-    newStart.setDate(newStart.getDate() + 1)
     
     const newEnd = new Date(newStart)
     
@@ -93,11 +81,62 @@ export function PeriodFilter({
         break
     }
     
+    newEnd.setHours(23, 59, 59, 999)
+    
     const today = new Date()
     today.setHours(23, 59, 59, 999)
     
     if (newEnd > today) {
-      return
+      newEnd.setTime(today.getTime())
+    }
+    
+    onDateRangeChange({ start: newStart, end: newEnd })
+  }
+
+  const handleNext = () => {
+    if (!dateRange || !onDateRangeChange || !firstDataDate) return
+    
+    const newStart = new Date(dateRange.start)
+    
+    switch (value) {
+      case '7days':
+        newStart.setDate(newStart.getDate() + 7)
+        break
+      case '4weeks':
+        newStart.setDate(newStart.getDate() + 28)
+        break
+      case '6months':
+        newStart.setMonth(newStart.getMonth() + 6)
+        break
+      case '1year':
+        newStart.setFullYear(newStart.getFullYear() + 1)
+        break
+    }
+    
+    const newEnd = new Date(newStart)
+    
+    switch (value) {
+      case '7days':
+        newEnd.setDate(newEnd.getDate() + 6)
+        break
+      case '4weeks':
+        newEnd.setDate(newEnd.getDate() + 27)
+        break
+      case '6months':
+        newEnd.setMonth(newEnd.getMonth() + 6)
+        break
+      case '1year':
+        newEnd.setFullYear(newEnd.getFullYear() + 1)
+        break
+    }
+    
+    newEnd.setHours(23, 59, 59, 999)
+    
+    const today = new Date()
+    today.setHours(23, 59, 59, 999)
+    
+    if (newEnd > today) {
+      newEnd.setTime(today.getTime())
     }
     
     onDateRangeChange({ start: newStart, end: newEnd })
@@ -107,15 +146,69 @@ export function PeriodFilter({
     if (!canNavigate || !firstDataDate || !dateRange) return false
     const minDate = new Date(firstDataDate)
     minDate.setHours(0, 0, 0, 0)
-    return dateRange.start > minDate
-  }, [canNavigate, firstDataDate, dateRange])
+    
+    const testStart = new Date(dateRange.start)
+    
+    switch (value) {
+      case '7days':
+        testStart.setDate(testStart.getDate() - 7)
+        break
+      case '4weeks':
+        testStart.setDate(testStart.getDate() - 28)
+        break
+      case '6months':
+        testStart.setMonth(testStart.getMonth() - 6)
+        break
+      case '1year':
+        testStart.setFullYear(testStart.getFullYear() - 1)
+        break
+    }
+    
+    return testStart >= minDate
+  }, [canNavigate, firstDataDate, dateRange, value])
 
   const canGoNext = useMemo(() => {
     if (!canNavigate || !dateRange) return false
+    
+    const testStart = new Date(dateRange.start)
+    
+    switch (value) {
+      case '7days':
+        testStart.setDate(testStart.getDate() + 7)
+        break
+      case '4weeks':
+        testStart.setDate(testStart.getDate() + 28)
+        break
+      case '6months':
+        testStart.setMonth(testStart.getMonth() + 6)
+        break
+      case '1year':
+        testStart.setFullYear(testStart.getFullYear() + 1)
+        break
+    }
+    
+    const testEnd = new Date(testStart)
+    
+    switch (value) {
+      case '7days':
+        testEnd.setDate(testEnd.getDate() + 6)
+        break
+      case '4weeks':
+        testEnd.setDate(testEnd.getDate() + 27)
+        break
+      case '6months':
+        testEnd.setMonth(testEnd.getMonth() + 6)
+        break
+      case '1year':
+        testEnd.setFullYear(testEnd.getFullYear() + 1)
+        break
+    }
+    
     const today = new Date()
-    today.setHours(23, 59, 59, 999)
-    return dateRange.end < today
-  }, [canNavigate, dateRange])
+    today.setHours(0, 0, 0, 0)
+    
+    return testStart < today
+  }, [canNavigate, dateRange, value])
 
   return (
     <div className={`flex flex-col gap-3 ${className}`}>
@@ -201,34 +294,34 @@ export function getInitialDateRange(results: Array<{ date: string }>, period: Pe
     return { start, end: today }
   }
 
-  const today = new Date()
-  today.setHours(23, 59, 59, 999)
-  
-  const end = today
-  const start = new Date(end)
-  
-  switch (period) {
-    case '7days':
-      start.setDate(start.getDate() - 6)
-      break
-    case '4weeks':
-      start.setDate(start.getDate() - 27)
-      break
-    case '6months':
-      start.setMonth(start.getMonth() - 6)
-      break
-    case '1year':
-      start.setFullYear(start.getFullYear() - 1)
-      break
-  }
-  
-  start.setHours(0, 0, 0, 0)
-  
   const firstDate = new Date(Math.min(...results.map(r => new Date(r.date).getTime())))
   firstDate.setHours(0, 0, 0, 0)
   
-  if (start < firstDate) {
-    return { start: firstDate, end }
+  const today = new Date()
+  today.setHours(23, 59, 59, 999)
+  
+  const start = new Date(firstDate)
+  const end = new Date(start)
+  
+  switch (period) {
+    case '7days':
+      end.setDate(end.getDate() + 6)
+      break
+    case '4weeks':
+      end.setDate(end.getDate() + 27)
+      break
+    case '6months':
+      end.setMonth(end.getMonth() + 6)
+      break
+    case '1year':
+      end.setFullYear(end.getFullYear() + 1)
+      break
+  }
+  
+  end.setHours(23, 59, 59, 999)
+  
+  if (end > today) {
+    end.setTime(today.getTime())
   }
   
   return { start, end }
