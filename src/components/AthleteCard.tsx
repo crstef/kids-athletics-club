@@ -59,6 +59,10 @@ export function AthleteCard({ athlete, resultsCount, onViewDetails, onDelete, hi
             <Button
               size="sm"
               variant="ghost"
+              onClick={(e) => {
+                e.stopPropagation()
+                onViewDetails(athlete)
+              }}
               className="gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
             >
               <ChartLine size={16} />
