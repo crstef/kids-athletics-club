@@ -24,7 +24,7 @@ import {
 } from '@phosphor-icons/react'
 import { CoachApprovalRequests } from './CoachApprovalRequests'
 import { PerformanceChart } from './PerformanceChart'
-import { PeriodFilter, getFilteredResults, type Period } from './PeriodFilter'
+import { PeriodFilter, getFilteredResults, getAvailableYears, type Period } from './PeriodFilter'
 import type { Athlete, Result, User, AccountApprovalRequest } from '@/lib/types'
 
 type WidgetType = 
@@ -79,6 +79,7 @@ export function CoachDashboard({
   ])
   const [customizeOpen, setCustomizeOpen] = useState(false)
   const [period, setPeriod] = useState<Period>('all')
+  const [selectedYear, setSelectedYear] = useState<number | 'all'>('all')
 
   const myAthletes = useMemo(() => {
     return athletes.filter(a => a.coachId === coachId)
@@ -89,9 +90,11 @@ export function CoachDashboard({
     return results.filter(r => athleteIds.has(r.athleteId))
   }, [myAthletes, results])
 
+  const availableYears = useMemo(() => getAvailableYears(myResults), [myResults])
+
   const filteredMyResults = useMemo(() => {
-    return getFilteredResults(myResults, period)
-  }, [myResults, period])
+    return getFilteredResults(myResults, period, selectedYear)
+  }, [myResults, period, selectedYear])
 
   const stats = useMemo(() => {
     const totalAthletes = myAthletes.length
@@ -482,7 +485,13 @@ export function CoachDashboard({
           </p>
         </div>
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
-          <PeriodFilter value={period} onChange={setPeriod} />
+          <PeriodFilter 
+            value={period} 
+            onChange={setPeriod}
+            selectedYear={selectedYear}
+            onYearChange={setSelectedYear}
+            availableYears={availableYears}
+          />
           <Button variant="outline" onClick={() => setCustomizeOpen(true)} className="w-full sm:w-auto">
             <Gear size={16} className="mr-2" />
             Personalizează

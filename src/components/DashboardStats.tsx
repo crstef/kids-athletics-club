@@ -8,7 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Users, Trophy, ListNumbers, TrendUp, ArrowRight, Gear } from '@phosphor-icons/react'
 import { StatWidget } from './StatWidget'
-import { PeriodFilter, getFilteredResults, type Period } from './PeriodFilter'
+import { PeriodFilter, getFilteredResults, getAvailableYears, type Period } from './PeriodFilter'
 import { formatResult } from '@/lib/constants'
 import type { Athlete, Result } from '@/lib/types'
 
@@ -42,10 +42,13 @@ export function DashboardStats({ athletes, results, onNavigateToAthletes, onView
   ])
   const [customizeOpen, setCustomizeOpen] = useState(false)
   const [period, setPeriod] = useState<Period>('all')
+  const [selectedYear, setSelectedYear] = useState<number | 'all'>('all')
   
+  const availableYears = useMemo(() => getAvailableYears(results), [results])
+
   const filteredResults = useMemo(() => {
-    return getFilteredResults(results, period)
-  }, [results, period])
+    return getFilteredResults(results, period, selectedYear)
+  }, [results, period, selectedYear])
   
   const totalAthletes = athletes.length
   const totalResults = filteredResults.length
@@ -297,7 +300,13 @@ export function DashboardStats({ athletes, results, onNavigateToAthletes, onView
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <PeriodFilter value={period} onChange={setPeriod} />
+        <PeriodFilter 
+          value={period} 
+          onChange={setPeriod}
+          selectedYear={selectedYear}
+          onYearChange={setSelectedYear}
+          availableYears={availableYears}
+        />
         <Button variant="outline" size="sm" onClick={() => setCustomizeOpen(true)} className="text-xs sm:text-sm">
           <Gear size={14} className="sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
           Personalizează

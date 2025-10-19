@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useMemo } from 'react'
 import * as d3 from 'd3'
 import { formatResult } from '@/lib/constants'
-import { PeriodFilter, getFilteredResults, type Period } from './PeriodFilter'
+import { PeriodFilter, getFilteredResults, getAvailableYears, type Period } from './PeriodFilter'
 import type { PerformanceData } from '@/lib/types'
 
 interface PerformanceChartProps {
@@ -15,10 +15,13 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
   const containerRef = useRef<HTMLDivElement>(null)
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 })
   const [period, setPeriod] = useState<Period>('all')
+  const [selectedYear, setSelectedYear] = useState<number | 'all'>('all')
+
+  const availableYears = useMemo(() => getAvailableYears(data), [data])
 
   const filteredData = useMemo(() => {
-    return getFilteredResults(data, period)
-  }, [data, period])
+    return getFilteredResults(data, period, selectedYear)
+  }, [data, period, selectedYear])
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -108,11 +111,32 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
 
     const actualDates = sortedData.map(d => new Date(d.date))
     
+    const dateRange = dateExtent[1].getTime() - dateExtent[0].getTime()
+    const dayInMs = 24 * 60 * 60 * 1000
+    const rangeInDays = dateRange / dayInMs
+    
+    let dateFormatString = '%d/%m/%Y'
+    if (isMobile) {
+      if (rangeInDays > 365) {
+        dateFormatString = '%m/%Y'
+      } else if (rangeInDays > 90) {
+        dateFormatString = '%d/%m/%y'
+      } else {
+        dateFormatString = '%d/%m'
+      }
+    } else {
+      if (rangeInDays > 365) {
+        dateFormatString = '%b %Y'
+      } else {
+        dateFormatString = '%d/%m/%Y'
+      }
+    }
+    
     g.append('g')
       .attr('transform', `translate(0,${height})`)
       .call(d3.axisBottom(x)
         .tickValues(actualDates)
-        .tickFormat(d => d3.timeFormat(isMobile ? '%d/%m' : '%d/%m/%y')(d as Date))
+        .tickFormat(d => d3.timeFormat(dateFormatString)(d as Date))
       )
       .selectAll('text')
       .style('font-size', isMobile ? '10px' : '12px')
@@ -206,7 +230,13 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
 
   return (
     <div className="space-y-3 sm:space-y-4">
-      <PeriodFilter value={period} onChange={setPeriod} />
+      <PeriodFilter 
+        value={period} 
+        onChange={setPeriod}
+        selectedYear={selectedYear}
+        onYearChange={setSelectedYear}
+        availableYears={availableYears}
+      />
       {filteredData.length === 0 ? (
         <div className="flex items-center justify-center h-[300px] text-muted-foreground text-sm text-center px-4">
           Niciun rezultat în perioada selectată

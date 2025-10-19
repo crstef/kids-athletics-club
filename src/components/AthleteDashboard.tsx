@@ -7,7 +7,7 @@ import { Trophy, TrendUp, Calendar, Medal, Target, ChartLine } from '@phosphor-i
 import { PerformanceChart } from './PerformanceChart'
 import { StatWidget } from './StatWidget'
 import { ProgressStats } from './ProgressStats'
-import { PeriodFilter, getFilteredResults, type Period } from './PeriodFilter'
+import { PeriodFilter, getFilteredResults, getAvailableYears, type Period } from './PeriodFilter'
 import type { Athlete, Result, EventType, User } from '@/lib/types'
 import { formatResult } from '@/lib/constants'
 
@@ -21,15 +21,18 @@ export function AthleteDashboard({ athlete, results, coaches }: AthleteDashboard
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<string>('')
   const [period, setPeriod] = useState<Period>('all')
+  const [selectedYear, setSelectedYear] = useState<number | 'all'>('all')
 
   const athleteResults = useMemo(() => {
     if (!athlete) return []
     return results.filter(r => r.athleteId === athlete.id)
   }, [athlete, results])
 
+  const availableYears = useMemo(() => getAvailableYears(athleteResults), [athleteResults])
+
   const filteredAthleteResults = useMemo(() => {
-    return getFilteredResults(athleteResults, period)
-  }, [athleteResults, period])
+    return getFilteredResults(athleteResults, period, selectedYear)
+  }, [athleteResults, period, selectedYear])
 
   const stats = useMemo(() => {
     const totalResults = filteredAthleteResults.length
@@ -209,7 +212,13 @@ export function AthleteDashboard({ athlete, results, coaches }: AthleteDashboard
               )}
             </div>
           </div>
-          <PeriodFilter value={period} onChange={setPeriod} />
+          <PeriodFilter 
+            value={period} 
+            onChange={setPeriod}
+            selectedYear={selectedYear}
+            onYearChange={setSelectedYear}
+            availableYears={availableYears}
+          />
         </div>
       </Card>
 

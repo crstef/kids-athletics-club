@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { TrendUp, TrendDown, Trophy, Target, Calendar } from '@phosphor-icons/react'
-import { PeriodFilter, getFilteredResults, type Period } from './PeriodFilter'
+import { PeriodFilter, getFilteredResults, getAvailableYears, type Period } from './PeriodFilter'
 import type { Result, EventType } from '@/lib/types'
 import { formatResult } from '@/lib/constants'
 
@@ -14,10 +14,13 @@ interface ProgressStatsProps {
 
 export function ProgressStats({ athleteName, results }: ProgressStatsProps) {
   const [period, setPeriod] = useState<Period>('all')
+  const [selectedYear, setSelectedYear] = useState<number | 'all'>('all')
+
+  const availableYears = useMemo(() => getAvailableYears(results), [results])
 
   const filteredResults = useMemo(() => {
-    return getFilteredResults(results, period)
-  }, [results, period])
+    return getFilteredResults(results, period, selectedYear)
+  }, [results, period, selectedYear])
   const eventProgress = useMemo(() => {
     const eventGroups = filteredResults.reduce((acc, result) => {
       if (!acc[result.eventType]) {
@@ -99,7 +102,14 @@ export function ProgressStats({ athleteName, results }: ProgressStatsProps) {
 
   return (
     <div className="space-y-6">
-      <PeriodFilter value={period} onChange={setPeriod} className="justify-center sm:justify-start" />
+      <PeriodFilter 
+        value={period} 
+        onChange={setPeriod} 
+        selectedYear={selectedYear}
+        onYearChange={setSelectedYear}
+        availableYears={availableYears}
+        className="justify-center sm:justify-start" 
+      />
       
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
