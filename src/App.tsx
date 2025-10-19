@@ -574,6 +574,7 @@ function AppContent() {
                 onRevokePermission={handleRevokeUserPermission}
                 onApproveAccount={handleApproveAccount}
                 onRejectAccount={handleRejectAccount}
+                onUpdateUser={handleUpdateUser}
               />
             </TabsContent>
 

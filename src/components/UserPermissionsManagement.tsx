@@ -23,6 +23,7 @@ interface UserPermissionsManagementProps {
   onRevokePermission: (id: string) => void
   onApproveAccount: (requestId: string) => void
   onRejectAccount: (requestId: string, reason?: string) => void
+  onUpdateUser: (userId: string, updates: Partial<User>) => void
 }
 
 export function UserPermissionsManagement({
@@ -35,7 +36,8 @@ export function UserPermissionsManagement({
   onGrantPermission,
   onRevokePermission,
   onApproveAccount,
-  onRejectAccount
+  onRejectAccount,
+  onUpdateUser
 }: UserPermissionsManagementProps) {
   const [selectedUserId, setSelectedUserId] = useState<string>('')
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -44,6 +46,9 @@ export function UserPermissionsManagement({
   const [resourceId, setResourceId] = useState<string>('')
   const [searchQuery, setSearchQuery] = useState('')
   const [rejectionReason, setRejectionReason] = useState('')
+  const [associateDialogOpen, setAssociateDialogOpen] = useState(false)
+  const [selectedAthleteUser, setSelectedAthleteUser] = useState<User | null>(null)
+  const [selectedAthleteId, setSelectedAthleteId] = useState<string>('')
 
   const activePermissions = useMemo(() => 
     permissions.filter(p => p.isActive),
@@ -114,6 +119,28 @@ export function UserPermissionsManagement({
     setRejectionReason('')
   }
 
+  const handleAssociateAthlete = () => {
+    if (!selectedAthleteUser || !selectedAthleteId) {
+      toast.error('Selectează un atlet pentru asociere')
+      return
+    }
+
+    onUpdateUser(selectedAthleteUser.id, {
+      athleteId: selectedAthleteId
+    } as any)
+
+    toast.success('Atlet asociat cu succes')
+    setAssociateDialogOpen(false)
+    setSelectedAthleteUser(null)
+    setSelectedAthleteId('')
+  }
+
+  const handleOpenAssociate = (user: User) => {
+    setSelectedAthleteUser(user)
+    setSelectedAthleteId((user as any).athleteId || '')
+    setAssociateDialogOpen(true)
+  }
+
   const getPermissionName = (permId: string) => {
     const perm = permissions.find(p => p.id === permId)
     return perm?.description || 'Necunoscut'
@@ -150,24 +177,37 @@ export function UserPermissionsManagement({
                 if (!user) return null
 
                 return (
-                  <div key={request.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="space-y-1">
+                  <div key={request.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg gap-4">
+                    <div className="space-y-1 flex-1">
                       <div className="font-medium">
                         {user.firstName} {user.lastName}
                       </div>
                       <div className="text-sm text-muted-foreground">
                         {user.email}
                       </div>
-                      <div className="flex gap-2 items-center">
+                      <div className="flex gap-2 items-center flex-wrap">
                         <Badge variant="outline">{request.requestedRole}</Badge>
+                        {request.childName && (
+                          <span className="text-sm text-muted-foreground">
+                            👤 Copil: <strong>{request.childName}</strong>
+                          </span>
+                        )}
                         {athleteName && (
                           <span className="text-sm text-muted-foreground">
-                            Copil: {athleteName}
+                            🏃 Atlet asociat: {athleteName}
                           </span>
                         )}
                       </div>
+                      {request.approvalNotes && (
+                        <div className="text-sm text-muted-foreground bg-muted/50 p-2 rounded mt-2">
+                          <strong>Notițe:</strong> {request.approvalNotes}
+                        </div>
+                      )}
+                      <div className="text-xs text-muted-foreground">
+                        Cerere făcută: {new Date(request.requestDate).toLocaleString('ro-RO')}
+                      </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 sm:flex-col lg:flex-row">
                       <Dialog>
                         <DialogTrigger asChild>
                           <Button variant="outline" size="sm">
@@ -374,6 +414,10 @@ export function UserPermissionsManagement({
                 ) : (
                   filteredUsers.map((user) => {
                     const userPerms = userPermissions.filter(up => up.userId === user.id)
+                    const associatedAthlete = user.role === 'athlete' && (user as any).athleteId 
+                      ? athletes.find(a => a.id === (user as any).athleteId)
+                      : null
+                    
                     return (
                       <TableRow key={user.id}>
                         <TableCell>
@@ -384,6 +428,11 @@ export function UserPermissionsManagement({
                             <div className="text-sm text-muted-foreground">
                               {user.email}
                             </div>
+                            {associatedAthlete && (
+                              <div className="text-xs text-primary mt-1">
+                                🏃 Asociat: {associatedAthlete.firstName} {associatedAthlete.lastName}
+                              </div>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -413,13 +462,24 @@ export function UserPermissionsManagement({
                           </div>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setSelectedUserId(user.id)}
-                          >
-                            Gestionează
-                          </Button>
+                          <div className="flex gap-2 justify-end">
+                            {user.role === 'athlete' && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleOpenAssociate(user)}
+                              >
+                                Asociază Atlet
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setSelectedUserId(user.id)}
+                            >
+                              Gestionează
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     )
@@ -468,6 +528,62 @@ export function UserPermissionsManagement({
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={associateDialogOpen} onOpenChange={setAssociateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Asociază Profil Atlet</DialogTitle>
+            <DialogDescription>
+              Selectează profilul de atlet din sistem pe care vrei să-l asociezi cu acest utilizator
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {selectedAthleteUser && (
+              <div className="bg-muted p-3 rounded-lg">
+                <div className="font-medium">
+                  Utilizator: {selectedAthleteUser.firstName} {selectedAthleteUser.lastName}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {selectedAthleteUser.email}
+                </div>
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label>Selectează Profil Atlet *</Label>
+              <Select value={selectedAthleteId} onValueChange={setSelectedAthleteId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selectează atlet..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {athletes.map((athlete) => (
+                    <SelectItem key={athlete.id} value={athlete.id}>
+                      {athlete.firstName} {athlete.lastName} ({athlete.category})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Acest utilizator va avea acces la datele atletului selectat
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setAssociateDialogOpen(false)
+                setSelectedAthleteUser(null)
+                setSelectedAthleteId('')
+              }}
+            >
+              Anulează
+            </Button>
+            <Button onClick={handleAssociateAthlete}>
+              Asociază
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

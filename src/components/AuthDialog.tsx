@@ -30,6 +30,8 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
   const [signupLastName, setSignupLastName] = useState('')
   const [signupRole, setSignupRole] = useState<UserRole>('parent')
   const [signupSpecialization, setSignupSpecialization] = useState('')
+  const [childName, setChildName] = useState('')
+  const [approvalNotes, setApprovalNotes] = useState('')
   const [showLoginPassword, setShowLoginPassword] = useState(false)
   const [showSignupPassword, setShowSignupPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -77,6 +79,11 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
       return
     }
 
+    if (signupRole === 'parent' && !childName.trim()) {
+      toast.error('Specifică numele copilului pentru care soliciți acces')
+      return
+    }
+
     if (signupPassword.length < 6) {
       toast.error('Parola trebuie să aibă minim 6 caractere')
       return
@@ -120,7 +127,9 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
         userId: newUser.id,
         requestedRole: signupRole,
         status: 'pending',
-        requestDate: new Date().toISOString()
+        requestDate: new Date().toISOString(),
+        childName: childName.trim() || undefined,
+        approvalNotes: approvalNotes.trim() || undefined
       }
       setApprovalRequests((current) => [...(current || []), approvalRequest])
       toast.info('Contul tău așteaptă aprobare de la administrator')
@@ -143,6 +152,8 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
     setSignupLastName('')
     setSignupRole('parent')
     setSignupSpecialization('')
+    setChildName('')
+    setApprovalNotes('')
     setShowLoginPassword(false)
     setShowSignupPassword(false)
     setShowConfirmPassword(false)
@@ -230,7 +241,76 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
           <TabsContent value="signup">
             <form onSubmit={handleSignup} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="signup-email">Email</Label>
+                <Label htmlFor="signup-role">Tip Cont *</Label>
+                <Select value={signupRole} onValueChange={(v) => setSignupRole(v as UserRole)}>
+                  <SelectTrigger id="signup-role">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="parent">Părinte</SelectItem>
+                    <SelectItem value="athlete">Atlet</SelectItem>
+                    <SelectItem value="coach">Antrenor</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {signupRole === 'parent' && (
+                <div className="bg-accent/10 border border-accent/20 rounded-lg p-4 space-y-2">
+                  <div className="font-semibold text-sm text-accent">ℹ️ Informații Părinte:</div>
+                  <div className="text-sm text-muted-foreground space-y-1">
+                    <p>• Contul va necesita aprobare de la administrator</p>
+                    <p>• Vei primi notificare când contul este aprobat</p>
+                    <p>• Specifică pentru ce copil soliciți acces</p>
+                  </div>
+                </div>
+              )}
+
+              {signupRole === 'athlete' && (
+                <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 space-y-2">
+                  <div className="font-semibold text-sm text-primary">ℹ️ Informații Atlet:</div>
+                  <div className="text-sm text-muted-foreground space-y-1">
+                    <p>• Contul necesită aprobare de la antrenor</p>
+                    <p>• Antrenorul va asocia profilul tău la profilul din sistem</p>
+                    <p>• Vei avea acces la rezultatele și statisticile tale</p>
+                  </div>
+                </div>
+              )}
+
+              {signupRole === 'coach' && (
+                <div className="bg-secondary/10 border border-secondary/20 rounded-lg p-4 space-y-2">
+                  <div className="font-semibold text-sm text-secondary-foreground">ℹ️ Informații Antrenor:</div>
+                  <div className="text-sm text-muted-foreground space-y-1">
+                    <p>• Contul necesită aprobare de la administrator</p>
+                    <p>• După aprobare vei putea gestiona atleți</p>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="signup-firstName">Prenume *</Label>
+                  <Input
+                    id="signup-firstName"
+                    value={signupFirstName}
+                    onChange={(e) => setSignupFirstName(e.target.value)}
+                    placeholder="Ion"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-lastName">Nume *</Label>
+                  <Input
+                    id="signup-lastName"
+                    value={signupLastName}
+                    onChange={(e) => setSignupLastName(e.target.value)}
+                    placeholder="Popescu"
+                    required
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="signup-email">Email *</Label>
                 <Input
                   id="signup-email"
                   type="email"
@@ -240,8 +320,9 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
                   required
                 />
               </div>
+              
               <div className="space-y-2">
-                <Label htmlFor="signup-password">Parolă</Label>
+                <Label htmlFor="signup-password">Parolă *</Label>
                 <div className="relative">
                   <Input
                     id="signup-password"
@@ -267,8 +348,9 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
                   </Button>
                 </div>
               </div>
+              
               <div className="space-y-2">
-                <Label htmlFor="signup-confirm-password">Confirmă Parola</Label>
+                <Label htmlFor="signup-confirm-password">Confirmă Parola *</Label>
                 <div className="relative">
                   <Input
                     id="signup-confirm-password"
@@ -293,41 +375,35 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
                   </Button>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+
+              {signupRole === 'parent' && (
                 <div className="space-y-2">
-                  <Label htmlFor="signup-firstName">Prenume</Label>
+                  <Label htmlFor="signup-child-name">Nume Copil *</Label>
                   <Input
-                    id="signup-firstName"
-                    value={signupFirstName}
-                    onChange={(e) => setSignupFirstName(e.target.value)}
-                    placeholder="Ion"
+                    id="signup-child-name"
+                    value={childName}
+                    onChange={(e) => setChildName(e.target.value)}
+                    placeholder="ex: Maria Popescu"
                     required
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Numele copilului pentru care soliciți acces
+                  </p>
                 </div>
+              )}
+
+              {(signupRole === 'parent' || signupRole === 'athlete') && (
                 <div className="space-y-2">
-                  <Label htmlFor="signup-lastName">Nume</Label>
+                  <Label htmlFor="signup-notes">Notițe Aprobare (opțional)</Label>
                   <Input
-                    id="signup-lastName"
-                    value={signupLastName}
-                    onChange={(e) => setSignupLastName(e.target.value)}
-                    placeholder="Popescu"
-                    required
+                    id="signup-notes"
+                    value={approvalNotes}
+                    onChange={(e) => setApprovalNotes(e.target.value)}
+                    placeholder="ex: Informații suplimentare..."
                   />
                 </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="signup-role">Rol</Label>
-                <Select value={signupRole} onValueChange={(v) => setSignupRole(v as UserRole)}>
-                  <SelectTrigger id="signup-role">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="parent">Părinte</SelectItem>
-                    <SelectItem value="coach">Antrenor</SelectItem>
-                    <SelectItem value="athlete">Atlet</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              )}
+
               {signupRole === 'coach' && (
                 <div className="space-y-2">
                   <Label htmlFor="signup-specialization">Specializare (opțional)</Label>
@@ -339,6 +415,7 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
                   />
                 </div>
               )}
+              
               <Button type="submit" className="w-full">
                 Înregistrare
               </Button>

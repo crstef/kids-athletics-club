@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Switch } from '@/components/ui/switch'
 import { MagnifyingGlass, Plus, PencilSimple, Trash, UserCircle, Eye, EyeSlash } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { hashPassword } from '@/lib/crypto'
@@ -35,6 +36,8 @@ export function UserManagement({ users, currentUserId, onAddUser, onUpdateUser, 
   const [lastName, setLastName] = useState('')
   const [role, setRole] = useState<UserRole>('parent')
   const [specialization, setSpecialization] = useState('')
+  const [isActive, setIsActive] = useState(true)
+  const [needsApproval, setNeedsApproval] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
 
   const filteredUsers = useMemo(() => {
@@ -65,6 +68,8 @@ export function UserManagement({ users, currentUserId, onAddUser, onUpdateUser, 
     setLastName('')
     setRole('parent')
     setSpecialization('')
+    setIsActive(true)
+    setNeedsApproval(false)
     setShowPassword(false)
   }
 
@@ -80,6 +85,8 @@ export function UserManagement({ users, currentUserId, onAddUser, onUpdateUser, 
     setLastName(user.lastName)
     setRole(user.role)
     setSpecialization((user as any).specialization || '')
+    setIsActive(user.isActive)
+    setNeedsApproval(user.needsApproval || false)
     setEditDialogOpen(true)
   }
 
@@ -115,7 +122,9 @@ export function UserManagement({ users, currentUserId, onAddUser, onUpdateUser, 
       password: hashedPassword,
       firstName: firstName.trim(),
       lastName: lastName.trim(),
-      role
+      role,
+      isActive,
+      needsApproval
     }
 
     if (role === 'coach' && specialization.trim()) {
@@ -154,7 +163,9 @@ export function UserManagement({ users, currentUserId, onAddUser, onUpdateUser, 
       email: email.trim(),
       firstName: firstName.trim(),
       lastName: lastName.trim(),
-      role
+      role,
+      isActive,
+      needsApproval
     }
 
     if (password) {
@@ -283,7 +294,17 @@ export function UserManagement({ users, currentUserId, onAddUser, onUpdateUser, 
                     </div>
                   </TableCell>
                   <TableCell>{user.email}</TableCell>
-                  <TableCell>{getRoleBadge(user.role)}</TableCell>
+                  <TableCell>
+                    <div className="flex gap-2 items-center">
+                      {getRoleBadge(user.role)}
+                      {!user.isActive && (
+                        <Badge variant="destructive" className="text-xs">Inactiv</Badge>
+                      )}
+                      {user.needsApproval && (
+                        <Badge variant="secondary" className="text-xs">Așteaptă Aprobare</Badge>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell>
                     {new Date(user.createdAt).toLocaleDateString('ro-RO', {
                       year: 'numeric',
@@ -409,6 +430,30 @@ export function UserManagement({ users, currentUserId, onAddUser, onUpdateUser, 
                 />
               </div>
             )}
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div className="space-y-0.5">
+                <Label>Cont Activ</Label>
+                <div className="text-sm text-muted-foreground">
+                  Utilizatorul poate să se autentifice
+                </div>
+              </div>
+              <Switch
+                checked={isActive}
+                onCheckedChange={setIsActive}
+              />
+            </div>
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div className="space-y-0.5">
+                <Label>Necesită Aprobare</Label>
+                <div className="text-sm text-muted-foreground">
+                  Contul așteaptă aprobare de la admin
+                </div>
+              </div>
+              <Switch
+                checked={needsApproval}
+                onCheckedChange={setNeedsApproval}
+              />
+            </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setAddDialogOpen(false)}>
                 Anulează
@@ -516,6 +561,30 @@ export function UserManagement({ users, currentUserId, onAddUser, onUpdateUser, 
                 />
               </div>
             )}
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div className="space-y-0.5">
+                <Label>Cont Activ</Label>
+                <div className="text-sm text-muted-foreground">
+                  Utilizatorul poate să se autentifice
+                </div>
+              </div>
+              <Switch
+                checked={isActive}
+                onCheckedChange={setIsActive}
+              />
+            </div>
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div className="space-y-0.5">
+                <Label>Necesită Aprobare</Label>
+                <div className="text-sm text-muted-foreground">
+                  Contul așteaptă aprobare de la admin
+                </div>
+              </div>
+              <Switch
+                checked={needsApproval}
+                onCheckedChange={setNeedsApproval}
+              />
+            </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>
                 Anulează

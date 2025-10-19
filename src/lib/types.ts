@@ -198,6 +198,8 @@ export interface AccountApprovalRequest {
   responseDate?: string
   approvedBy?: string
   rejectionReason?: string
+  childName?: string
+  approvalNotes?: string
 }
 
 export interface Role {
