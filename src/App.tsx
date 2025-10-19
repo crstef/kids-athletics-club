@@ -24,9 +24,10 @@ import { AthleteDashboard } from '@/components/AthleteDashboard'
 import { UserManagement } from '@/components/UserManagement'
 import { PermissionsSystem } from '@/components/PermissionsSystem'
 import { UserPermissionsManagement } from '@/components/UserPermissionsManagement'
+import { RoleManagement } from '@/components/RoleManagement'
 import { hashPassword } from '@/lib/crypto'
-import { DEFAULT_PERMISSIONS } from '@/lib/permissions'
-import type { Athlete, Result, AgeCategory, User, Coach, AccessRequest, Message, EventTypeCustom, Permission, UserPermission, AccountApprovalRequest } from '@/lib/types'
+import { DEFAULT_PERMISSIONS, DEFAULT_ROLES } from '@/lib/permissions'
+import type { Athlete, Result, AgeCategory, User, Coach, AccessRequest, Message, EventTypeCustom, Permission, UserPermission, AccountApprovalRequest, Role } from '@/lib/types'
 
 function AppContent() {
   const { currentUser, setCurrentUser, isCoach, isParent, isSuperAdmin, isAthlete, logout } = useAuth()
@@ -39,6 +40,7 @@ function AppContent() {
   const [permissions, setPermissions] = useKV<Permission[]>('permissions', [])
   const [userPermissions, setUserPermissions] = useKV<UserPermission[]>('user-permissions', [])
   const [approvalRequests, setApprovalRequests] = useKV<AccountApprovalRequest[]>('approval-requests', [])
+  const [roles, setRoles] = useKV<Role[]>('roles', [])
   const [selectedAthlete, setSelectedAthlete] = useState<Athlete | null>(null)
   const [deleteAthleteId, setDeleteAthleteId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -77,6 +79,17 @@ function AppContent() {
           createdBy: 'system'
         }))
         setPermissions(defaultPerms)
+      }
+
+      const existingRoles = roles || []
+      if (existingRoles.length === 0) {
+        const defaultRoles: Role[] = DEFAULT_ROLES.map((role, index) => ({
+          ...role,
+          id: `role-${Date.now()}-${index}`,
+          createdAt: new Date().toISOString(),
+          createdBy: 'system'
+        }))
+        setRoles(defaultRoles)
       }
     }
     
@@ -236,6 +249,36 @@ function AppContent() {
 
   const handleRevokeUserPermission = (id: string) => {
     setUserPermissions((current) => (current || []).filter(p => p.id !== id))
+  }
+
+  const handleAddRole = (roleData: Omit<Role, 'id' | 'createdAt' | 'createdBy'>) => {
+    setRoles((current) => [
+      ...(current || []),
+      {
+        ...roleData,
+        id: `role-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        createdAt: new Date().toISOString(),
+        createdBy: currentUser?.id || 'system'
+      }
+    ])
+  }
+
+  const handleUpdateRole = (roleId: string, updates: Partial<Role>) => {
+    setRoles((current) =>
+      (current || []).map(r => r.id === roleId ? { ...r, ...updates } : r)
+    )
+  }
+
+  const handleDeleteRole = (roleId: string) => {
+    const role = (roles || []).find(r => r.id === roleId)
+    if (role?.isSystem) {
+      toast.error('Rolurile de sistem nu pot fi șterse')
+      return
+    }
+    setRoles((current) => (current || []).filter(r => r.id !== roleId))
+    setUsers((current) =>
+      (current || []).map(u => u.roleId === roleId ? { ...u, roleId: undefined } : u)
+    )
   }
 
   const handleApproveAccount = (requestId: string) => {
@@ -500,10 +543,11 @@ function AppContent() {
 
         <main className="container mx-auto px-4 py-8">
           <Tabs defaultValue="dashboard" className="space-y-6">
-            <TabsList className="grid w-full max-w-4xl grid-cols-6">
+            <TabsList className="grid w-full max-w-5xl grid-cols-7">
               <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
               <TabsTrigger value="approvals">Aprobări</TabsTrigger>
               <TabsTrigger value="users">Utilizatori</TabsTrigger>
+              <TabsTrigger value="roles">Roluri</TabsTrigger>
               <TabsTrigger value="permissions">Permisiuni</TabsTrigger>
               <TabsTrigger value="events">Probe</TabsTrigger>
               <TabsTrigger value="athletes">Atleți</TabsTrigger>
@@ -540,6 +584,17 @@ function AppContent() {
                 onAddUser={handleAddUser}
                 onUpdateUser={handleUpdateUser}
                 onDeleteUser={handleDeleteUser}
+              />
+            </TabsContent>
+
+            <TabsContent value="roles">
+              <RoleManagement
+                roles={roles || []}
+                permissions={permissions || []}
+                currentUserId={currentUser.id}
+                onAddRole={handleAddRole}
+                onUpdateRole={handleUpdateRole}
+                onDeleteRole={handleDeleteRole}
               />
             </TabsContent>
 

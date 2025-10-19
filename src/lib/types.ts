@@ -13,28 +13,67 @@ export type EventType =
   | 'Javelin'
   | 'Discus'
 
-export type UserRole = 'superadmin' | 'coach' | 'parent' | 'athlete'
+export type UserRole = 'superadmin' | 'coach' | 'parent' | 'athlete' | string
 
 export type AccessRequestStatus = 'pending' | 'approved' | 'rejected'
 
 export type PermissionType = 'view' | 'edit' | 'full'
 
+export type PermissionAction = 'create' | 'view' | 'edit' | 'delete'
+
+export type ResourceType = 
+  | 'athletes'
+  | 'results'
+  | 'events'
+  | 'coaches'
+  | 'users'
+  | 'permissions'
+  | 'roles'
+  | 'messages'
+  | 'access_requests'
+  | 'approvals'
+
 export type PermissionName = 
-  | 'view_athletes'
-  | 'edit_athletes'
-  | 'delete_athletes'
-  | 'view_results'
-  | 'edit_results'
-  | 'delete_results'
-  | 'view_events'
-  | 'edit_events'
-  | 'delete_events'
-  | 'manage_coaches'
-  | 'manage_users'
-  | 'manage_permissions'
-  | 'approve_accounts'
-  | 'view_messages'
-  | 'send_messages'
+  | 'athletes.create'
+  | 'athletes.view'
+  | 'athletes.edit'
+  | 'athletes.delete'
+  | 'results.create'
+  | 'results.view'
+  | 'results.edit'
+  | 'results.delete'
+  | 'events.create'
+  | 'events.view'
+  | 'events.edit'
+  | 'events.delete'
+  | 'coaches.create'
+  | 'coaches.view'
+  | 'coaches.edit'
+  | 'coaches.delete'
+  | 'users.create'
+  | 'users.view'
+  | 'users.edit'
+  | 'users.delete'
+  | 'permissions.create'
+  | 'permissions.view'
+  | 'permissions.edit'
+  | 'permissions.delete'
+  | 'roles.create'
+  | 'roles.view'
+  | 'roles.edit'
+  | 'roles.delete'
+  | 'messages.create'
+  | 'messages.view'
+  | 'messages.edit'
+  | 'messages.delete'
+  | 'access_requests.create'
+  | 'access_requests.view'
+  | 'access_requests.edit'
+  | 'access_requests.delete'
+  | 'approvals.create'
+  | 'approvals.view'
+  | 'approvals.edit'
+  | 'approvals.delete'
 
 export interface User {
   id: string
@@ -42,6 +81,7 @@ export interface User {
   password: string
   firstName: string
   lastName: string
+  roleId?: string
   role: UserRole
   createdAt: string
   isActive: boolean
@@ -158,4 +198,25 @@ export interface AccountApprovalRequest {
   responseDate?: string
   approvedBy?: string
   rejectionReason?: string
+}
+
+export interface Role {
+  id: string
+  name: string
+  displayName: string
+  description: string
+  isSystem: boolean
+  isActive: boolean
+  permissions: PermissionName[]
+  createdAt: string
+  createdBy: string
+  updatedAt?: string
+  updatedBy?: string
+}
+
+export interface RolePermission {
+  roleId: string
+  permissionId: string
+  grantedAt: string
+  grantedBy: string
 }

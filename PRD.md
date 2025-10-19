@@ -1,30 +1,37 @@
 # Planning Guide
 
-O aplicație web profesională pentru managementul atleților juniori din clubul de atletism, care permite înregistrarea sportivilor, managementul probelor sportive personalizate, adăugarea rezultatelor și urmărirea evoluției performanțelor în timp. Include sistem complet de permisiuni cu creare, editare, activare/dezactivare permisiuni, aprobare conturi noi, control granular pe resurse specifice (atleți individuali), autentificare securizată cu parolă criptată (SHA-256), roluri multiple (SuperAdmin, Antrenor, Părinte, Atlet), și canal de comunicare între părinți și antrenori.
+O aplicație web profesională pentru managementul atleților juniori din clubul de atletism, care permite înregistrarea sportivilor, managementul probelor sportive personalizate, adăugarea rezultatelor și urmărirea evoluției performanțelor în timp. Include sistem complet de management roluri și permisiuni cu creare/editare/ștergere pentru roluri personalizate, acordare permisiuni granulare per acțiune (create/view/edit/delete) pe toate resursele sistemului, aprobare conturi noi, control granular pe resurse specifice (atleți individuali), autentificare securizată cu parolă criptată (SHA-256), roluri multiple (SuperAdmin, Antrenor, Părinte, Atlet) + roluri custom, și canal de comunicare între părinți și antrenori.
 
 **Experience Qualities**:
 1. **Profesională** - Interfață modernă și premium cu design sofisticat, iconografie consistentă și feedback vizual immediate pentru toate acțiunile
-2. **Securizată** - Autentificare cu parolă criptată SHA-256, sistem ierarhic de permisiuni cu SuperAdmin care controlează toate permisiunile, aprobare obligatorie pentru conturi noi, cereri de acces pentru date copii și separare clară între drepturile utilizatorilor
-3. **Flexibilă** - Management complet al sistemului de permisiuni (creare, editare, activare/dezactivare), acordare granulară pe utilizatori și resurse specifice, probe sportive personalizate configurabile per nevoile clubului
+2. **Securizată** - Autentificare cu parolă criptată SHA-256, sistem ierarhic de permisiuni cu SuperAdmin care controlează toate permisiunile și rolurile, aprobare obligatorie pentru conturi noi, cereri de acces pentru date copii și separare clară între drepturile utilizatorilor
+3. **Flexibilă** - Management complet al sistemului de roluri (creare/editare/ștergere roluri custom), management permisiuni (creare/editare/activare/dezactivare), acordare granulară pe utilizatori și resurse specifice, probe sportive personalizate configurabile per nevoile clubului
 
 **Complexity Level**: Complex Application (advanced functionality, accounts)
-  - Aplicația gestionează multiple entități cu relații complexe (atleți, probe custom, rezultate, utilizatori multi-rol, cereri, permisiuni dinamice, mesagerie), sistem complet de autentificare și autorizare cu SuperAdmin, management dinamic al schemei de date (probe și permisiuni configurabile), sistem de aprobare pe două niveluri (cont + acces date copil).
+  - Aplicația gestionează multiple entități cu relații complexe (atleți, probe custom, rezultate, utilizatori multi-rol, cereri, permisiuni dinamice, roluri custom, mesagerie), sistem complet de autentificare și autorizare cu SuperAdmin, management dinamic al schemei de date (probe, permisiuni și roluri configurabile), sistem de aprobare pe două niveluri (cont + acces date copil).
 
 ## Essential Features
 
-### Sistem de Permisiuni Complet
-- **Functionality**: SuperAdmin creează, editează, activează/dezactivează permisiuni în sistem. Permisiunile disponibile includ: vizualizare/editare/ștergere atleți, rezultate, probe, gestionare antrenori/utilizatori/permisiuni, aprobare conturi și trimitere mesaje
-- **Purpose**: Control total și flexibil asupra capacităților utilizatorilor în sistem
-- **Trigger**: SuperAdmin → Tab "Permisiuni" → Management permisiuni disponibile
-- **Progression**: Panou permisiuni → Creare permisiune nouă (nume, descriere) → Salvare → Activare/Dezactivare → Editare → Ștergere (cu impact pe toți utilizatorii)
-- **Success criteria**: Permisiunile pot fi create custom, activate/dezactivate pentru a controla ce e disponibil în sistem, modificate și șterse
+### Sistem de Management Roluri
+- **Functionality**: SuperAdmin creează, editează și șterge roluri custom în sistem. Fiecare rol are nume, nume afișat, descriere, status (activ/inactiv) și o listă de permisiuni asociate. Rolurile de sistem (superadmin, coach, parent, athlete) sunt protejate și nu pot fi șterse
+- **Purpose**: Flexibilitate maximă în definirea structurii organizaționale și a responsabilităților prin roluri custom (ex: "Manager Atleți", "Asistent Antrenor", "Coordonator Evenimente")
+- **Trigger**: SuperAdmin → Tab "Roluri" → Creare/editare rol
+- **Progression**: Panou roluri → "Rol Nou" → Completare (nume intern, nume afișat, descriere) → Selectare permisiuni din listă grupată pe resurse → Toggle activare/dezactivare → Salvare → Editare rol existent → Ștergere (doar roluri non-sistem)
+- **Success criteria**: Roluri custom pot fi create cu orice combinație de permisiuni, activate/dezactivate, editate (modificare permisiuni) și șterse, utilizatorii pot fi asociați cu roluri custom
 
-### Acordare Permisiuni pe Utilizatori
-- **Functionality**: SuperAdmin acordă permisiuni specifice utilizatorilor, fie general fie pe resurse specifice (ex: părinte poate vizualiza doar atletul X)
-- **Purpose**: Control granular al accesului la date per utilizator
-- **Trigger**: SuperAdmin → Tab "Aprobări" → Selectare utilizator → "Acordă Permisiuni"
-- **Progression**: Selectare utilizator → Alegere permisiuni din lista activă → Optio nal selectare atlet specific → Confirmare → Vizualizare permisiuni acordate per utilizator → Revocare individuală
-- **Success criteria**: Utilizatorii primesc doar permisiunile acordate explicit, pot avea acces la atleți specifici, permisiunile pot fi revocate individual
+### Sistem de Permisiuni Granulare
+- **Functionality**: SuperAdmin creează, editează, activează/dezactivează permisiuni în sistem. Permisiunile sunt structurate per acțiune (create, view, edit, delete) pe fiecare resursă (athletes, results, events, coaches, users, permissions, roles, messages, access_requests, approvals). Fiecare permisiune are nume standardizat (ex: "athletes.create", "results.edit"), descriere și status activ/inactiv
+- **Purpose**: Control total și granular asupra capacităților utilizatorilor pe fiecare acțiune din sistem
+- **Trigger**: SuperAdmin → Tab "Permisiuni" → Management permisiuni disponibile
+- **Progression**: Panou permisiuni → Creare permisiune nouă (nume format resource.action, descriere) → Salvare → Activare/Dezactivare → Editare → Ștergere (cu impact pe toate rolurile și utilizatorii)
+- **Success criteria**: Permisiunile sunt organizate logic per resursă și acțiune (create/view/edit/delete), pot fi create custom, activate/dezactivate pentru a controla ce e disponibil în sistem, modificate și șterse
+
+### Acordare Permisiuni pe Utilizatori și Roluri
+- **Functionality**: SuperAdmin acordă permisiuni specifice fie la nivel de rol (toate persoanele cu acel rol primesc permisiunea), fie individual per utilizator. Permisiunile pot fi acordate general sau pe resurse specifice (ex: părinte poate vizualiza doar atletul X)
+- **Purpose**: Control granular al accesului la date per rol sau per utilizator
+- **Trigger**: SuperAdmin → Tab "Aprobări" → Selectare utilizator → "Acordă Permisiuni" SAU Tab "Roluri" → Editare rol → Selectare permisiuni
+- **Progression**: Selectare utilizator/rol → Alegere permisiuni din lista activă grupată pe resurse (athletes, results, etc.) și acțiuni (create, view, edit, delete) → Opțional selectare resursă specifică → Confirmare → Vizualizare permisiuni acordate → Revocare individuală
+- **Success criteria**: Utilizatorii primesc permisiuni fie prin rolul lor fie prin acordare individuală, au acces doar la acțiunile permise (create, view, edit, delete) pe fiecare resursă, pot avea acces la resurse specifice, permisiunile pot fi revocate individual
 
 ### Aprobare Conturi Noi
 - **Functionality**: Utilizatorii care se înregistrează (coach, parent, athlete) trebuie aprobați de SuperAdmin înainte de a-și putea activa contul
@@ -91,12 +98,18 @@ O aplicație web profesională pentru managementul atleților juniori din clubul
 - **Parolă scurtă**: Validare minim 6 caractere la toate formularele cu feedback clar
 - **Parolă nepotrivită**: La înregistrare, confirmarea trebuie să match exact cu parola
 - **Login eșuat**: Mesaj generic "Email sau parolă incorectă" pentru a nu dezvălui ce câmp e greșit
-- **SuperAdmin implicit**: La prima rulare se creează automat cont SuperAdmin (admin@clubatletism.ro / admin123) cu parolă pre-criptată
+- **SuperAdmin implicit**: La prima rulare se creează automat cont SuperAdmin (admin@clubatletism.ro / admin123) cu parolă pre-criptată și rolul de superadmin
+- **Roluri implicite**: La prima rulare se creează automat 4 roluri de sistem (superadmin, coach, parent, athlete) cu permisiunile corespunzătoare
+- **Permisiuni implicite**: La prima rulare se creează automat toate permisiunile structurate pe resurse și acțiuni (athletes.create, athletes.view, etc.)
 - **Resetare parolă**: SuperAdmin poate seta parolă nouă pentru orice utilizator (câmp opțional la editare)
 - **Vizibilitate parolă**: Toggle eye/eye-slash pentru a afișa/ascunde parola în toate formularele
 - **Probe șterse**: La ștergerea unei probe, rezultatele existente rămân dar fără referință (arhivare)
 - **Permisiuni conflictuale**: Ultima permisiune acordată suprascrie pe anterioara pentru aceeași resursă
-- **Rol modificat**: Când SuperAdmin schimbă rolul unui user, permisiunile existente rămân active
+- **Rol modificat**: Când SuperAdmin schimbă rolul unui user, permisiunile din noul rol se aplică automat
+- **Rol șters**: Nu se pot șterge rolurile de sistem (superadmin, coach, parent, athlete), doar roluri custom. La ștergerea unui rol custom, utilizatorii cu acel rol îl pierd
+- **Rol dezactivat**: Utilizatorii cu rol inactiv pierd accesul la funcționalitățile acelui rol până la reactivare
+- **Permisiune ștearsă**: Ștergerea unei permisiuni o elimină automat din toate rolurile și de la toți utilizatorii
+- **Permisiune dezactivată**: Permisiunile inactive nu pot fi acordate la roluri/utilizatori noi, dar cele existente rămân asociate (inactiv)
 - **Cerere duplicată**: Previne trimiterea mai multor cereri pentru același atlet până la răspuns
 - **Acces fără aprobare**: Părinții văd doar atleții aprobați, restul sunt invizibili
 - **Mesaje fără acces**: Mesageria este disponibilă doar între antrenori și părinți cu acces aprobat
@@ -105,6 +118,7 @@ O aplicație web profesională pentru managementul atleților juniori din clubul
 - **Deconectare**: Buton clar de logout care resetează sesiunea curentă
 - **Validare formulare**: Toate câmpurile obligatorii sunt verificate înainte de salvare
 - **Mobile responsive**: Layout se adaptează complet pe dispozitive mobile cu tabs transformate în select când e necesar
+- **Verificare permisiuni**: La fiecare acțiune (create, view, edit, delete) se verifică dacă utilizatorul are permisiunea corespunzătoare prin rol sau acordare individuală
 
 ## Design Direction
 Design-ul evoluează către o estetică premium, profesională și sofisticată, menținând energia sportivă dar adăugând elemente de siguranță enterprise și trust prin gradient-uri subtile, iconografie distinctivă per rol (ShieldCheck pentru SuperAdmin, Trophy pentru atleți) și sisteme vizuale clare pentru ierarhia permisiunilor. Interfața trebuie să transmită încredere, organizare și control prin detalii precum badge-uri colorate pentru status, animații micro pe interacțiuni și spacing generos.
@@ -147,36 +161,46 @@ Animații profesionale, subtile și rapide care ghidează utilizatorul fără s�
 
 ## Component Selection
 - **Components**: 
-  - Card pentru atleți, statistici, antrenori, cereri, conversații, probe și permisiuni
-  - Dialog pentru formulare de adăugare/editare, autentificare și management permisiuni
-  - Tabs pentru navigare între secțiuni diferite per rol (4 tabs pentru SuperAdmin, variabil pentru alte roluri)
-  - Badge pentru status cereri (Pending, Approved, Rejected), roluri (SuperAdmin, Coach, etc.), permisiuni (View, Edit, Full) și mesaje necitite
+  - Card pentru atleți, statistici, antrenori, cereri, conversații, probe, permisiuni și roluri
+  - Dialog pentru formulare de adăugare/editare, autentificare, management permisiuni și management roluri
+  - Tabs pentru navigare între secțiuni diferite per rol (7 tabs pentru SuperAdmin: Dashboard, Aprobări, Utilizatori, Roluri, Permisiuni, Probe, Atleți)
+  - Badge pentru status cereri (Pending, Approved, Rejected), roluri (SuperAdmin, Coach, etc.), permisiuni (create, view, edit, delete), status activ/inactiv și mesaje necitite
+  - Checkbox pentru selectare multiplă permisiuni în formularul de rol și selectare toate permisiunile unei resurse
   - Avatar pentru reprezentare utilizatori și atleți
-  - ScrollArea pentru lista de mesaje în chat
-  - Textarea pentru scriere mesaje și descrieri probe
+  - ScrollArea pentru lista de mesaje în chat și listă lungă de permisiuni
+  - Textarea pentru scriere mesaje, descrieri probe și descrieri roluri
   - Alert pentru notificări importante
-  - Select pentru filtre și alegeri (categorie probe, tip permisiune, resurse)
+  - Select pentru filtre și alegeri (categorie probe, tip permisiune, resurse, roluri)
   - Input pentru căutare și formulare
+  - Switch pentru activare/dezactivare roluri și permisiuni
+  - AlertDialog pentru confirmare ștergere roluri, permisiuni și utilizatori
   
 - **Customizations**: 
   - Panouri separate și complet diferite pentru fiecare rol (SuperAdmin/Coach/Parent/Athlete)
   - Header cu gradient pentru SuperAdmin (from-primary/10 to-accent/10)
   - Card-uri probe cu iconuri contextuale (Timer/Target/Ruler) per categorie
+  - Card-uri roluri cu indicator sistem (Lock icon) pentru roluri protejate, badge activ/inactiv, și listă compactă de permisiuni
   - Management permisiuni cu sistem de badge-uri complexe (icon + text + remove button)
-  - Dashboard statistici pentru SuperAdmin cu 4 carduri overview
+  - Management roluri cu formular complex: listă permisiuni grupată pe resurse (athletes, results, etc.), checkbox selectare toate din resursă, counter permisiuni selectate
+  - Dashboard statistici pentru SuperAdmin cu carduri overview inclusiv număr roluri
   - Athlete dashboard cu profil hero card gradient și timeline rezultate
   
 - **States**: 
   - Buttons: hover cu scale(1.02) și shadow enhanced, active cu scale(0.98), disabled cu opacity 50%
   - Badge status cereri: culori distincte pending (secondary), approved (success green), rejected (destructive)
-  - Badge roluri: default pentru SuperAdmin, secondary pentru Coach, outline pentru Parent/Athlete
-  - Badge permisiuni: outline cu icon prefix pentru fiecare tip (Eye/PencilSimple/LockKey)
+  - Badge roluri: default pentru SuperAdmin, secondary pentru Coach, outline pentru Parent/Athlete și roluri custom
+  - Badge permisiuni: outline cu text format resource.action (ex: "athletes.create")
+  - Badge status activ/inactiv: default pentru activ, secondary pentru inactiv
   - Mesaje: stil diferit pentru mesaje trimise (primary bg) vs primite (muted bg)
   - Inputs: focus cu border accent și shadow glow, error cu border destructive
   - Cards: hover cu subtle lift (translateY(-2px)) și shadow increase
+  - Roluri sistem: indicator Lock și protecție la ștergere și editare nume
+  - Checkbox permisiuni: checked pentru permisiuni selectate, indeterminate pentru "unele selectate" din resursă
   
 - **Icon Selection**: 
   - ShieldCheck pentru SuperAdmin și sistem permisiuni
+  - UserGear pentru management roluri
+  - Lock pentru roluri de sistem (protejate)
   - UserCircle pentru autentificare și utilizatori
   - SignOut pentru deconectare
   - Eye / EyeSlash pentru toggle vizibilitate parolă în formulare
@@ -186,8 +210,8 @@ Animații profesionale, subtile și rapide care ghidează utilizatorul fără s�
   - Target pentru probe și events management
   - Timer pentru probe alergare
   - Ruler pentru probe aruncări
-  - Eye, PencilSimple, LockKey pentru tipuri permisiuni (view/edit/full)
-  - Plus pentru adăugare (atleți, antrenori, probe, permisiuni)
+  - Plus pentru adăugare (atleți, antrenori, probe, permisiuni, roluri)
+  - Pencil pentru editare
   - Trash pentru ștergere
   - CheckCircle pentru aprobare
   - XCircle pentru respingere
@@ -207,11 +231,13 @@ Animații profesionale, subtile și rapide care ghidează utilizatorul fără s�
   - Header padding: px-4 py-4
   
 - **Mobile**: 
-  - Tabs pentru SuperAdmin (4 tabs) rămân tabs dar cu text mai scurt pe mobile
-  - Grid atleți/probe: 1 coloană mobile (<768px), 2 coloane tablet (768-1024px), 3+ coloane desktop (>1024px)
-  - Dialog fullscreen pe mobile pentru formulare complexe (management permisiuni)
+  - Tabs pentru SuperAdmin (7 tabs) rămân tabs dar cu text mai scurt pe mobile, eventual scroll orizontal
+  - Grid roluri/permisiuni/atleți/probe: 1 coloană mobile (<768px), 2 coloane tablet (768-1024px), 3 coloane desktop (>1024px)
+  - Dialog fullscreen pe mobile pentru formulare complexe (management permisiuni, creare/editare rol)
+  - Dialog roluri cu overflow scroll pe mobile pentru lista lungă de permisiuni grupate
   - Conversații chat: layout vertical stack pe mobile, side-by-side pe desktop (>1024px)
   - Badges se wrappează pe multiple linii când e nevoie
   - Search bars full-width pe mobile
   - Sticky header pentru navigare rapidă pe scroll
   - Badge-uri "hidden sm:flex" pentru labels text lunghi (ex: nume utilizator în header)
+  - Checkbox grid pentru permisiuni: 1 coloană pe mobile, 2 coloane pe desktop în formularul de rol
