@@ -24,6 +24,7 @@ import {
 } from '@phosphor-icons/react'
 import { CoachApprovalRequests } from './CoachApprovalRequests'
 import { PerformanceChart } from './PerformanceChart'
+import { PeriodFilter, getFilteredResults, type Period } from './PeriodFilter'
 import type { Athlete, Result, User, AccountApprovalRequest } from '@/lib/types'
 
 type WidgetType = 
@@ -77,6 +78,7 @@ export function CoachDashboard({
     { id: 'w9', type: 'recent-improvements', title: 'Îmbunătățiri Recente', size: 'medium', enabled: false }
   ])
   const [customizeOpen, setCustomizeOpen] = useState(false)
+  const [period, setPeriod] = useState<Period>('all')
 
   const myAthletes = useMemo(() => {
     return athletes.filter(a => a.coachId === coachId)
@@ -87,13 +89,17 @@ export function CoachDashboard({
     return results.filter(r => athleteIds.has(r.athleteId))
   }, [myAthletes, results])
 
+  const filteredMyResults = useMemo(() => {
+    return getFilteredResults(myResults, period)
+  }, [myResults, period])
+
   const stats = useMemo(() => {
     const totalAthletes = myAthletes.length
     const activeAthletes = myAthletes.filter(a => 
-      myResults.some(r => r.athleteId === a.id)
+      filteredMyResults.some(r => r.athleteId === a.id)
     ).length
-    const totalResults = myResults.length
-    const activeEvents = new Set(myResults.map(r => r.eventType)).size
+    const totalResults = filteredMyResults.length
+    const activeEvents = new Set(filteredMyResults.map(r => r.eventType)).size
 
     return {
       totalAthletes,
@@ -101,7 +107,7 @@ export function CoachDashboard({
       totalResults,
       activeEvents
     }
-  }, [myAthletes, myResults])
+  }, [myAthletes, filteredMyResults])
 
   const categoryBreakdown = useMemo(() => {
     const breakdown = myAthletes.reduce((acc, athlete) => {
@@ -114,8 +120,8 @@ export function CoachDashboard({
   const topPerformers = useMemo(() => {
     const athleteResultCounts = myAthletes.map(athlete => ({
       athlete,
-      resultCount: myResults.filter(r => r.athleteId === athlete.id).length,
-      recentResults: myResults
+      resultCount: filteredMyResults.filter(r => r.athleteId === athlete.id).length,
+      recentResults: filteredMyResults
         .filter(r => r.athleteId === athlete.id)
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
         .slice(0, 3)
@@ -124,7 +130,7 @@ export function CoachDashboard({
     return athleteResultCounts
       .sort((a, b) => b.resultCount - a.resultCount)
       .slice(0, 5)
-  }, [myAthletes, myResults])
+  }, [myAthletes, filteredMyResults])
 
   const recentImprovements = useMemo(() => {
     const improvements: Array<{
@@ -137,7 +143,7 @@ export function CoachDashboard({
     }> = []
 
     myAthletes.forEach(athlete => {
-      const athleteResults = myResults
+      const athleteResults = filteredMyResults
         .filter(r => r.athleteId === athlete.id)
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
 
@@ -173,7 +179,7 @@ export function CoachDashboard({
     return improvements
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       .slice(0, 5)
-  }, [myAthletes, myResults])
+  }, [myAthletes, filteredMyResults])
 
   const toggleWidget = (widgetId: string) => {
     setWidgets((current) => 
@@ -466,7 +472,7 @@ export function CoachDashboard({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
         <div>
           <h2 className="text-2xl font-bold" style={{ fontFamily: 'Outfit' }}>
             Dashboard Personalizat
@@ -475,10 +481,13 @@ export function CoachDashboard({
             Monitorizează performanța atletilor tăi
           </p>
         </div>
-        <Button variant="outline" onClick={() => setCustomizeOpen(true)}>
-          <Gear size={16} className="mr-2" />
-          Personalizează
-        </Button>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
+          <PeriodFilter value={period} onChange={setPeriod} />
+          <Button variant="outline" onClick={() => setCustomizeOpen(true)} className="w-full sm:w-auto">
+            <Gear size={16} className="mr-2" />
+            Personalizează
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 auto-rows-auto">

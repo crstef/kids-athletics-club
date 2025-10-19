@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useMemo } from 'react'
 import * as d3 from 'd3'
 import { formatResult } from '@/lib/constants'
+import { PeriodFilter, getFilteredResults, type Period } from './PeriodFilter'
 import type { PerformanceData } from '@/lib/types'
 
 interface PerformanceChartProps {
@@ -13,6 +14,11 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
   const svgRef = useRef<SVGSVGElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 })
+  const [period, setPeriod] = useState<Period>('all')
+
+  const filteredData = useMemo(() => {
+    return getFilteredResults(data, period)
+  }, [data, period])
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -29,7 +35,7 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
   }, [])
 
   useEffect(() => {
-    if (!svgRef.current || data.length === 0 || dimensions.width === 0) return
+    if (!svgRef.current || filteredData.length === 0 || dimensions.width === 0) return
 
     const svg = d3.select(svgRef.current)
     svg.selectAll('*').remove()
@@ -48,7 +54,7 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
       .append('g')
       .attr('transform', `translate(${margin.left},${margin.top})`)
 
-    const sortedData = [...data].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    const sortedData = [...filteredData].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
 
     const x = d3.scaleTime()
       .domain(d3.extent(sortedData, d => new Date(d.date)) as [Date, Date])
@@ -149,7 +155,7 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
         g.selectAll('.tooltip').remove()
       })
 
-  }, [data, unit, dimensions])
+  }, [filteredData, unit, dimensions])
 
   if (data.length === 0) {
     return (
@@ -160,8 +166,17 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
   }
 
   return (
-    <div ref={containerRef} className="w-full">
-      <svg ref={svgRef} width="100%" height={dimensions.height || 300} />
+    <div className="space-y-3 sm:space-y-4">
+      <PeriodFilter value={period} onChange={setPeriod} />
+      {filteredData.length === 0 ? (
+        <div className="flex items-center justify-center h-[300px] text-muted-foreground text-sm text-center px-4">
+          Niciun rezultat în perioada selectată
+        </div>
+      ) : (
+        <div ref={containerRef} className="w-full">
+          <svg ref={svgRef} width="100%" height={dimensions.height || 300} />
+        </div>
+      )}
     </div>
   )
 }

@@ -8,6 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Users, Trophy, ListNumbers, TrendUp, ArrowRight, Gear } from '@phosphor-icons/react'
 import { StatWidget } from './StatWidget'
+import { PeriodFilter, getFilteredResults, type Period } from './PeriodFilter'
 import { formatResult } from '@/lib/constants'
 import type { Athlete, Result } from '@/lib/types'
 
@@ -40,23 +41,29 @@ export function DashboardStats({ athletes, results, onNavigateToAthletes, onView
     { id: 'w4', type: 'stats-probes', title: 'Probe Active', size: 'small', enabled: true }
   ])
   const [customizeOpen, setCustomizeOpen] = useState(false)
+  const [period, setPeriod] = useState<Period>('all')
+  
+  const filteredResults = useMemo(() => {
+    return getFilteredResults(results, period)
+  }, [results, period])
+  
   const totalAthletes = athletes.length
-  const totalResults = results.length
+  const totalResults = filteredResults.length
   const activeAthletes = useMemo(() => 
-    athletes.filter(a => results.some(r => r.athleteId === a.id)).length,
-    [athletes, results]
+    athletes.filter(a => filteredResults.some(r => r.athleteId === a.id)).length,
+    [athletes, filteredResults]
   )
 
   const recentResults = useMemo(() =>
-    results
+    filteredResults
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       .slice(0, 10),
-    [results]
+    [filteredResults]
   )
 
   const activeProbes = useMemo(() => 
-    new Set(results.map(r => r.eventType)).size,
-    [results]
+    new Set(filteredResults.map(r => r.eventType)).size,
+    [filteredResults]
   )
 
   const categoryBreakdown = useMemo(() => {
@@ -68,14 +75,14 @@ export function DashboardStats({ athletes, results, onNavigateToAthletes, onView
   }, [athletes])
 
   const probeBreakdown = useMemo(() => {
-    const breakdown = results.reduce((acc, result) => {
+    const breakdown = filteredResults.reduce((acc, result) => {
       acc[result.eventType] = (acc[result.eventType] || 0) + 1
       return acc
     }, {} as Record<string, number>)
     return Object.entries(breakdown)
       .map(([probe, count]) => ({ probe, count }))
       .sort((a, b) => b.count - a.count)
-  }, [results])
+  }, [filteredResults])
 
   const totalAthletesDetails = (
     <div className="space-y-4">
@@ -115,9 +122,9 @@ export function DashboardStats({ athletes, results, onNavigateToAthletes, onView
       </p>
       <div className="space-y-2">
         {athletes
-          .filter(a => results.some(r => r.athleteId === a.id))
+          .filter(a => filteredResults.some(r => r.athleteId === a.id))
           .map(athlete => {
-            const athleteResults = results.filter(r => r.athleteId === athlete.id)
+            const athleteResults = filteredResults.filter(r => r.athleteId === athlete.id)
             return (
               <div 
                 key={athlete.id} 
@@ -289,7 +296,8 @@ export function DashboardStats({ athletes, results, onNavigateToAthletes, onView
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-end">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <PeriodFilter value={period} onChange={setPeriod} />
         <Button variant="outline" size="sm" onClick={() => setCustomizeOpen(true)} className="text-xs sm:text-sm">
           <Gear size={14} className="sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
           Personalizează

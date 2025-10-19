@@ -1,8 +1,9 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { TrendUp, TrendDown, Trophy, Target, Calendar } from '@phosphor-icons/react'
+import { PeriodFilter, getFilteredResults, type Period } from './PeriodFilter'
 import type { Result, EventType } from '@/lib/types'
 import { formatResult } from '@/lib/constants'
 
@@ -12,8 +13,13 @@ interface ProgressStatsProps {
 }
 
 export function ProgressStats({ athleteName, results }: ProgressStatsProps) {
+  const [period, setPeriod] = useState<Period>('all')
+
+  const filteredResults = useMemo(() => {
+    return getFilteredResults(results, period)
+  }, [results, period])
   const eventProgress = useMemo(() => {
-    const eventGroups = results.reduce((acc, result) => {
+    const eventGroups = filteredResults.reduce((acc, result) => {
       if (!acc[result.eventType]) {
         acc[result.eventType] = []
       }
@@ -65,10 +71,10 @@ export function ProgressStats({ athleteName, results }: ProgressStatsProps) {
         }
       }
     })
-  }, [results])
+  }, [filteredResults])
 
   const overallStats = useMemo(() => {
-    const totalResults = results.length
+    const totalResults = filteredResults.length
     const eventsCount = new Set(results.map(r => r.eventType)).size
     
     const improvements = eventProgress.filter(e => e.isImproving).length
@@ -82,17 +88,19 @@ export function ProgressStats({ athleteName, results }: ProgressStatsProps) {
       improvements,
       avgImprovement
     }
-  }, [results, eventProgress])
+  }, [filteredResults, eventProgress])
 
   const recentActivity = useMemo(() => {
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
     
-    return results.filter(r => new Date(r.date) >= thirtyDaysAgo).length
-  }, [results])
+    return filteredResults.filter(r => new Date(r.date) >= thirtyDaysAgo).length
+  }, [filteredResults])
 
   return (
     <div className="space-y-6">
+      <PeriodFilter value={period} onChange={setPeriod} className="justify-center sm:justify-start" />
+      
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="pb-3">

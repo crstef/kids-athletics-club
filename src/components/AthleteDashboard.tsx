@@ -7,6 +7,7 @@ import { Trophy, TrendUp, Calendar, Medal, Target, ChartLine } from '@phosphor-i
 import { PerformanceChart } from './PerformanceChart'
 import { StatWidget } from './StatWidget'
 import { ProgressStats } from './ProgressStats'
+import { PeriodFilter, getFilteredResults, type Period } from './PeriodFilter'
 import type { Athlete, Result, EventType, User } from '@/lib/types'
 import { formatResult } from '@/lib/constants'
 
@@ -19,25 +20,30 @@ interface AthleteDashboardProps {
 export function AthleteDashboard({ athlete, results, coaches }: AthleteDashboardProps) {
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<string>('')
+  const [period, setPeriod] = useState<Period>('all')
 
   const athleteResults = useMemo(() => {
     if (!athlete) return []
     return results.filter(r => r.athleteId === athlete.id)
   }, [athlete, results])
 
+  const filteredAthleteResults = useMemo(() => {
+    return getFilteredResults(athleteResults, period)
+  }, [athleteResults, period])
+
   const stats = useMemo(() => {
-    const totalResults = athleteResults.length
-    const eventTypes = new Set(athleteResults.map(r => r.eventType)).size
+    const totalResults = filteredAthleteResults.length
+    const eventTypes = new Set(filteredAthleteResults.map(r => r.eventType)).size
     
-    const recentResults = athleteResults
+    const recentResults = filteredAthleteResults
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       .slice(0, 5)
 
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-    const recentActivity = athleteResults.filter(r => new Date(r.date) >= thirtyDaysAgo).length
+    const recentActivity = filteredAthleteResults.filter(r => new Date(r.date) >= thirtyDaysAgo).length
 
-    const eventProgress = athleteResults.reduce((acc, result) => {
+    const eventProgress = filteredAthleteResults.reduce((acc, result) => {
       if (!acc[result.eventType]) acc[result.eventType] = []
       acc[result.eventType].push(result)
       return acc
@@ -67,10 +73,10 @@ export function AthleteDashboard({ athlete, results, coaches }: AthleteDashboard
       recentActivity,
       improvements
     }
-  }, [athleteResults])
+  }, [filteredAthleteResults])
 
   const eventStats = useMemo(() => {
-    const eventGroups = athleteResults.reduce((acc, result) => {
+    const eventGroups = filteredAthleteResults.reduce((acc, result) => {
       if (!acc[result.eventType]) {
         acc[result.eventType] = []
       }
@@ -99,7 +105,7 @@ export function AthleteDashboard({ athlete, results, coaches }: AthleteDashboard
         results: sorted
       }
     }).sort((a, b) => b.count - a.count)
-  }, [athleteResults])
+  }, [filteredAthleteResults])
 
   const coach = athlete?.coachId ? coaches.find(c => c.id === athlete.coachId) : null
 
@@ -123,7 +129,7 @@ export function AthleteDashboard({ athlete, results, coaches }: AthleteDashboard
         Istoricul complet al rezultatelor tale
       </p>
       <div className="space-y-2">
-        {athleteResults
+        {filteredAthleteResults
           .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
           .map((result) => (
             <div key={result.id} className="flex items-center justify-between p-3 border rounded-lg">
@@ -151,7 +157,7 @@ export function AthleteDashboard({ athlete, results, coaches }: AthleteDashboard
         Rezultate înregistrate în ultimele 30 de zile
       </p>
       <div className="space-y-2">
-        {athleteResults
+        {filteredAthleteResults
           .filter(r => {
             const thirtyDaysAgo = new Date()
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
@@ -183,8 +189,8 @@ export function AthleteDashboard({ athlete, results, coaches }: AthleteDashboard
   return (
     <div className="space-y-6">
       <Card className="p-6 bg-gradient-to-br from-primary/5 to-accent/5">
-        <div className="flex items-start justify-between">
-          <div>
+        <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+          <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
               <Trophy size={32} className="text-accent" weight="fill" />
               <div>
@@ -203,6 +209,7 @@ export function AthleteDashboard({ athlete, results, coaches }: AthleteDashboard
               )}
             </div>
           </div>
+          <PeriodFilter value={period} onChange={setPeriod} />
         </div>
       </Card>
 
