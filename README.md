@@ -4,20 +4,67 @@ Aplicație web pentru managementul atleților juniori din cadrul clubului de atl
 
 ## 📋 Cuprins
 
+- [Arhitectură](#-arhitectură)
 - [Acces SuperAdmin](#-acces-superadmin)
+- [Deployment Production](#-deployment-production)
 - [Roluri în Sistem](#-roluri-în-sistem)
 - [Funcționalități](#-funcționalități-superadmin)
 - [Testare](#-testare)
 - [Development](#-development)
 
+## 🏗 Arhitectură
+
+Aplicația folosește o arhitectură modernă client-server:
+
+- **Frontend**: React 19 + TypeScript + Vite
+- **Backend**: Node.js + Express + TypeScript
+- **Database**: PostgreSQL
+- **Authentication**: JWT-based
+- **UI**: Tailwind CSS v4 + shadcn/ui
+
 ## 🔐 Acces SuperAdmin
 
 Pentru a accesa panoul de administrare SuperAdmin, folosește următoarele credențiale:
 
-**Email:** `admin@clubatletism.ro`
+**Email:** `admin@clubatletism.ro`  
 **Parolă:** `admin123`
 
-Contul de SuperAdmin este creat automat la prima rulare a aplicației.
+⚠️ **IMPORTANT**: Schimbă parola imediat după prima autentificare!
+
+Contul de SuperAdmin este creat automat la inițializarea bazei de date.
+
+## 🚀 Deployment Production
+
+Pentru deployment în producție, vezi documentația completă:
+- **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Ghid complet de deployment
+- **[MIGRATION-GUIDE.md](./MIGRATION-GUIDE.md)** - Ghid de migrare frontend
+- **[SECURITY-SUMMARY.md](./SECURITY-SUMMARY.md)** - Raport de securitate
+
+### Quick Start Production
+
+```bash
+# 1. Instalează dependențele
+npm install
+cd server && npm install && cd ..
+
+# 2. Configurează baza de date PostgreSQL
+# Vezi DEPLOYMENT.md pentru detalii
+
+# 3. Configurează variabilele de mediu
+cp server/.env.example server/.env
+# Editează server/.env cu credențialele tale
+
+# 4. Inițializează baza de date
+chmod +x init-db.sh
+./init-db.sh
+
+# 5. Build frontend și backend
+npm run build
+cd server && npm run build && cd ..
+
+# 6. Start backend
+cd server && npm start
+```
 
 ## 👥 Roluri în Sistem
 
@@ -66,14 +113,19 @@ Contul de SuperAdmin este creat automat la prima rulare a aplicației.
 
 ## 📊 Structura Datelor
 
-Toate datele sunt persistate local folosind `useKV` hook:
-- `users` - lista tuturor utilizatorilor
+Toate datele sunt persistate în baza de date PostgreSQL:
+- `users` - utilizatori (SuperAdmin, Antrenori, Părinți, Atleți)
 - `athletes` - lista atleților
 - `results` - rezultatele sportive
 - `events` - probele sportive configurate
-- `permissions` - permisiunile acordate
-- `access-requests` - cererile de acces de la părinți
+- `permissions` - permisiunile sistemului
+- `access_requests` - cererile de acces de la părinți
 - `messages` - mesajele între utilizatori
+- `roles` - rolurile personalizate
+- `age_categories` - categoriile de vârstă
+- `coach_probes` - specializările antrenorilor
+
+Vezi `server/schema.sql` pentru schema completă.
 
 ## 🧪 Testare
 
@@ -117,15 +169,37 @@ Vezi [TESTING.md](./TESTING.md) pentru:
 
 ## 💻 Development
 
-### Instalare Dependențe
+### Instalare Dependințe
 ```bash
+# Frontend
 npm install
+
+# Backend
+cd server
+npm install
+cd ..
+```
+
+### Setup Baza de Date
+```bash
+# Configurează PostgreSQL (vezi DEPLOYMENT.md)
+# Apoi rulează:
+./init-db.sh
 ```
 
 ### Rulare în Development Mode
 ```bash
+# Terminal 1: Backend server
+cd server
+npm run dev
+
+# Terminal 2: Frontend dev server
 npm run dev
 ```
+
+Aplicația va fi disponibilă la:
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:3001
 
 ### Build pentru Producție
 ```bash
@@ -170,9 +244,12 @@ npm run lint
 ## 🛠️ Tech Stack
 
 - **Frontend**: React 19 + TypeScript
+- **Backend**: Node.js + Express + TypeScript
+- **Database**: PostgreSQL
+- **Authentication**: JWT
 - **Styling**: Tailwind CSS v4
 - **UI Components**: shadcn/ui (Radix UI)
-- **State Management**: React Hooks + useKV
+- **State Management**: React Hooks + API
 - **Charts**: Recharts + D3
 - **Icons**: Phosphor Icons
 - **Testing**: Vitest + Testing Library
@@ -181,28 +258,56 @@ npm run lint
 ## 📁 Structura Proiectului
 
 ```
-src/
-├── components/          # Componente React
-│   ├── ui/             # shadcn UI components
-│   └── ...             # Componente business
-├── lib/                # Utilități și logică
-│   ├── __tests__/      # Unit tests
-│   ├── auth-context.tsx
-│   ├── crypto.ts
-│   ├── permissions.ts
-│   ├── types.ts
-│   └── utils.ts
-├── __tests__/          # Integration tests
-├── App.tsx             # Componenta principală
-└── index.css           # Stiluri globale
+.
+├── server/                 # Backend Node.js
+│   ├── src/
+│   │   ├── config/        # Database & JWT config
+│   │   ├── controllers/   # Request handlers
+│   │   ├── middleware/    # Auth middleware
+│   │   ├── routes/        # API routes
+│   │   └── index.ts       # Server entry point
+│   ├── schema.sql         # Database schema
+│   ├── package.json
+│   └── tsconfig.json
+├── src/                   # Frontend React
+│   ├── components/        # React components
+│   │   ├── ui/           # shadcn UI components
+│   │   └── ...           # Business components
+│   ├── lib/              # Utilities and logic
+│   │   ├── api-client.ts # API client
+│   │   ├── auth-context.tsx
+│   │   ├── types.ts
+│   │   └── utils.ts
+│   ├── hooks/            # Custom React hooks
+│   │   └── use-api.ts    # API data hooks
+│   ├── __tests__/        # Integration tests
+│   └── App.tsx           # Main component
+├── init-db.sh            # Database initialization
+├── DEPLOYMENT.md         # Deployment guide
+├── MIGRATION-GUIDE.md    # Migration guide
+└── SECURITY-SUMMARY.md   # Security report
 ```
 
 ## 📝 Note Importante
 
-- Aplicația folosește autentificare cu parole criptate (SHA-256)
-- Toate datele sunt stocate local folosind spark.kv API
-- Pentru producție, se recomandă implementarea unui backend dedicat
+- Aplicația folosește autentificare JWT cu token-uri securizate
+- Datele sunt stocate în PostgreSQL cu indexare optimizată
+- **Pentru producție**: Vezi [DEPLOYMENT.md](./DEPLOYMENT.md) pentru configurare completă
+- **Securitate**: Vezi [SECURITY-SUMMARY.md](./SECURITY-SUMMARY.md) pentru raportul de securitate
+- **Migrare**: Vezi [MIGRATION-GUIDE.md](./MIGRATION-GUIDE.md) pentru detalii despre arhitectura API
 - Testele asigură calitatea și stabilitatea codului
+
+## 🔒 Securitate
+
+Aplicația implementează:
+- ✅ Autentificare JWT
+- ✅ Control bazat pe roluri
+- ✅ Protecție SQL injection
+- ✅ Parolă criptată (SHA-256, recomandare upgrade la bcrypt)
+- 🔶 Rate limiting (recomandat pentru producție)
+- 🔶 HTTPS (necesar pentru producție)
+
+Vezi [SECURITY-SUMMARY.md](./SECURITY-SUMMARY.md) pentru detalii complete.
 
 ## 🤝 Contributing
 
