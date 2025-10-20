@@ -8,10 +8,12 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
-dist
 dist-ssr
 *-dist
 *.local
+
+# Note: dist/ and server/dist/ are now INCLUDED for production deployment
+# To avoid committing them, use: git update-index --assume-unchanged dist/ server/dist/
 
 # Editor directories and files
 .vscode/*
@@ -35,5 +37,5 @@ pids
 
 # Server
 server/node_modules
-server/dist
 server/.env
+# Note: server/dist/ is now INCLUDED for production deployment

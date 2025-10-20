@@ -1,14 +1,14 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { useKV } from '@github/spark/hooks'
 import { toast } from 'sonner'
 import { Eye, EyeSlash } from '@phosphor-icons/react'
-import { hashPassword, verifyPassword } from '@/lib/crypto'
+import { apiClient } from '@/lib/api-client'
+import { useUsers, useAthletes } from '@/hooks/use-api'
 import type { User, UserRole, AccountApprovalRequest, Athlete } from '@/lib/types'
 
 interface AuthDialogProps {
@@ -18,9 +18,8 @@ interface AuthDialogProps {
 }
 
 export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
-  const [users, setUsers] = useKV<User[]>('users', [])
-  const [athletes, setAthletes] = useKV<Athlete[]>('athletes', [])
-  const [approvalRequests, setApprovalRequests] = useKV<AccountApprovalRequest[]>('approval-requests', [])
+  const [users, setUsers, usersLoading] = useUsers()
+  const [athletes, setAthletes, athletesLoading] = useAthletes()
   
   const [loginEmail, setLoginEmail] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
@@ -56,30 +55,20 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
       return
     }
 
-    const user = (users || []).find(u => u.email.toLowerCase() === loginEmail.toLowerCase().trim())
-    
-    if (!user) {
-      toast.error('Email sau parolă incorectă')
-      return
-    }
-
-    const passwordMatch = await verifyPassword(loginPassword, user.password)
-    
-    if (passwordMatch) {
-      if (!user.isActive) {
-        if (user.needsApproval) {
-          toast.error('Contul tău așteaptă aprobare de la administrator')
-        } else {
-          toast.error('Contul tău este dezactivat. Contactează administratorul.')
-        }
-        return
-      }
+    try {
+      const user = await apiClient.login(loginEmail.trim(), loginPassword)
       onLogin(user)
       toast.success(`Bine ai revenit, ${user.firstName}!`)
       onClose()
       resetForms()
-    } else {
-      toast.error('Email sau parolă incorectă')
+    } catch (error: any) {
+      if (error.message?.includes('pending approval')) {
+        toast.error('Contul tău așteaptă aprobare de la administrator')
+      } else if (error.message?.includes('inactive')) {
+        toast.error('Contul tău este dezactivat. Contactează administratorul.')
+      } else {
+        toast.error(error.message || 'Email sau parolă incorectă')
+      }
     }
   }
 
@@ -112,61 +101,42 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
       return
     }
 
-    const emailExists = (users || []).some(u => u.email.toLowerCase() === signupEmail.toLowerCase().trim())
-    
-    if (emailExists) {
-      toast.error('Emailul este deja înregistrat')
-      return
-    }
-
-    const hashedPassword = await hashPassword(signupPassword)
-
-    const newUser: User = {
-      id: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      email: signupEmail.trim(),
-      password: hashedPassword,
-      firstName: signupFirstName.trim(),
-      lastName: signupLastName.trim(),
-      role: signupRole,
-      createdAt: new Date().toISOString(),
-      isActive: signupRole === 'superadmin',
-      needsApproval: signupRole !== 'superadmin'
-    }
-
-    if (signupRole === 'coach' && signupSpecialization.trim()) {
-      (newUser as any).specialization = signupSpecialization.trim()
-    }
-
-    setUsers((current) => [...(current || []), newUser])
-
-    if (signupRole !== 'superadmin') {
+    try {
       const selectedAthlete = athletesByCoach.find(a => a.id === selectedAthleteId)
       
-      const approvalRequest: AccountApprovalRequest = {
-        id: `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        userId: newUser.id,
-        requestedRole: signupRole,
+      const userData = {
+        email: signupEmail.trim(),
+        password: signupPassword,
+        firstName: signupFirstName.trim(),
+        lastName: signupLastName.trim(),
+        role: signupRole,
+        specialization: signupRole === 'coach' ? signupSpecialization.trim() : undefined,
         coachId: selectedCoachId || undefined,
         athleteId: selectedAthleteId || undefined,
-        status: 'pending',
-        requestDate: new Date().toISOString(),
         childName: selectedAthlete ? `${selectedAthlete.firstName} ${selectedAthlete.lastName}` : childName.trim() || undefined,
         approvalNotes: approvalNotes.trim() || undefined
       }
-      setApprovalRequests((current) => [...(current || []), approvalRequest])
+
+      await apiClient.register(userData)
       
-      if (signupRole === 'parent') {
-        toast.info('Cererea ta a fost trimisă la antrenor pentru aprobare')
-      } else {
-        toast.info('Contul tău așteaptă aprobare de la administrator')
+      if (signupRole !== 'superadmin') {
+        if (signupRole === 'parent') {
+          toast.info('Cererea ta a fost trimisă la antrenor pentru aprobare')
+        } else {
+          toast.info('Contul tău așteaptă aprobare de la administrator')
+        }
       }
-    } else {
-      onLogin(newUser)
+      
+      toast.success('Cont creat cu succes!')
+      onClose()
+      resetForms()
+    } catch (error: any) {
+      if (error.message?.includes('already exists') || error.message?.includes('duplicate')) {
+        toast.error('Emailul este deja înregistrat')
+      } else {
+        toast.error(error.message || 'Eroare la crearea contului')
+      }
     }
-    
-    toast.success(`Cont creat cu succes!`)
-    onClose()
-    resetForms()
   }
 
   const resetForms = () => {
