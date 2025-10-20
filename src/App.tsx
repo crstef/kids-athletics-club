@@ -1,5 +1,4 @@
 import { useState, useMemo, useEffect } from 'react'
-import { useKV } from '@github/spark/hooks'
 import { Toaster, toast } from 'sonner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Input } from '@/components/ui/input'
@@ -31,24 +30,26 @@ import { UserPermissionsManagement } from '@/components/UserPermissionsManagemen
 import { RoleManagement } from '@/components/RoleManagement'
 import { AgeCategoryManagement } from '@/components/AgeCategoryManagement'
 import { ProbeManagement } from '@/components/ProbeManagement'
+import { apiClient } from '@/lib/api-client'
+import { useAthletes, useResults, useUsers, useAccessRequests, useMessages, useEvents, usePermissions, useUserPermissions, useApprovalRequests, useRoles, useAgeCategories, useProbes } from '@/hooks/use-api'
 import { hashPassword } from '@/lib/crypto'
 import { DEFAULT_PERMISSIONS, DEFAULT_ROLES } from '@/lib/permissions'
 import type { Athlete, Result, AgeCategory, User, Coach, AccessRequest, Message, EventTypeCustom, Permission, UserPermission, AccountApprovalRequest, Role, AgeCategoryCustom, CoachProbe } from '@/lib/types'
 
 function AppContent() {
-  const { currentUser, setCurrentUser, isCoach, isParent, isSuperAdmin, isAthlete, logout } = useAuth()
-  const [athletes, setAthletes] = useKV<Athlete[]>('athletes', [])
-  const [results, setResults] = useKV<Result[]>('results', [])
-  const [users, setUsers] = useKV<User[]>('users', [])
-  const [accessRequests, setAccessRequests] = useKV<AccessRequest[]>('access-requests', [])
-  const [messages, setMessages] = useKV<Message[]>('messages', [])
-  const [events, setEvents] = useKV<EventTypeCustom[]>('events', [])
-  const [permissions, setPermissions] = useKV<Permission[]>('permissions', [])
-  const [userPermissions, setUserPermissions] = useKV<UserPermission[]>('user-permissions', [])
-  const [approvalRequests, setApprovalRequests] = useKV<AccountApprovalRequest[]>('approval-requests', [])
-  const [roles, setRoles] = useKV<Role[]>('roles', [])
-  const [ageCategories, setAgeCategories] = useKV<AgeCategoryCustom[]>('age-categories', [])
-  const [probes, setProbes] = useKV<CoachProbe[]>('coach-probes', [])
+  const { currentUser, setCurrentUser, isCoach, isParent, isSuperAdmin, isAthlete, logout, loading: authLoading } = useAuth()
+  const [athletes, setAthletes, athletesLoading, athletesError, refetchAthletes] = useAthletes()
+  const [results, setResults, resultsLoading, resultsError, refetchResults] = useResults()
+  const [users, setUsers, usersLoading, usersError, refetchUsers] = useUsers()
+  const [accessRequests, setAccessRequests, accessRequestsLoading, accessRequestsError, refetchAccessRequests] = useAccessRequests()
+  const [messages, setMessages, messagesLoading, messagesError, refetchMessages] = useMessages()
+  const [events, setEvents, eventsLoading, eventsError, refetchEvents] = useEvents()
+  const [permissions, setPermissions, permissionsLoading, permissionsError, refetchPermissions] = usePermissions()
+  const [userPermissions, setUserPermissions, userPermissionsLoading, userPermissionsError, refetchUserPermissions] = useUserPermissions()
+  const [approvalRequests, setApprovalRequests, approvalRequestsLoading, approvalRequestsError, refetchApprovalRequests] = useApprovalRequests()
+  const [roles, setRoles, rolesLoading, rolesError, refetchRoles] = useRoles()
+  const [ageCategories, setAgeCategories, ageCategoriesLoading, ageCategoriesError, refetchAgeCategories] = useAgeCategories()
+  const [probes, setProbes, probesLoading, probesError, refetchProbes] = useProbes()
   const [selectedAthlete, setSelectedAthlete] = useState<Athlete | null>(null)
   const [selectedAthleteTab, setSelectedAthleteTab] = useState<'results' | 'evolution'>('results')
   const [deleteAthleteId, setDeleteAthleteId] = useState<string | null>(null)
