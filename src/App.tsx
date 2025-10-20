@@ -218,15 +218,15 @@ function AppContent() {
     return (users || []).filter(u => u.role === 'parent')
   }, [users])
 
-  const handleAddAthlete = (athleteData: Omit<Athlete, 'id'>) => {
-    setAthletes((current) => [
-      ...(current || []),
-      {
-        ...athleteData,
-        id: `athlete-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-      }
-    ])
-    toast.success(`Atlet adăugat: ${athleteData.firstName} ${athleteData.lastName}`)
+  const handleAddAthlete = async (athleteData: Omit<Athlete, 'id'>) => {
+    try {
+      await apiClient.createAthlete(athleteData)
+      await refetchAthletes()
+      toast.success(`Atlet adăugat: ${athleteData.firstName} ${athleteData.lastName}`)
+    } catch (error: any) {
+      toast.error(error.message || 'Eroare la adăugarea atletului')
+      console.error('Error creating athlete:', error)
+    }
   }
 
   const handleAddCoach = (coachData: Omit<Coach, 'id' | 'createdAt'>, requiresApproval: boolean) => {
@@ -264,83 +264,108 @@ function AppContent() {
     setDeleteAthleteId(id)
   }
 
-  const confirmDeleteAthlete = () => {
+  const confirmDeleteAthlete = async () => {
     if (!deleteAthleteId) return
 
     const athlete = (athletes || []).find(a => a.id === deleteAthleteId)
     const athleteName = athlete ? `${athlete.firstName} ${athlete.lastName}` : 'Atletul'
 
-    setAthletes((current) => (current || []).filter(a => a.id !== deleteAthleteId))
-    setResults((current) => (current || []).filter(r => r.athleteId !== deleteAthleteId))
-    setDeleteAthleteId(null)
-    toast.success(`${athleteName} a fost șters din sistem`)
-  }
-
-  const handleAddResult = (resultData: Omit<Result, 'id'>) => {
-    setResults((current) => [
-      ...(current || []),
-      {
-        ...resultData,
-        id: `result-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-      }
-    ])
-    toast.success('Rezultat adăugat cu succes!')
-  }
-
-  const handleDeleteResult = (id: string) => {
-    setResults((current) => (current || []).filter(r => r.id !== id))
-    toast.success('Rezultat șters cu succes!')
-  }
-
-  const handleCreateAccessRequest = (requestData: Omit<AccessRequest, 'id' | 'requestDate'>) => {
-    const newRequest: AccessRequest = {
-      ...requestData,
-      id: `request-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      requestDate: new Date().toISOString()
+    try {
+      await apiClient.deleteAthlete(deleteAthleteId)
+      await refetchAthletes()
+      await refetchResults()
+      setDeleteAthleteId(null)
+      toast.success(`${athleteName} a fost șters din sistem`)
+    } catch (error: any) {
+      toast.error(error.message || 'Eroare la ștergerea atletului')
+      console.error('Error deleting athlete:', error)
     }
-    setAccessRequests((current) => [...(current || []), newRequest])
   }
 
-  const handleUpdateAccessRequest = (id: string, status: 'approved' | 'rejected') => {
-    setAccessRequests((current) =>
-      (current || []).map(r =>
-        r.id === id
-          ? { ...r, status, responseDate: new Date().toISOString() }
-          : r
-      )
-    )
-  }
-
-  const handleSendMessage = (messageData: Omit<Message, 'id' | 'timestamp'>) => {
-    const newMessage: Message = {
-      ...messageData,
-      id: `message-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      timestamp: new Date().toISOString()
+  const handleAddResult = async (resultData: Omit<Result, 'id'>) => {
+    try {
+      await apiClient.createResult(resultData)
+      await refetchResults()
+      toast.success('Rezultat adăugat cu succes!')
+    } catch (error: any) {
+      toast.error(error.message || 'Eroare la adăugarea rezultatului')
+      console.error('Error creating result:', error)
     }
-    setMessages((current) => [...(current || []), newMessage])
   }
 
-  const handleMarkAsRead = (messageIds: string[]) => {
-    setMessages((current) =>
-      (current || []).map(m =>
-        messageIds.includes(m.id) ? { ...m, read: true } : m
-      )
-    )
+  const handleDeleteResult = async (id: string) => {
+    try {
+      await apiClient.deleteResult(id)
+      await refetchResults()
+      toast.success('Rezultat șters cu succes!')
+    } catch (error: any) {
+      toast.error(error.message || 'Eroare la ștergerea rezultatului')
+      console.error('Error deleting result:', error)
+    }
   }
 
-  const handleAddEvent = (eventData: Omit<EventTypeCustom, 'id' | 'createdAt'>) => {
-    setEvents((current) => [
-      ...(current || []),
-      {
-        ...eventData,
-        id: `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        createdAt: new Date().toISOString()
-      }
-    ])
+  const handleCreateAccessRequest = async (requestData: Omit<AccessRequest, 'id' | 'requestDate'>) => {
+    try {
+      await apiClient.createAccessRequest(requestData)
+      await refetchAccessRequests()
+      toast.success('Cerere de acces trimisă cu succes!')
+    } catch (error: any) {
+      toast.error(error.message || 'Eroare la trimiterea cererii')
+      console.error('Error creating access request:', error)
+    }
   }
 
-  const handleDeleteEvent = (id: string) => {
-    setEvents((current) => (current || []).filter(e => e.id !== id))
+  const handleUpdateAccessRequest = async (id: string, status: 'approved' | 'rejected') => {
+    try {
+      await apiClient.updateAccessRequest(id, { status })
+      await refetchAccessRequests()
+      toast.success(`Cerere ${status === 'approved' ? 'aprobată' : 'respinsă'} cu succes!`)
+    } catch (error: any) {
+      toast.error(error.message || 'Eroare la actualizarea cererii')
+      console.error('Error updating access request:', error)
+    }
+  }
+
+  const handleSendMessage = async (messageData: Omit<Message, 'id' | 'timestamp'>) => {
+    try {
+      await apiClient.sendMessage(messageData)
+      await refetchMessages()
+      toast.success('Mesaj trimis cu succes!')
+    } catch (error: any) {
+      toast.error(error.message || 'Eroare la trimiterea mesajului')
+      console.error('Error sending message:', error)
+    }
+  }
+
+  const handleMarkAsRead = async (messageIds: string[]) => {
+    try {
+      await apiClient.markMessagesAsRead(messageIds)
+      await refetchMessages()
+    } catch (error: any) {
+      console.error('Error marking messages as read:', error)
+    }
+  }
+
+  const handleAddEvent = async (eventData: Omit<EventTypeCustom, 'id' | 'createdAt'>) => {
+    try {
+      await apiClient.createEvent(eventData)
+      await refetchEvents()
+      toast.success('Probă adăugată cu succes!')
+    } catch (error: any) {
+      toast.error(error.message || 'Eroare la adăugarea probei')
+      console.error('Error creating event:', error)
+    }
+  }
+
+  const handleDeleteEvent = async (id: string) => {
+    try {
+      await apiClient.deleteEvent(id)
+      await refetchEvents()
+      toast.success('Probă ștearsă cu succes!')
+    } catch (error: any) {
+      toast.error(error.message || 'Eroare la ștergerea probei')
+      console.error('Error deleting event:', error)
+    }
   }
 
   const handleAddPermission = (permData: Omit<Permission, 'id' | 'createdAt' | 'createdBy'>) => {
@@ -567,29 +592,41 @@ function AppContent() {
     toast.success('Rol actualizat cu succes')
   }
 
-  const handleAddUser = (userData: Omit<User, 'id' | 'createdAt'>) => {
-    const newUser: User = {
-      ...userData,
-      id: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      createdAt: new Date().toISOString()
+  const handleAddUser = async (userData: Omit<User, 'id' | 'createdAt'>) => {
+    try {
+      await apiClient.createUser(userData)
+      await refetchUsers()
+      toast.success('Utilizator adăugat cu succes!')
+    } catch (error: any) {
+      toast.error(error.message || 'Eroare la adăugarea utilizatorului')
+      console.error('Error creating user:', error)
     }
-    setUsers((current) => [...(current || []), newUser])
   }
 
-  const handleUpdateUser = (userId: string, userData: Partial<User>) => {
-    setUsers((current) =>
-      (current || []).map(u =>
-        u.id === userId ? { ...u, ...userData } : u
-      )
-    )
+  const handleUpdateUser = async (userId: string, userData: Partial<User>) => {
+    try {
+      await apiClient.updateUser(userId, userData)
+      await refetchUsers()
+      toast.success('Utilizator actualizat cu succes!')
+    } catch (error: any) {
+      toast.error(error.message || 'Eroare la actualizarea utilizatorului')
+      console.error('Error updating user:', error)
+    }
   }
 
-  const handleDeleteUser = (userId: string) => {
-    setUsers((current) => (current || []).filter(u => u.id !== userId))
-    setAccessRequests((current) => (current || []).filter(r => r.parentId !== userId && r.coachId !== userId))
-    setMessages((current) => (current || []).filter(m => m.fromUserId !== userId && m.toUserId !== userId))
-    setUserPermissions((current) => (current || []).filter(p => p.userId !== userId))
-    setApprovalRequests((current) => (current || []).filter(r => r.userId !== userId))
+  const handleDeleteUser = async (userId: string) => {
+    try {
+      await apiClient.deleteUser(userId)
+      await refetchUsers()
+      await refetchAccessRequests()
+      await refetchMessages()
+      await refetchUserPermissions()
+      await refetchApprovalRequests()
+      toast.success('Utilizator șters cu succes!')
+    } catch (error: any) {
+      toast.error(error.message || 'Eroare la ștergerea utilizatorului')
+      console.error('Error deleting user:', error)
+    }
   }
 
   const getAthleteResultsCount = (athleteId: string): number => {
