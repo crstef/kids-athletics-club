@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react'
-import { useKV } from '@github/spark/hooks'
-import type { User, Coach, Parent } from './types'
+import { apiClient } from './api-client'
+import type { User } from './types'
 
 interface AuthContextType {
   currentUser: User | null
@@ -10,31 +10,45 @@ interface AuthContextType {
   isSuperAdmin: boolean
   isAthlete: boolean
   logout: () => void
+  loading: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [currentUserId, setCurrentUserId] = useKV<string | null>('current-user-id', null)
-  const [users] = useKV<User[]>('users', [])
   const [currentUser, setCurrentUserState] = useState<User | null>(null)
+  const [loading, setLoading] = useState<boolean>(true)
 
   useEffect(() => {
-    if (currentUserId && users) {
-      const user = users.find(u => u.id === currentUserId)
-      setCurrentUserState(user || null)
-    } else {
-      setCurrentUserState(null)
+    // Check if user is logged in on mount
+    const initAuth = async () => {
+      const token = apiClient.getToken()
+      if (token) {
+        try {
+          const user = await apiClient.getCurrentUser()
+          setCurrentUserState(user as User)
+        } catch (error) {
+          // Token is invalid, clear it
+          apiClient.setToken(null)
+          setCurrentUserState(null)
+        }
+      }
+      setLoading(false)
     }
-  }, [currentUserId, users])
+    
+    initAuth()
+  }, [])
 
   const setCurrentUser = (user: User | null) => {
-    setCurrentUserId(user?.id || null)
     setCurrentUserState(user)
   }
 
-  const logout = () => {
-    setCurrentUserId(null)
+  const logout = async () => {
+    try {
+      await apiClient.logout()
+    } catch (error) {
+      // Ignore errors on logout
+    }
     setCurrentUserState(null)
   }
 
@@ -44,7 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isAthlete = currentUser?.role === 'athlete'
 
   return (
-    <AuthContext.Provider value={{ currentUser, setCurrentUser, isCoach, isParent, isSuperAdmin, isAthlete, logout }}>
+    <AuthContext.Provider value={{ currentUser, setCurrentUser, isCoach, isParent, isSuperAdmin, isAthlete, logout, loading }}>
       {children}
     </AuthContext.Provider>
   )
