@@ -37,5 +37,5 @@ pids
 
 # Server
 server/node_modules
-server/dist
 server/.env
+# Note: server/dist/ is now INCLUDED for production deployment
