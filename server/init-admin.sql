@@ -16,7 +16,7 @@ INSERT INTO users (
 ) VALUES (
     gen_random_uuid(),
     'admin@kidsathletic.com',
-    '0192023a7bbd73250516f069df18b500', -- SHA256 hash of "admin123"
+    '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9', -- SHA256 hash of "admin123"
     'Admin',
     'User',
     'admin',
