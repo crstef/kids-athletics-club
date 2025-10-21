@@ -24,7 +24,8 @@ const setup_1 = require("./routes/setup");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 3001;
-const NODE_ENV = process.env.NODE_ENV || 'development';
+const NODE_ENV = process.env.NODE_ENV || process.env.PASSENGER_APP_ENV || 'development';
+const IS_PRODUCTION = NODE_ENV === 'production';
 // CORS Configuration
 const corsOptions = {
     origin: (origin, callback) => {
@@ -57,14 +58,14 @@ app.use((0, cors_1.default)(corsOptions));
 app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ extended: true, limit: '10mb' }));
 // Serve static files from dist/ and root
-if (NODE_ENV === 'production') {
+if (IS_PRODUCTION) {
     // Serve static files from dist folder
     app.use(express_1.default.static(path_1.default.join(__dirname, '../../dist')));
     // Serve other static files from root
     app.use(express_1.default.static(path_1.default.join(__dirname, '../..')));
 }
 // Request logging (only in development)
-if (NODE_ENV === 'development') {
+if (!IS_PRODUCTION) {
     app.use((req, res, next) => {
         console.log(`${req.method} ${req.path}`);
         next();

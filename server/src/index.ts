@@ -21,7 +21,8 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const NODE_ENV = process.env.NODE_ENV || 'development';
+const NODE_ENV = process.env.NODE_ENV || process.env.PASSENGER_APP_ENV || 'development';
+const IS_PRODUCTION = NODE_ENV === 'production';
 
 // CORS Configuration
 const corsOptions = {
@@ -57,7 +58,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Serve static files from dist/ and root
-if (NODE_ENV === 'production') {
+if (IS_PRODUCTION) {
   // Serve static files from dist folder
   app.use(express.static(path.join(__dirname, '../../dist')));
   // Serve other static files from root
@@ -65,7 +66,7 @@ if (NODE_ENV === 'production') {
 }
 
 // Request logging (only in development)
-if (NODE_ENV === 'development') {
+if (!IS_PRODUCTION) {
   app.use((req: Request, res: Response, next: NextFunction) => {
     console.log(`${req.method} ${req.path}`);
     next();
