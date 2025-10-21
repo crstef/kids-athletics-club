@@ -1,7 +1,15 @@
 import { Pool } from 'pg';
 import dotenv from 'dotenv';
+import path from 'path';
 
-dotenv.config();
+// Load environment variables from .env.production (production) or .env (development)
+// In production, app.cjs already loads .env.production before requiring this module
+// But we also ensure it's loaded here as backup
+dotenv.config({ 
+  path: process.env.NODE_ENV === 'production' 
+    ? path.join(process.cwd(), 'server/.env.production')
+    : path.join(process.cwd(), 'server/.env')
+});
 
 const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',
