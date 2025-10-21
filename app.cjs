@@ -31,6 +31,7 @@ console.log(`[app.cjs] DB_USER: ${process.env.DB_USER}`);
 console.log(`[app.cjs] DB_NAME: ${process.env.DB_NAME}`);
 
 // Start the Express application
-const app = require('./server/dist/index.js');
+const appModule = require('./server/dist/index.js');
+const app = appModule.default || appModule;
 
 module.exports = app;
