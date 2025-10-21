@@ -36,10 +36,16 @@ SetEnv NODE_ENV production
   # Don't rewrite /api routes - let Passenger backend handle them
   RewriteRule ^api($|/) - [L]
   
-  # CRITICAL: Don't rewrite actual files - check both file AND extension
+  # Check if the exact file exists
   RewriteCond %{REQUEST_FILENAME} -f [OR]
   RewriteCond %{REQUEST_FILENAME} -d
   RewriteRule ^ - [L]
+  
+  # Check if file exists in dist folder
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{DOCUMENT_ROOT}/dist/%{REQUEST_URI} -f
+  RewriteRule ^(.*)$ /dist/$1 [QSA,L]
   
   # Only rewrite if it doesn't end with common static extensions
   RewriteCond %{REQUEST_URI} !\.(js|css|json|woff|woff2|ttf|eot|svg|png|jpg|jpeg|gif|ico)$ [NC]
