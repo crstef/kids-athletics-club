@@ -101,17 +101,25 @@ app.use((err, req, res, next) => {
         ...(NODE_ENV === 'development' && { stack: err.stack })
     });
 });
-// Start server
-const server = app.listen(PORT, () => {
-    console.log(`✅ Server running on port ${PORT} in ${NODE_ENV} mode`);
-    console.log(`📌 Health check: http://localhost:${PORT}/health`);
-});
-// Graceful shutdown
-process.on('SIGTERM', () => {
-    console.log('SIGTERM signal received: closing HTTP server');
-    server.close(() => {
-        console.log('HTTP server closed');
-        process.exit(0);
+// Start server only if not running under Passenger
+// Passenger manages the server, so we only export the app
+if (process.env.PASSENGER_SUPPORT_STARTED === '1') {
+    // Running under Passenger - just export the app
+    console.log(`✅ App loaded for Passenger in ${NODE_ENV} mode`);
+}
+else {
+    // Running standalone - start the server
+    const server = app.listen(PORT, () => {
+        console.log(`✅ Server running on port ${PORT} in ${NODE_ENV} mode`);
+        console.log(`📌 Health check: http://localhost:${PORT}/health`);
     });
-});
+    // Graceful shutdown
+    process.on('SIGTERM', () => {
+        console.log('SIGTERM signal received: closing HTTP server');
+        server.close(() => {
+            console.log('HTTP server closed');
+            process.exit(0);
+        });
+    });
+}
 exports.default = app;
