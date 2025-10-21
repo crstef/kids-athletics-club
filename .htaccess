@@ -10,12 +10,12 @@ SetEnv NODE_ENV production
 
 # Add MIME types for assets
 <IfModule mod_mime.c>
-  AddType application/javascript .js
-  AddType text/css .css
-  AddType application/json .json
-  AddType font/woff2 .woff2
-  AddType font/woff .woff
-  AddEncoding gzip .gz
+  AddType application/javascript js
+  AddType text/css css
+  AddType application/json json
+  AddType font/woff2 woff2
+  AddType font/woff woff
+  AddEncoding gzip gz
 </IfModule>
 
 # Enable Apache modules
@@ -25,8 +25,8 @@ SetEnv NODE_ENV production
   # Don't rewrite /api routes - let Passenger backend handle them
   RewriteRule ^api/ - [L]
   
-  # Don't rewrite /assets/ - these are static files
-  RewriteRule ^assets/ - [L]
+  # Don't rewrite /dist/ - these are static compiled files
+  RewriteRule ^dist/ - [L]
   
   # Don't rewrite static files and directories
   RewriteCond %{REQUEST_FILENAME} !-f
