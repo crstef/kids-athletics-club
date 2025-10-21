@@ -4,6 +4,9 @@
  * It loads environment variables and starts the Express server
  */
 
+// Force production environment for Passenger
+process.env.NODE_ENV = 'production';
+
 const path = require('path');
 const fs = require('fs');
 
