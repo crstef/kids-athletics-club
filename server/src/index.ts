@@ -24,9 +24,25 @@ const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // CORS Configuration
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || process.env.NODE_ENV === 'production' 
-    ? 'https://hardweb.ro' 
-    : ['http://localhost:3000', 'http://localhost:5173'],
+  origin: (origin: string | undefined, callback: Function) => {
+    // Allow requests with no origin (like mobile or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // Allowed origins
+    const allowedOrigins = [
+      process.env.FRONTEND_URL || 'https://kidsathletic.hardweb.ro',
+      'http://localhost:3000',
+      'http://localhost:5173',
+      'http://localhost:3001',
+      'https://kidsathletic.hardweb.ro'
+    ];
+    
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS not allowed'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
