@@ -16,7 +16,7 @@ export function useApi<T>(
   initialValue: T,
   options: UseApiOptions<T> = {}
 ): [T, (valueOrFn: T | ((current: T) => T)) => void, boolean, Error | null, () => Promise<void>] {
-  const { autoFetch = true, onError } = options;
+  const { autoFetch = false, onError } = options; // Changed default to false
   const { currentUser, loading: authLoading } = useAuth();
   const [data, setDataState] = useState<T>(initialValue);
   const [loading, setLoading] = useState<boolean>(autoFetch);
@@ -99,50 +99,51 @@ export function useApi<T>(
 }
 
 // Specialized hooks for specific data types
+// Note: autoFetch is now false by default, so data must be fetched manually by calling the returned refetch function
 export function useUsers() {
-  return useApi<any[]>('users', []);
+  return useApi<any[]>('users', [], { autoFetch: true }); // Admin-level data
 }
 
 export function useAthletes() {
-  return useApi<any[]>('athletes', []);
+  return useApi<any[]>('athletes', [], { autoFetch: true }); // Core dashboard data
 }
 
 export function useResults() {
-  return useApi<any[]>('results', []);
+  return useApi<any[]>('results', [], { autoFetch: true }); // Core dashboard data
 }
 
 export function useEvents() {
-  return useApi<any[]>('events', []);
+  return useApi<any[]>('events', []); // Lazy load - only when tab clicked
 }
 
 export function useAccessRequests() {
-  return useApi<any[]>('access-requests', []);
+  return useApi<any[]>('access-requests', []); // Lazy load - only when tab clicked
 }
 
 export function useMessages() {
-  return useApi<any[]>('messages', []);
+  return useApi<any[]>('messages', []); // Lazy load - only when tab clicked
 }
 
 export function usePermissions() {
-  return useApi<any[]>('permissions', []);
+  return useApi<any[]>('permissions', [], { autoFetch: true }); // Admin/permission system needs this
 }
 
 export function useRoles() {
-  return useApi<any[]>('roles', []);
+  return useApi<any[]>('roles', [], { autoFetch: true }); // Admin/permission system needs this
 }
 
 export function useApprovalRequests() {
-  return useApi<any[]>('approval-requests', []);
+  return useApi<any[]>('approval-requests', []); // Lazy load - only when tab clicked
 }
 
 export function useAgeCategories() {
-  return useApi<any[]>('age-categories', []);
+  return useApi<any[]>('age-categories', [], { autoFetch: true }); // Core data for athlete forms
 }
 
 export function useProbes() {
-  return useApi<any[]>('coach-probes', []);
+  return useApi<any[]>('coach-probes', [], { autoFetch: true }); // Core data for coach forms
 }
 
 export function useUserPermissions() {
-  return useApi<any[]>('user-permissions', []);
+  return useApi<any[]>('user-permissions', [], { autoFetch: true }); // Admin/permission system needs this
 }

@@ -61,6 +61,31 @@ function AppContent() {
   const [activeTab, setActiveTab] = useState('dashboard')
   const [superAdminActiveTab, setSuperAdminActiveTab] = useState('dashboard')
 
+  // Lazy loading: fetch data only when tab is activated
+  useEffect(() => {
+    if (activeTab === 'antrenori' && accessRequests.length === 0) {
+      refetchAccessRequests()
+    }
+  }, [activeTab])
+
+  useEffect(() => {
+    if (activeTab === 'cereri' && approvalRequests.length === 0) {
+      refetchApprovalRequests()
+    }
+  }, [activeTab])
+
+  useEffect(() => {
+    if (activeTab === 'evenimente' && events.length === 0) {
+      refetchEvents()
+    }
+  }, [activeTab])
+
+  useEffect(() => {
+    if (activeTab === 'mesaje' && messages.length === 0) {
+      refetchMessages()
+    }
+  }, [activeTab])
+
   useEffect(() => {
     const initSuperAdmin = async () => {
       setApprovalRequests([])
