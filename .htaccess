@@ -25,6 +25,9 @@ SetEnv NODE_ENV production
   # Don't rewrite /api routes - let Passenger backend handle them
   RewriteRule ^api/ - [L]
   
+  # Don't rewrite /assets/ - these are static files
+  RewriteRule ^assets/ - [L]
+  
   # Don't rewrite static files and directories
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d

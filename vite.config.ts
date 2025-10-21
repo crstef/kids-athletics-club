@@ -25,7 +25,7 @@ export default defineConfig({
   build: {
     minify: 'terser',
     outDir: 'dist',
-    assetsDir: 'assets',
+    assetsDir: '.',
     terserOptions: {
       compress: {
         drop_console: process.env.NODE_ENV === 'production',
@@ -34,6 +34,9 @@ export default defineConfig({
     },
     rollupOptions: {
       output: {
+        entryFileNames: '[name]-[hash].js',
+        chunkFileNames: '[name]-[hash].js',
+        assetFileNames: '[name]-[hash][extname]',
         manualChunks: {
           'react-vendors': ['react', 'react-dom'],
           'ui-vendors': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-select'],
