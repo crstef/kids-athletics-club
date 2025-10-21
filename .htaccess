@@ -18,6 +18,16 @@ SetEnv NODE_ENV production
   AddEncoding gzip gz
 </IfModule>
 
+# Force correct Content-Type headers for static files
+<IfModule mod_headers.c>
+  <FilesMatch "\.(js)$">
+    Header set Content-Type "application/javascript; charset=utf-8"
+  </FilesMatch>
+  <FilesMatch "\.(css)$">
+    Header set Content-Type "text/css; charset=utf-8"
+  </FilesMatch>
+</IfModule>
+
 # Enable Apache modules
 <IfModule mod_rewrite.c>
   RewriteEngine On
