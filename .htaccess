@@ -1,15 +1,13 @@
-# Passenger Configuration for Node.js - ONLY for /api routes
+# Passenger Configuration for Node.js
 PassengerAppRoot "/home/jmwclpii/domains/kidsathletic.hardweb.ro/public_html"
-PassengerBaseURI "/"
 PassengerNodejs "/home/jmwclpii/nodevenv/domains/kidsathletic.hardweb.ro/public_html/20/bin/node"
 PassengerAppType node
 PassengerStartupFile app.cjs
 PassengerAppEnv production
-PassengerEnabled off
+PassengerFriendlyErrorPages off
 
-<Location "/api">
-  PassengerEnabled on
-</Location>
+# Disable Passenger by default (only serve static files)
+PassengerEnabled off
 
 # Set environment to production
 SetEnv NODE_ENV production
@@ -39,8 +37,8 @@ SetEnv NODE_ENV production
   RewriteEngine On
   RewriteBase /
   
-  # Don't rewrite /api routes - let Passenger backend handle them
-  RewriteRule ^api($|/) - [L]
+  # Proxy /api requests to Node.js backend on port 3001
+  RewriteRule ^api/(.*)$ http://localhost:3001/api/$1 [P,L]
   
   # Check if the exact file exists
   RewriteCond %{REQUEST_FILENAME} -f [OR]
