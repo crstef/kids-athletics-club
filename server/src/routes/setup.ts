@@ -142,21 +142,16 @@ export const initializeData = async (req: Request, res: Response) => {
     `);
     results.userPermissions = userPerms.rowCount || 0;
 
-    // 6. Insert Age Categories
+    // 6. Insert Age Categories (fără gender - acesta e în tabelul athletes)
     await client.query(`
-      INSERT INTO age_categories (name, age_from, age_to, gender, description, created_at, updated_at) VALUES
-      ('U10 Băieți', 8, 9, 'M', 'Categorie sub 10 ani - Băieți', NOW(), NOW()),
-      ('U12 Băieți', 10, 11, 'M', 'Categorie sub 12 ani - Băieți', NOW(), NOW()),
-      ('U14 Băieți', 12, 13, 'M', 'Categorie sub 14 ani - Băieți', NOW(), NOW()),
-      ('U16 Băieți', 14, 15, 'M', 'Categorie sub 16 ani - Băieți', NOW(), NOW()),
-      ('U18 Băieți', 16, 17, 'M', 'Categorie sub 18 ani - Băieți', NOW(), NOW()),
-      ('U10 Fete', 8, 9, 'F', 'Categorie sub 10 ani - Fete', NOW(), NOW()),
-      ('U12 Fete', 10, 11, 'F', 'Categorie sub 12 ani - Fete', NOW(), NOW()),
-      ('U14 Fete', 12, 13, 'F', 'Categorie sub 14 ani - Fete', NOW(), NOW()),
-      ('U16 Fete', 14, 15, 'F', 'Categorie sub 16 ani - Fete', NOW(), NOW()),
-      ('U18 Fete', 16, 17, 'F', 'Categorie sub 18 ani - Fete', NOW(), NOW())
+      INSERT INTO age_categories (name, age_from, age_to, description, created_at, updated_at) VALUES
+      ('U10', 8, 9, 'Categorie sub 10 ani', NOW(), NOW()),
+      ('U12', 10, 11, 'Categorie sub 12 ani', NOW(), NOW()),
+      ('U14', 12, 13, 'Categorie sub 14 ani', NOW(), NOW()),
+      ('U16', 14, 15, 'Categorie sub 16 ani', NOW(), NOW()),
+      ('U18', 16, 17, 'Categorie sub 18 ani', NOW(), NOW())
     `);
-    results.ageCategories = 10;
+    results.ageCategories = 5;
 
     // 7. Insert Coach Probes
     await client.query(`
