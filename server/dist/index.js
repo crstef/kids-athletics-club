@@ -95,13 +95,14 @@ app.get('/health', (req, res) => {
         uptime: process.uptime()
     });
 });
-// 404 handler
-app.use((req, res) => {
-    res.status(404).json({
-        error: 'Not found',
-        path: req.path,
-        method: req.method
-    });
+// SPA fallback - serve index.html for all non-API routes
+app.get('*', (req, res) => {
+    // Don't serve index.html for API routes or static files
+    if (req.path.startsWith('/api/')) {
+        return res.status(404).json({ error: 'API endpoint not found' });
+    }
+    // Serve index.html for SPA routing
+    res.sendFile(path_1.default.join(__dirname, '../../dist/index.html'));
 });
 // Error handling middleware
 app.use((err, req, res, next) => {

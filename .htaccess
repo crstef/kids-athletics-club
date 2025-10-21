@@ -4,62 +4,6 @@ PassengerNodejs "/home/jmwclpii/nodevenv/domains/kidsathletic.hardweb.ro/public_
 PassengerAppType node
 PassengerStartupFile app.cjs
 PassengerAppEnv production
-PassengerFriendlyErrorPages off
 PassengerEnabled on
 
-# Set environment to production
-SetEnv NODE_ENV production
-
-# Add MIME types for assets
-<IfModule mod_mime.c>
-  AddType application/javascript js mjs
-  AddType text/css css
-  AddType application/json json
-  AddType font/woff2 woff2
-  AddType font/woff woff
-  AddEncoding gzip gz
-</IfModule>
-
-# Force correct Content-Type headers for static files
-<IfModule mod_headers.c>
-  <FilesMatch "\.(js|mjs)$">
-    Header always set Content-Type "application/javascript; charset=utf-8"
-  </FilesMatch>
-  <FilesMatch "\.(css)$">
-    Header always set Content-Type "text/css; charset=utf-8"
-  </FilesMatch>
-</IfModule>
-
-# Enable Apache modules
-<IfModule mod_rewrite.c>
-  RewriteEngine On
-  RewriteBase /
-  
-  # Proxy /api requests to Node.js backend on port 3001
-  RewriteRule ^api/(.*)$ http://localhost:3001/api/$1 [P,L]
-  
-  # Check if the exact file exists
-  RewriteCond %{REQUEST_FILENAME} -f [OR]
-  RewriteCond %{REQUEST_FILENAME} -d
-  RewriteRule ^ - [L]
-  
-  # Check if file exists in dist folder
-  RewriteCond %{REQUEST_FILENAME} !-f
-  RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteCond %{DOCUMENT_ROOT}/dist/%{REQUEST_URI} -f
-  RewriteRule ^(.*)$ /dist/$1 [QSA,L]
-  
-  # Only rewrite if it doesn't end with common static extensions
-  RewriteCond %{REQUEST_URI} !\.(js|css|json|woff|woff2|ttf|eot|svg|png|jpg|jpeg|gif|ico)$ [NC]
-  RewriteRule ^.*$ /index.html [QSA,L]
-</IfModule>
-
-# Set proper headers for assets
-<FilesMatch "\.(js|css|json|woff|woff2|ttf|eot|svg)$">
-  Header set Cache-Control "public, max-age=31536000"
-</FilesMatch>
-
-# Ensure index.html is not cached (always fresh for SPA)
-<Files "index.html">
-  Header set Cache-Control "no-cache, no-store, must-revalidate"
-</Files>
+# That's it! Passenger handles everything - no Apache rewrites needed
