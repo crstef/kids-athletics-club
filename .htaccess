@@ -1,9 +1,15 @@
-# Passenger Configuration for Node.js
+# Passenger Configuration for Node.js - ONLY for /api routes
 PassengerAppRoot "/home/jmwclpii/domains/kidsathletic.hardweb.ro/public_html"
 PassengerBaseURI "/"
 PassengerNodejs "/home/jmwclpii/nodevenv/domains/kidsathletic.hardweb.ro/public_html/20/bin/node"
 PassengerAppType node
 PassengerStartupFile app.cjs
+PassengerAppEnv production
+PassengerEnabled off
+
+<Location "/api">
+  PassengerEnabled on
+</Location>
 
 # Set environment to production
 SetEnv NODE_ENV production
