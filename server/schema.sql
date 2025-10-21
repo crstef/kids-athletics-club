@@ -175,6 +175,7 @@ CREATE TABLE IF NOT EXISTS age_categories (
     name VARCHAR(50) NOT NULL,
     age_from INTEGER NOT NULL,
     age_to INTEGER NOT NULL,
+    gender VARCHAR(1),
     description TEXT,
     is_active BOOLEAN DEFAULT true,
     created_by UUID,
