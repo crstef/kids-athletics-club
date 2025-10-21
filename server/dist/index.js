@@ -24,7 +24,14 @@ const setup_1 = require("./routes/setup");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 3001;
-const NODE_ENV = process.env.NODE_ENV || process.env.PASSENGER_APP_ENV || 'development';
+const isPassenger = process.env.PASSENGER_SUPPORT_STARTED === '1';
+const passengerEnv = process.env.PASSENGER_APP_ENV || process.env.PassengerAppEnv;
+const resolvedEnv = process.env.NODE_ENV || passengerEnv || (isPassenger ? 'production' : 'development');
+// Ensure downstream libraries see the resolved environment
+if (isPassenger && process.env.NODE_ENV !== 'production') {
+    process.env.NODE_ENV = resolvedEnv;
+}
+const NODE_ENV = resolvedEnv;
 const IS_PRODUCTION = NODE_ENV === 'production';
 // CORS Configuration
 const corsOptions = {
