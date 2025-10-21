@@ -28,9 +28,12 @@ SetEnv NODE_ENV production
   # Don't rewrite /dist/ - these are static compiled files
   RewriteRule ^dist/ - [L]
   
-  # Don't rewrite static files and directories
+  # Don't rewrite actual files or directories
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
+  
+  # Don't rewrite static assets with extensions
+  RewriteCond %{REQUEST_URI} !\.(js|css|json|woff|woff2|ttf|eot|svg|png|jpg|jpeg|gif|ico)$ [NC]
   
   # Rewrite all other requests to index.html (React Router SPA)
   RewriteRule ^ index.html [QSA,L]
