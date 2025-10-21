@@ -7,6 +7,7 @@ const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const path_1 = __importDefault(require("path"));
+const fs_1 = __importDefault(require("fs"));
 const auth_1 = __importDefault(require("./routes/auth"));
 const users_1 = __importDefault(require("./routes/users"));
 const athletes_1 = __importDefault(require("./routes/athletes"));
@@ -33,6 +34,15 @@ if (isPassenger && process.env.NODE_ENV !== 'production') {
 }
 const NODE_ENV = resolvedEnv;
 const IS_PRODUCTION = NODE_ENV === 'production';
+const distDir = path_1.default.join(__dirname, '../../dist');
+const rootDir = path_1.default.join(__dirname, '../..');
+console.log('[server] boot', {
+    isPassenger,
+    passengerEnv,
+    NODE_ENV,
+    distExists: fs_1.default.existsSync(distDir),
+    requestedDistFile: path_1.default.join(distDir, 'index-CdtJarpe.js')
+});
 // CORS Configuration
 const corsOptions = {
     origin: (origin, callback) => {
@@ -64,12 +74,15 @@ const corsOptions = {
 app.use((0, cors_1.default)(corsOptions));
 app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ extended: true, limit: '10mb' }));
-// Serve static files from dist/ and root
-if (IS_PRODUCTION) {
-    // Serve static files from dist folder
-    app.use(express_1.default.static(path_1.default.join(__dirname, '../../dist')));
-    // Serve other static files from root
-    app.use(express_1.default.static(path_1.default.join(__dirname, '../..')));
+// Serve static assets when available (helps even if NODE_ENV e=development on hosting)
+if (fs_1.default.existsSync(distDir)) {
+    app.use(express_1.default.static(distDir));
+}
+else {
+    console.warn('[server] dist folder missing, skipping static bundle serving');
+}
+if (fs_1.default.existsSync(rootDir)) {
+    app.use(express_1.default.static(rootDir));
 }
 // Request logging (only in development)
 if (!IS_PRODUCTION) {

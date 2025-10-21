@@ -2,6 +2,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 import authRoutes from './routes/auth';
 import usersRoutes from './routes/users';
 import athletesRoutes from './routes/athletes';
@@ -32,6 +33,17 @@ if (isPassenger && process.env.NODE_ENV !== 'production') {
 
 const NODE_ENV = resolvedEnv;
 const IS_PRODUCTION = NODE_ENV === 'production';
+
+const distDir = path.join(__dirname, '../../dist');
+const rootDir = path.join(__dirname, '../..');
+
+console.log('[server] boot', {
+  isPassenger,
+  passengerEnv,
+  NODE_ENV,
+  distExists: fs.existsSync(distDir),
+  requestedDistFile: path.join(distDir, 'index-CdtJarpe.js')
+});
 
 // CORS Configuration
 const corsOptions = {
@@ -66,12 +78,15 @@ app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Serve static files from dist/ and root
-if (IS_PRODUCTION) {
-  // Serve static files from dist folder
-  app.use(express.static(path.join(__dirname, '../../dist')));
-  // Serve other static files from root
-  app.use(express.static(path.join(__dirname, '../..')));
+// Serve static assets when available (helps even if NODE_ENV e=development on hosting)
+if (fs.existsSync(distDir)) {
+  app.use(express.static(distDir));
+} else {
+  console.warn('[server] dist folder missing, skipping static bundle serving');
+}
+
+if (fs.existsSync(rootDir)) {
+  app.use(express.static(rootDir));
 }
 
 // Request logging (only in development)
