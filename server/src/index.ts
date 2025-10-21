@@ -1,6 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
 import authRoutes from './routes/auth';
 import usersRoutes from './routes/users';
 import athletesRoutes from './routes/athletes';
@@ -54,6 +55,14 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Serve static files from dist/ and root
+if (NODE_ENV === 'production') {
+  // Serve static files from dist folder
+  app.use(express.static(path.join(__dirname, '../../dist')));
+  // Serve other static files from root
+  app.use(express.static(path.join(__dirname, '../..')));
+}
 
 // Request logging (only in development)
 if (NODE_ENV === 'development') {

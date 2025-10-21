@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const dotenv_1 = __importDefault(require("dotenv"));
+const path_1 = __importDefault(require("path"));
 const auth_1 = __importDefault(require("./routes/auth"));
 const users_1 = __importDefault(require("./routes/users"));
 const athletes_1 = __importDefault(require("./routes/athletes"));
@@ -55,6 +56,13 @@ const corsOptions = {
 app.use((0, cors_1.default)(corsOptions));
 app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ extended: true, limit: '10mb' }));
+// Serve static files from dist/ and root
+if (NODE_ENV === 'production') {
+    // Serve static files from dist folder
+    app.use(express_1.default.static(path_1.default.join(__dirname, '../../dist')));
+    // Serve other static files from root
+    app.use(express_1.default.static(path_1.default.join(__dirname, '../..')));
+}
 // Request logging (only in development)
 if (NODE_ENV === 'development') {
     app.use((req, res, next) => {

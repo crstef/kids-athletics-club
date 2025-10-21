@@ -5,9 +5,7 @@ PassengerAppType node
 PassengerStartupFile app.cjs
 PassengerAppEnv production
 PassengerFriendlyErrorPages off
-
-# Disable Passenger by default (only serve static files)
-PassengerEnabled off
+PassengerEnabled on
 
 # Set environment to production
 SetEnv NODE_ENV production
