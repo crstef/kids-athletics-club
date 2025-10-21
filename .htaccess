@@ -9,15 +9,14 @@ PassengerStartupFile app.cjs
 SetEnv NODE_ENV production
 
 # Add MIME types for assets
-<FilesMatch "\.(js)$">
+<IfModule mod_mime.c>
   AddType application/javascript .js
-  Header set Content-Type "application/javascript"
-</FilesMatch>
-
-<FilesMatch "\.(css)$">
   AddType text/css .css
-  Header set Content-Type "text/css"
-</FilesMatch>
+  AddType application/json .json
+  AddType font/woff2 .woff2
+  AddType font/woff .woff
+  AddEncoding gzip .gz
+</IfModule>
 
 # Enable Apache modules
 <IfModule mod_rewrite.c>

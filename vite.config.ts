@@ -24,6 +24,8 @@ export default defineConfig({
   },
   build: {
     minify: 'terser',
+    outDir: 'dist',
+    assetsDir: 'assets',
     terserOptions: {
       compress: {
         drop_console: process.env.NODE_ENV === 'production',
