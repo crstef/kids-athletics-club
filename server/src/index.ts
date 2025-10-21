@@ -100,14 +100,16 @@ app.get('/health', (req: Request, res: Response) => {
   });
 });
 
-// SPA fallback - serve index.html for all non-API routes
-app.get('*', (req: Request, res: Response) => {
-  // Don't serve index.html for API routes or static files
+// SPA fallback - serve index.html for non-API GET routes
+app.use((req: Request, res: Response, next: NextFunction) => {
+  if (req.method !== 'GET') {
+    return next();
+  }
+
   if (req.path.startsWith('/api/')) {
     return res.status(404).json({ error: 'API endpoint not found' });
   }
-  
-  // Serve index.html for SPA routing
+
   res.sendFile(path.join(__dirname, '../../dist/index.html'));
 });
 
