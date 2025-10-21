@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { apiClient } from '@/lib/api-client';
+import { useAuth } from '@/lib/auth-context';
 
 type DataLoader<T> = () => Promise<T>;
 type DataSetter<T> = (data: T) => Promise<T>;
@@ -16,6 +17,7 @@ export function useApi<T>(
   options: UseApiOptions<T> = {}
 ): [T, (valueOrFn: T | ((current: T) => T)) => void, boolean, Error | null, () => Promise<void>] {
   const { autoFetch = true, onError } = options;
+  const { currentUser, loading: authLoading } = useAuth();
   const [data, setDataState] = useState<T>(initialValue);
   const [loading, setLoading] = useState<boolean>(autoFetch);
   const [error, setError] = useState<Error | null>(null);
@@ -78,10 +80,11 @@ export function useApi<T>(
   }, [key, initialValue, onError]);
 
   useEffect(() => {
-    if (autoFetch) {
+    // Only fetch if autoFetch is true, auth is not loading, and a user is logged in.
+    if (autoFetch && !authLoading && currentUser) {
       fetchData();
     }
-  }, [fetchData, autoFetch]);
+  }, [fetchData, autoFetch, authLoading, currentUser]);
 
   const setData = useCallback((valueOrFn: T | ((current: T) => T)) => {
     setDataState(prevData => {
