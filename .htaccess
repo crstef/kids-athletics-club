@@ -5,6 +5,9 @@ PassengerNodejs "/home/jmwclpii/nodevenv/domains/kidsathletic.hardweb.ro/public_
 PassengerAppType node
 PassengerStartupFile app.cjs
 
+# Set environment to production
+SetEnv NODE_ENV production
+
 # Enable Apache modules
 <IfModule mod_rewrite.c>
   RewriteEngine On
