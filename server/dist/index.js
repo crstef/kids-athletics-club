@@ -107,6 +107,7 @@ app.use('/api/probes', probes_1.default);
 app.use('/api/user-permissions', userPermissions_1.default);
 // Setup endpoints (for initial deployment)
 app.post('/api/setup/create-admin', setup_1.createAdminUser);
+app.get('/api/setup/initialize-data', setup_1.initializeData);
 // Health check
 app.get('/health', (req, res) => {
     res.json({

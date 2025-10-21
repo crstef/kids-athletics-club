@@ -16,7 +16,7 @@ import approvalRequestsRoutes from './routes/approvalRequests';
 import ageCategoriesRoutes from './routes/ageCategories';
 import probesRoutes from './routes/probes';
 import userPermissionsRoutes from './routes/userPermissions';
-import { createAdminUser } from './routes/setup';
+import { createAdminUser, initializeData } from './routes/setup';
 
 dotenv.config();
 
@@ -114,6 +114,7 @@ app.use('/api/user-permissions', userPermissionsRoutes);
 
 // Setup endpoints (for initial deployment)
 app.post('/api/setup/create-admin', createAdminUser);
+app.get('/api/setup/initialize-data', initializeData);
 
 // Health check
 app.get('/health', (req: Request, res: Response) => {
