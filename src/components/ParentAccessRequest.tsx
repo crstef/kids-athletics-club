@@ -102,7 +102,7 @@ export function ParentAccessRequest({
                   ) : (
                     availableAthletes.map((athlete) => (
                       <SelectItem key={athlete.id} value={athlete.id}>
-                        {athlete.firstName} {athlete.lastName} ({athlete.category})
+                        {`${athlete.firstName} ${athlete.lastName} (${athlete.category})`}
                       </SelectItem>
                     ))
                   )}

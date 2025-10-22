@@ -143,7 +143,7 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
                   <SelectItem value="">Fără antrenor</SelectItem>
                   {coaches.map((coach) => (
                     <SelectItem key={coach.id} value={coach.id}>
-                      {coach.firstName} {coach.lastName}
+                      {`${coach.firstName} ${coach.lastName}`}
                     </SelectItem>
                   ))}
                 </SelectContent>

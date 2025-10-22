@@ -568,7 +568,7 @@ export function UserPermissionsManagement({
                       <SelectContent>
                         {filteredUsers.map(user => (
                           <SelectItem key={user.id} value={user.id}>
-                            {user.firstName} {user.lastName} ({user.role})
+                            {`${user.firstName} ${user.lastName} (${user.role})`}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -598,7 +598,7 @@ export function UserPermissionsManagement({
                         <SelectContent>
                           {athletes.map(athlete => (
                             <SelectItem key={athlete.id} value={athlete.id}>
-                              {athlete.firstName} {athlete.lastName}
+                              {`${athlete.firstName} ${athlete.lastName}`}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -1167,7 +1167,7 @@ export function UserPermissionsManagement({
                 <SelectContent>
                   {athletes.map((athlete) => (
                     <SelectItem key={athlete.id} value={athlete.id}>
-                      {athlete.firstName} {athlete.lastName} ({athlete.category})
+                      {`${athlete.firstName} ${athlete.lastName} (${athlete.category})`}
                     </SelectItem>
                   ))}
                 </SelectContent>
