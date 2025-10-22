@@ -206,6 +206,7 @@ export const getCurrentUser = async (req: Request, res: Response) => {
     // Get user permissions from role
     let permissions: string[] = [];
     if (user.role_id) {
+      console.log(`[getCurrentUser] Fetching permissions for user ${user.email} with role_id: ${user.role_id}`);
       const rolePermissions = await client.query(
         `SELECT p.name 
          FROM role_permissions rp
@@ -214,6 +215,9 @@ export const getCurrentUser = async (req: Request, res: Response) => {
         [user.role_id]
       );
       permissions = rolePermissions.rows.map(row => row.name);
+      console.log(`[getCurrentUser] Found ${permissions.length} permissions:`, permissions);
+    } else {
+      console.log(`[getCurrentUser] User ${user.email} has no role_id, returning empty permissions`);
     }
 
     res.json({

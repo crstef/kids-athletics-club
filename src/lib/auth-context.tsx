@@ -27,9 +27,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const token = apiClient.getToken()
       if (token) {
         try {
-          const user = await apiClient.getCurrentUser()
-          setCurrentUserState(user as User)
+          const user = await apiClient.getCurrentUser() as User
+          console.log('[AuthContext] User loaded:', { 
+            email: user.email, 
+            role: user.role, 
+            roleId: user.roleId,
+            permissions: user.permissions 
+          })
+          setCurrentUserState(user)
         } catch (error) {
+          console.error('[AuthContext] Failed to load user:', error)
           // Token is invalid, clear it
           apiClient.setToken(null)
           setCurrentUserState(null)
