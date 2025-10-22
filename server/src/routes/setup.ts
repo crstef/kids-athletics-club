@@ -355,3 +355,55 @@ export const addSampleData = async (req: Request, res: Response) => {
     client.release();
   }
 };
+
+/**
+ * Fix existing admin user to be superadmin
+ * GET /api/setup/fix-admin-role
+ */
+export const fixAdminRole = async (req: Request, res: Response) => {
+  const client = await pool.connect();
+  
+  try {
+    // Update admin@clubatletism.ro to be superadmin
+    const result = await client.query(
+      `UPDATE users 
+       SET role = 'superadmin', 
+           updated_at = NOW()
+       WHERE email = 'admin@clubatletism.ro'
+       RETURNING id, email, first_name, last_name, role`,
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ 
+        error: 'Admin user not found. Create one first via /api/setup/create-admin' 
+      });
+    }
+
+    const user = result.rows[0];
+
+    // Grant all permissions to this user
+    await client.query(`
+      INSERT INTO user_permissions (user_id, permission_id, granted_by, granted_at, created_at, updated_at)
+      SELECT $1, p.id, $1, NOW(), NOW(), NOW()
+      FROM permissions p
+      ON CONFLICT DO NOTHING
+    `, [user.id]);
+
+    res.status(200).json({
+      success: true,
+      message: 'Admin user upgraded to SuperAdmin successfully!',
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    console.error('Fix admin role error:', error);
+    res.status(500).json({ error: 'Failed to fix admin role' });
+  } finally {
+    client.release();
+  }
+};

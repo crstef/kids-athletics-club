@@ -108,6 +108,8 @@ app.use('/api/user-permissions', userPermissions_1.default);
 // Setup endpoints (for initial deployment)
 app.post('/api/setup/create-admin', setup_1.createAdminUser);
 app.get('/api/setup/initialize-data', setup_1.initializeData);
+app.get('/api/setup/add-sample-data', setup_1.addSampleData);
+app.get('/api/setup/fix-admin-role', setup_1.fixAdminRole);
 // Health check
 app.get('/health', (req, res) => {
     res.json({

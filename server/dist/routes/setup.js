@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createAdminUser = exports.initializeData = void 0;
+exports.fixAdminRole = exports.addSampleData = exports.createAdminUser = exports.initializeData = void 0;
 const database_1 = __importDefault(require("../config/database"));
 const crypto_1 = __importDefault(require("crypto"));
 const hashPassword = (password) => {
@@ -260,3 +260,119 @@ const createAdminUser = async (req, res) => {
     }
 };
 exports.createAdminUser = createAdminUser;
+/**
+ * Add sample athletes and results for testing
+ * GET /api/setup/add-sample-data
+ */
+const addSampleData = async (req, res) => {
+    const client = await database_1.default.connect();
+    try {
+        const results = {
+            athletes: 0,
+            results: 0
+        };
+        // Insert sample athletes
+        const athletesResult = await client.query(`
+      INSERT INTO athletes (first_name, last_name, age, category, gender, date_joined, created_at) VALUES
+      ('Ion', 'Popescu', 10, 'U10', 'M', '2024-01-15', NOW()),
+      ('Maria', 'Ionescu', 12, 'U12', 'F', '2024-01-20', NOW()),
+      ('Andrei', 'Georgescu', 14, 'U14', 'M', '2024-02-01', NOW()),
+      ('Elena', 'Dumitrescu', 16, 'U16', 'F', '2024-02-10', NOW()),
+      ('Mihai', 'Popa', 11, 'U12', 'M', '2024-03-01', NOW()),
+      ('Ana', 'Radu', 13, 'U14', 'F', '2024-03-15', NOW()),
+      ('Alexandru', 'Constantin', 15, 'U16', 'M', '2024-04-01', NOW()),
+      ('Ioana', 'Stanciu', 17, 'U18', 'F', '2024-04-10', NOW()),
+      ('Cristian', 'Marin', 9, 'U10', 'M', '2024-05-01', NOW()),
+      ('Sofia', 'Toma', 11, 'U12', 'F', '2024-05-15', NOW())
+      ON CONFLICT DO NOTHING
+      RETURNING id
+    `);
+        results.athletes = athletesResult.rowCount || 0;
+        // Get athlete IDs for results
+        const athletes = await client.query('SELECT id FROM athletes ORDER BY created_at LIMIT 10');
+        if (athletes.rows.length > 0) {
+            // Insert sample results - various athletic events
+            const resultsQuery = `
+        INSERT INTO results (athlete_id, event_type, value, unit, date, location, created_at) VALUES
+        ($1, '60m Sprint', 8.5, 'secunde', '2024-06-01', 'Stadion Național', NOW()),
+        ($2, '100m Sprint', 14.2, 'secunde', '2024-06-01', 'Stadion Național', NOW()),
+        ($3, '200m Sprint', 28.5, 'secunde', '2024-06-05', 'Stadion Național', NOW()),
+        ($4, '400m Alergare', 68.3, 'secunde', '2024-06-05', 'Stadion Național', NOW()),
+        ($5, 'Săritură în lungime', 4.2, 'metri', '2024-06-10', 'Arena Sportivă', NOW()),
+        ($6, 'Săritură în înălțime', 1.45, 'metri', '2024-06-10', 'Arena Sportivă', NOW()),
+        ($7, 'Aruncarea greutății', 9.5, 'metri', '2024-06-15', 'Stadion Tineretului', NOW()),
+        ($8, '800m Alergare', 2.35, 'minute', '2024-06-15', 'Stadion Tineretului', NOW()),
+        ($9, '60m Sprint', 9.2, 'secunde', '2024-06-20', 'Complexul Sportiv', NOW()),
+        ($10, '100m Sprint', 15.1, 'secunde', '2024-06-20', 'Complexul Sportiv', NOW()),
+        ($1, 'Săritură în lungime', 3.8, 'metri', '2024-06-25', 'Arena Sportivă', NOW()),
+        ($2, 'Săritură în înălțime', 1.35, 'metri', '2024-06-25', 'Arena Sportivă', NOW()),
+        ($3, '400m Alergare', 65.8, 'secunde', '2024-07-01', 'Stadion Național', NOW()),
+        ($4, '800m Alergare', 2.28, 'minute', '2024-07-01', 'Stadion Național', NOW()),
+        ($5, 'Aruncarea greutății', 10.2, 'metri', '2024-07-05', 'Stadion Tineretului', NOW())
+        ON CONFLICT DO NOTHING
+      `;
+            const resultsData = await client.query(resultsQuery, athletes.rows.map(a => a.id));
+            results.results = resultsData.rowCount || 0;
+        }
+        res.json({
+            success: true,
+            message: 'Sample data added successfully!',
+            data: results
+        });
+    }
+    catch (error) {
+        console.error('Add sample data error:', error);
+        res.status(500).json({ error: 'Failed to add sample data' });
+    }
+    finally {
+        client.release();
+    }
+};
+exports.addSampleData = addSampleData;
+/**
+ * Fix existing admin user to be superadmin
+ * GET /api/setup/fix-admin-role
+ */
+const fixAdminRole = async (req, res) => {
+    const client = await database_1.default.connect();
+    try {
+        // Update admin@clubatletism.ro to be superadmin
+        const result = await client.query(`UPDATE users 
+       SET role = 'superadmin', 
+           updated_at = NOW()
+       WHERE email = 'admin@clubatletism.ro'
+       RETURNING id, email, first_name, last_name, role`);
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                error: 'Admin user not found. Create one first via /api/setup/create-admin'
+            });
+        }
+        const user = result.rows[0];
+        // Grant all permissions to this user
+        await client.query(`
+      INSERT INTO user_permissions (user_id, permission_id, granted_by, granted_at, created_at, updated_at)
+      SELECT $1, p.id, $1, NOW(), NOW(), NOW()
+      FROM permissions p
+      ON CONFLICT DO NOTHING
+    `, [user.id]);
+        res.status(200).json({
+            success: true,
+            message: 'Admin user upgraded to SuperAdmin successfully!',
+            user: {
+                id: user.id,
+                email: user.email,
+                firstName: user.first_name,
+                lastName: user.last_name,
+                role: user.role
+            }
+        });
+    }
+    catch (error) {
+        console.error('Fix admin role error:', error);
+        res.status(500).json({ error: 'Failed to fix admin role' });
+    }
+    finally {
+        client.release();
+    }
+};
+exports.fixAdminRole = fixAdminRole;
