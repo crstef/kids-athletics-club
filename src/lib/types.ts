@@ -153,7 +153,7 @@ export interface Athlete {
 export interface Result {
   id: string
   athleteId: string
-  eventType: EventType
+  eventType: string  // Changed from EventType enum to string (probe name)
   value: number
   unit: 'seconds' | 'meters'
   date: string
