@@ -60,10 +60,13 @@ function AppContent() {
   const [selectedParentId, setSelectedParentId] = useState<string>('')
   const [activeTab, setActiveTab] = useState('dashboard')
   const [superAdminActiveTab, setSuperAdminActiveTab] = useState('dashboard')
+  const [dataFetched, setDataFetched] = useState(false)
 
   // Lazy loading: fetch data sequentially with delays to avoid ERR_INSUFFICIENT_RESOURCES
   useEffect(() => {
-    if (currentUser && !authLoading) {
+    if (currentUser && !authLoading && !dataFetched) {
+      setDataFetched(true)
+      
       // Load core dashboard data first - immediate
       if (athletes.length === 0) refetchAthletes()
       
@@ -101,31 +104,31 @@ function AppContent() {
         }, 600)
       }
     }
-  }, [currentUser, authLoading, isSuperAdmin])
+  }, [currentUser, authLoading, isSuperAdmin, dataFetched])
 
   useEffect(() => {
-    if (activeTab === 'antrenori' && accessRequests.length === 0) {
+    if (activeTab === 'antrenori' && accessRequests.length === 0 && currentUser) {
       refetchAccessRequests()
     }
-  }, [activeTab])
+  }, [activeTab, currentUser])
 
   useEffect(() => {
-    if (activeTab === 'cereri' && approvalRequests.length === 0) {
+    if (activeTab === 'cereri' && approvalRequests.length === 0 && currentUser) {
       refetchApprovalRequests()
     }
-  }, [activeTab])
+  }, [activeTab, currentUser])
 
   useEffect(() => {
-    if (activeTab === 'evenimente' && events.length === 0) {
+    if (activeTab === 'evenimente' && events.length === 0 && currentUser) {
       refetchEvents()
     }
-  }, [activeTab])
+  }, [activeTab, currentUser])
 
   useEffect(() => {
-    if (activeTab === 'mesaje' && messages.length === 0) {
+    if (activeTab === 'mesaje' && messages.length === 0 && currentUser) {
       refetchMessages()
     }
-  }, [activeTab])
+  }, [activeTab, currentUser])
 
   useEffect(() => {
     if (superAdminActiveTab === 'permisiuni' || superAdminActiveTab === 'roluri') {
