@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -25,12 +25,16 @@ export function AddResultDialog({ athleteId, athleteName, onAdd }: AddResultDial
 
   const [probes, setProbes, loading, error, refetchProbes] = useApi<EventTypeCustom[]>('/api/events', [], { autoFetch: true })
 
+  // Store refetch function in ref to avoid infinite loops
+  const refetchRef = useRef(refetchProbes)
+  refetchRef.current = refetchProbes
+
   // Refetch probes when dialog opens
   useEffect(() => {
     if (open) {
-      refetchProbes()
+      refetchRef.current()
     }
-  }, [open, refetchProbes])
+  }, [open])
 
   // Set default event when probes load
   useEffect(() => {
