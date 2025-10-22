@@ -117,10 +117,8 @@ export function AgeCategoryManagement({
         updatedAt: new Date().toISOString(),
         updatedBy: currentUserId
       })
-      toast.success('Categoria de vârstă actualizată cu succes')
     } else {
       onAddCategory(categoryData)
-      toast.success('Categoria de vârstă adăugată cu succes')
     }
 
     handleCloseDialog()
@@ -134,7 +132,6 @@ export function AgeCategoryManagement({
   const handleDeleteConfirm = () => {
     if (categoryToDelete) {
       onDeleteCategory(categoryToDelete.id)
-      toast.success('Categoria de vârstă ștearsă cu succes')
       setCategoryToDelete(null)
       setDeleteDialogOpen(false)
     }

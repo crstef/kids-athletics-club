@@ -109,14 +109,25 @@ export const login = async (req: Request, res: Response) => {
       return res.status(403).json({ error: 'Account not yet approved. Please wait for administrator approval.' });
     }
 
-    // Get permissions from role
-    const rolePermissions = await client.query(`
-      SELECT p.name
-      FROM role_permissions rp
-      JOIN roles r ON rp.role_id = r.id
-      JOIN permissions p ON rp.permission_id = p.id
-      WHERE r.name = $1
-    `, [user.role]);
+    // Get permissions from role using role_id
+    let rolePermissions;
+    if (user.role_id) {
+      rolePermissions = await client.query(`
+        SELECT p.name
+        FROM role_permissions rp
+        JOIN permissions p ON rp.permission_id = p.id
+        WHERE rp.role_id = $1
+      `, [user.role_id]);
+    } else {
+      // Fallback to role name if no role_id (legacy users)
+      rolePermissions = await client.query(`
+        SELECT p.name
+        FROM role_permissions rp
+        JOIN roles r ON rp.role_id = r.id
+        JOIN permissions p ON rp.permission_id = p.id
+        WHERE r.name = $1
+      `, [user.role]);
+    }
 
     // Get individual user permissions
     const userPermissions = await client.query(`

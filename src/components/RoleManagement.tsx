@@ -88,7 +88,6 @@ export function RoleManagement({
         updatedAt: new Date().toISOString(),
         updatedBy: currentUserId
       })
-      toast.success('Rol actualizat cu succes')
     } else {
       const nameExists = roles.some(r => r.name === formData.name.toLowerCase().replace(/\s+/g, '_'))
       if (nameExists) {
@@ -104,7 +103,6 @@ export function RoleManagement({
         isActive: formData.isActive,
         permissions: formData.permissions
       })
-      toast.success('Rol creat cu succes')
     }
     
     setDialogOpen(false)
@@ -143,7 +141,6 @@ export function RoleManagement({
     
     onDeleteRole(deleteRoleId)
     setDeleteRoleId(null)
-    toast.success('Rol șters cu succes')
   }
 
   const deleteRole = roles.find(r => r.id === deleteRoleId)

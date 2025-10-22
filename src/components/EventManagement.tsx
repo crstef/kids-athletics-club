@@ -39,7 +39,6 @@ export function EventManagement({ events, onAddEvent, onDeleteEvent }: EventMana
       description: description.trim() || undefined
     })
 
-    toast.success('Probă adăugată cu succes!')
     setOpen(false)
     resetForm()
   }
@@ -175,7 +174,6 @@ export function EventManagement({ events, onAddEvent, onDeleteEvent }: EventMana
                   onClick={() => {
                     if (confirm(`Ștergi proba "${event.name}"?`)) {
                       onDeleteEvent(event.id)
-                      toast.success('Probă ștearsă')
                     }
                   }}
                 >

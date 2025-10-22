@@ -158,7 +158,6 @@ export function PermissionsSystem({
   const handleDelete = (id: string) => {
     if (confirm('Sigur vrei să ștergi această permisiune? Aceasta va afecta toți utilizatorii care o au.')) {
       onDeletePermission(id)
-      toast.success('Permisiune ștearsă')
     }
   }
 

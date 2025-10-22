@@ -201,7 +201,6 @@ export function UserPermissionsManagement({
   const handleDeleteRequest = (requestId: string) => {
     if (confirm('Sigur vrei să ștergi această cerere din istoric?')) {
       onDeleteRequest?.(requestId)
-      toast.success('Cerere ștearsă din istoric')
     }
   }
 
@@ -373,7 +372,6 @@ export function UserPermissionsManagement({
                       onClick={() => {
                         if (confirm(`Sigur vrei să ștergi toate cele ${processedRequests.length} cereri procesate din istoric?`)) {
                           processedRequests.forEach(req => onDeleteRequest(req.id))
-                          toast.success('Toate cererile procesate au fost șterse')
                         }
                       }}
                       className="text-destructive hover:text-destructive"

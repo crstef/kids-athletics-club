@@ -141,7 +141,7 @@ export function AddResultDialog({ athleteId, athleteName, onAdd }: AddResultDial
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="date">Data</Label>
+            <Label htmlFor="date">Data (dd/mm/yyyy)</Label>
             <Input
               id="date"
               type="date"
