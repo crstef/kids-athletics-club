@@ -9,7 +9,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Switch } from '@/components/ui/switch'
-import { MagnifyingGlass, Plus, PencilSimple, Trash, UserCircle, Eye, EyeSlash } from '@phosphor-icons/react'
+import { MagnifyingGlass, Plus, PencilSimple, Trash, UserCircle, Eye, EyeSlash, CheckCircle } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { hashPassword } from '@/lib/crypto'
 import type { User, UserRole } from '@/lib/types'
@@ -183,6 +183,13 @@ export function UserManagement({ users, currentUserId, onAddUser, onUpdateUser, 
     resetForm()
   }
 
+  const handleActivate = async (user: User) => {
+    if (!user.isActive) {
+      onUpdateUser(user.id, { isActive: true, needsApproval: false })
+      toast.success(`Utilizator ${user.firstName} ${user.lastName} activat cu succes!`)
+    }
+  }
+
   const handleDelete = () => {
     if (!selectedUser) return
 
@@ -314,6 +321,17 @@ export function UserManagement({ users, currentUserId, onAddUser, onUpdateUser, 
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
+                      {!user.isActive && (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => handleActivate(user)}
+                          className="gap-1"
+                        >
+                          <CheckCircle size={16} weight="bold" />
+                          Activează
+                        </Button>
+                      )}
                       <Button
                         variant="outline"
                         size="sm"
@@ -343,6 +361,9 @@ export function UserManagement({ users, currentUserId, onAddUser, onUpdateUser, 
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Adaugă Utilizator Nou</DialogTitle>
+            <DialogDescription>
+              Creează un nou utilizator în sistem. Asigură-te că "Cont Activ" este activat pentru ca utilizatorul să se poată loga imediat.
+            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAdd} className="space-y-4">
             <div className="space-y-2">
@@ -430,11 +451,19 @@ export function UserManagement({ users, currentUserId, onAddUser, onUpdateUser, 
                 />
               </div>
             )}
-            <div className="flex items-center justify-between rounded-lg border p-3">
+            <div className={`flex items-center justify-between rounded-lg border p-3 ${!isActive ? 'bg-destructive/10 border-destructive/30' : 'bg-muted/20'}`}>
               <div className="space-y-0.5">
-                <Label>Cont Activ</Label>
+                <Label className="flex items-center gap-2">
+                  Cont Activ
+                  {!isActive && (
+                    <Badge variant="destructive" className="text-xs">⚠️ INACTIV</Badge>
+                  )}
+                </Label>
                 <div className="text-sm text-muted-foreground">
-                  Utilizatorul poate să se autentifice
+                  {isActive 
+                    ? '✓ Utilizatorul se poate loga imediat'
+                    : '✗ Utilizatorul NU se va putea loga'
+                  }
                 </div>
               </div>
               <Switch
@@ -561,11 +590,19 @@ export function UserManagement({ users, currentUserId, onAddUser, onUpdateUser, 
                 />
               </div>
             )}
-            <div className="flex items-center justify-between rounded-lg border p-3">
+            <div className={`flex items-center justify-between rounded-lg border p-3 ${!isActive ? 'bg-destructive/10 border-destructive/30' : 'bg-muted/20'}`}>
               <div className="space-y-0.5">
-                <Label>Cont Activ</Label>
+                <Label className="flex items-center gap-2">
+                  Cont Activ
+                  {!isActive && (
+                    <Badge variant="destructive" className="text-xs">⚠️ INACTIV</Badge>
+                  )}
+                </Label>
                 <div className="text-sm text-muted-foreground">
-                  Utilizatorul poate să se autentifice
+                  {isActive 
+                    ? '✓ Utilizatorul se poate loga imediat'
+                    : '✗ Utilizatorul NU se va putea loga'
+                  }
                 </div>
               </div>
               <Switch

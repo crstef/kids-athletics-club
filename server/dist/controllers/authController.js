@@ -32,7 +32,7 @@ const register = async (req, res) => {
         // Create user
         const result = await client.query(`INSERT INTO users (email, password, first_name, last_name, role, is_active, needs_approval)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
-       RETURNING id, email, first_name, last_name, role, is_active, needs_approval, created_at`, [email.toLowerCase(), hashedPassword, firstName, lastName, role, false, true]);
+       RETURNING id, email, first_name, last_name, role, is_active, needs_approval, created_at`, [email.toLowerCase(), hashedPassword, firstName, lastName, role, role === 'coach', role !== 'coach']);
         const user = result.rows[0];
         // Create approval request
         await client.query(`INSERT INTO approval_requests (user_id, coach_id, athlete_id, requested_role, status)
@@ -83,11 +83,33 @@ const login = async (req, res) => {
         if (!user.is_active && user.role !== 'superadmin') {
             return res.status(403).json({ error: 'Account not yet approved. Please wait for administrator approval.' });
         }
+        // Get permissions from role
+        const rolePermissions = await client.query(`
+      SELECT p.name
+      FROM role_permissions rp
+      JOIN roles r ON rp.role_id = r.id
+      JOIN permissions p ON rp.permission_id = p.id
+      WHERE r.name = $1
+    `, [user.role]);
+        // Get individual user permissions
+        const userPermissions = await client.query(`
+      SELECT p.name
+      FROM user_permissions up
+      JOIN permissions p ON up.permission_id = p.id
+      WHERE up.user_id = $1
+    `, [user.id]);
+        // Combine permissions (remove duplicates)
+        const allPermissions = [
+            ...rolePermissions.rows.map(r => r.name),
+            ...userPermissions.rows.map(r => r.name)
+        ];
+        const permissions = [...new Set(allPermissions)];
         // Generate JWT
         const token = (0, jwt_1.generateToken)({
             userId: user.id,
             email: user.email,
-            role: user.role
+            role: user.role,
+            permissions
         });
         res.json({
             token,
@@ -101,7 +123,8 @@ const login = async (req, res) => {
                 isActive: user.is_active,
                 needsApproval: user.needs_approval,
                 probeId: user.probe_id,
-                athleteId: user.athlete_id
+                athleteId: user.athlete_id,
+                permissions
             }
         });
     }
