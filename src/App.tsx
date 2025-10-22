@@ -54,7 +54,6 @@ const TAB_CONFIGS: TabConfig[] = [
   { id: 'coaches', label: 'Antrenori', permission: 'users.view', roles: ['superadmin'] },
   { id: 'requests', label: 'Cereri', icon: Envelope, permission: 'approval_requests.view' },
   { id: 'messages', label: 'Mesaje', icon: ChatCircleDots, permission: 'messages.view' },
-  { id: 'approvals', label: 'Aprobări', permission: 'approval_requests.approve', roles: ['superadmin'] },
   { id: 'users', label: 'Utilizatori', permission: 'users.view', roles: ['superadmin'] },
   { id: 'roles', label: 'Roluri', permission: 'roles.view', roles: ['superadmin'] },
   { id: 'permissions', label: 'Permisiuni', permission: 'permissions.view', roles: ['superadmin'] },
@@ -791,18 +790,30 @@ function AppContent() {
   const visibleTabs = useMemo(() => {
     if (!currentUser) return []
     
-    return TAB_CONFIGS.filter(tab => {
+    console.log('🔍 Debug Tabs:', {
+      role: currentUser.role,
+      permissions: currentUser.permissions,
+      availableTabs: TAB_CONFIGS.map(t => t.id)
+    })
+    
+    const tabs = TAB_CONFIGS.filter(tab => {
       // Dacă tab-ul are roluri specificate și utilizatorul are unul din ele
       if (tab.roles && tab.roles.includes(currentUser.role)) {
+        console.log(`✅ Tab ${tab.id} visible by role`)
         return true
       }
       // Altfel verifică permisiunea
       if (tab.permission) {
-        return hasPermission(tab.permission)
+        const hasPerm = hasPermission(tab.permission)
+        console.log(`${hasPerm ? '✅' : '❌'} Tab ${tab.id} permission check: ${tab.permission} = ${hasPerm}`)
+        return hasPerm
       }
       // Dacă nu are nici rol, nici permisiune specificată, nu se afișează
       return false
     })
+    
+    console.log('📋 Visible tabs:', tabs.map(t => t.id))
+    return tabs
   }, [currentUser, hasPermission])
 
   const selectedParent = parents.find(p => p.id === selectedParentId)
@@ -1016,35 +1027,6 @@ function AppContent() {
                   setSuperAdminActiveTab('athletes')
                 }}
               />
-            </TabsContent>
-
-            <TabsContent value="approvals">
-              <UserPermissionsManagement
-                users={users || []}
-                permissions={permissions || []}
-                userPermissions={userPermissions || []}
-                athletes={athletes || []}
-                approvalRequests={approvalRequests || []}
-                currentUserId={currentUser.id}
-                onGrantPermission={handleGrantUserPermission}
-                onRevokePermission={handleRevokeUserPermission}
-                onApproveAccount={handleApproveAccount}
-                onRejectAccount={handleRejectAccount}
-                onUpdateUser={handleUpdateUser}
-                onDeleteRequest={handleDeleteApprovalRequest}
-              />
-              {pendingRequestsCount > 0 && superAdminActiveTab !== 'approvals' && (
-                <Button
-                  size="lg"
-                  className="fixed bottom-6 right-6 h-14 rounded-full shadow-2xl animate-pulse hover:animate-none transition-all hover:scale-105 z-50"
-                  onClick={() => setSuperAdminActiveTab('approvals')}
-                >
-                  <Badge variant="secondary" className="h-6 w-6 rounded-full p-0 flex items-center justify-center mr-2">
-                    {pendingRequestsCount}
-                  </Badge>
-                  <span className="font-semibold">Cereri Aprobare</span>
-                </Button>
-              )}
             </TabsContent>
 
             <TabsContent value="users">

@@ -201,7 +201,7 @@ export function DashboardStats({ athletes, results, onNavigateToAthletes, onView
                 <div className="font-bold text-primary text-sm sm:text-base whitespace-nowrap">
                   {formatResult(result.value, result.unit)}
                 </div>
-                <ArrowRight size={16} className="text-muted-foreground flex-shrink-0" />
+                <ArrowRight size={16} className="text-muted-foreground shrink-0" />
               </div>
             </div>
           )

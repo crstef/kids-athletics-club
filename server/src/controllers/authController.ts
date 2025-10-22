@@ -203,6 +203,19 @@ export const getCurrentUser = async (req: Request, res: Response) => {
 
     const user = result.rows[0];
 
+    // Get user permissions from role
+    let permissions: string[] = [];
+    if (user.role_id) {
+      const rolePermissions = await client.query(
+        `SELECT p.name 
+         FROM role_permissions rp
+         JOIN permissions p ON rp.permission_id = p.id
+         WHERE rp.role_id = $1`,
+        [user.role_id]
+      );
+      permissions = rolePermissions.rows.map(row => row.name);
+    }
+
     res.json({
       id: user.id,
       email: user.email,
@@ -214,7 +227,8 @@ export const getCurrentUser = async (req: Request, res: Response) => {
       needsApproval: user.needs_approval,
       probeId: user.probe_id,
       athleteId: user.athlete_id,
-      createdAt: user.created_at
+      createdAt: user.created_at,
+      permissions
     });
   } catch (error) {
     console.error('Get current user error:', error);
