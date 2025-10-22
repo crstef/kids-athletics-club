@@ -98,8 +98,11 @@ export function useApi<T>(
     });
   }, []);
 
-  const forceRefetch = useCallback(() => {
-    // Just call fetchData directly - it will update hasFetched after fetch completes
+  const forceRefetch = useCallback(async () => {
+    // Reset hasFetched to allow refetch, then call fetchData
+    setHasFetched(false);
+    // Wait a tick for state to update
+    await new Promise(resolve => setTimeout(resolve, 0));
     return fetchData();
   }, [fetchData]);
 

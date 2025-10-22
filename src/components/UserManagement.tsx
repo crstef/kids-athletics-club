@@ -129,7 +129,6 @@ export function UserManagement({ users, currentUserId, onAddUser, onUpdateUser, 
     }
 
     onAddUser(userData)
-    toast.success('Utilizator adăugat cu succes!')
     setAddDialogOpen(false)
     resetForm()
   }
@@ -174,7 +173,6 @@ export function UserManagement({ users, currentUserId, onAddUser, onUpdateUser, 
     }
 
     onUpdateUser(selectedUser.id, userData)
-    toast.success('Utilizator actualizat cu succes!')
     setEditDialogOpen(false)
     setSelectedUser(null)
     resetForm()
@@ -183,7 +181,6 @@ export function UserManagement({ users, currentUserId, onAddUser, onUpdateUser, 
   const handleActivate = async (user: User) => {
     if (!user.isActive) {
       onUpdateUser(user.id, { isActive: true, needsApproval: false })
-      toast.success(`Utilizator ${user.firstName} ${user.lastName} activat cu succes!`)
     }
   }
 
@@ -201,7 +198,6 @@ export function UserManagement({ users, currentUserId, onAddUser, onUpdateUser, 
     }
 
     onDeleteUser(selectedUser.id)
-    toast.success('Utilizator șters cu succes!')
     setDeleteDialogOpen(false)
     setSelectedUser(null)
   }
