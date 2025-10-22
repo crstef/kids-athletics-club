@@ -38,7 +38,7 @@ export function getAvatarColor(id: string): string {
   return AVATAR_COLORS[index % AVATAR_COLORS.length]
 }
 
-export function formatResult(value: number, unit: 'seconds' | 'meters'): string {
+export function formatResult(value: number, unit: 'seconds' | 'meters' | 'points'): string {
   if (unit === 'seconds') {
     if (value < 60) {
       return `${value.toFixed(2)}s`
@@ -46,6 +46,9 @@ export function formatResult(value: number, unit: 'seconds' | 'meters'): string 
     const minutes = Math.floor(value / 60)
     const seconds = (value % 60).toFixed(2)
     return `${minutes}:${seconds.padStart(5, '0')}`
+  }
+  if (unit === 'points') {
+    return `${value.toFixed(0)} puncte`
   }
   return `${value.toFixed(2)}m`
 }

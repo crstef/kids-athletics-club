@@ -198,7 +198,7 @@ export function AthleteDashboard({ athlete, results, coaches }: AthleteDashboard
 
   return (
     <div className="space-y-6">
-      <Card className="p-6 bg-gradient-to-br from-primary/5 to-accent/5">
+      <Card className="p-6 bg-linear-to-br from-primary/5 to-accent/5">
         <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
@@ -219,14 +219,6 @@ export function AthleteDashboard({ athlete, results, coaches }: AthleteDashboard
               )}
             </div>
           </div>
-          <PeriodFilter 
-            value={period} 
-            onChange={setPeriod}
-            dateRange={dateRange}
-            onDateRangeChange={setDateRange}
-            hasData={athleteResults.length > 0}
-            firstDataDate={firstDataDate}
-          />
         </div>
       </Card>
 
@@ -303,10 +295,20 @@ export function AthleteDashboard({ athlete, results, coaches }: AthleteDashboard
 
       {stats.recentResults.length > 0 && (
         <Card className="p-6">
-          <h3 className="font-semibold mb-4 flex items-center gap-2">
-            <TrendUp size={20} />
-            Rezultate Recente
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold flex items-center gap-2">
+              <TrendUp size={20} />
+              Rezultate Recente
+            </h3>
+            <PeriodFilter 
+              value={period} 
+              onChange={setPeriod}
+              dateRange={dateRange}
+              onDateRangeChange={setDateRange}
+              hasData={athleteResults.length > 0}
+              firstDataDate={firstDataDate}
+            />
+          </div>
           <div className="space-y-3">
             {stats.recentResults.map((result) => (
               <div

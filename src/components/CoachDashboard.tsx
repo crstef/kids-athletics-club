@@ -261,9 +261,11 @@ export function CoachDashboard({
               <div className="text-3xl font-bold" style={{ fontFamily: 'Outfit' }}>
                 {stats.activeAthletes}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {((stats.activeAthletes / stats.totalAthletes) * 100).toFixed(0)}% din total
-              </p>
+              {stats.totalAthletes > 0 && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  {((stats.activeAthletes / stats.totalAthletes) * 100).toFixed(0)}% din total
+                </p>
+              )}
             </CardContent>
           </Card>
         )
@@ -493,14 +495,6 @@ export function CoachDashboard({
           </p>
         </div>
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
-          <PeriodFilter 
-            value={period} 
-            onChange={setPeriod}
-            dateRange={dateRange}
-            onDateRangeChange={setDateRange}
-            hasData={myResults.length > 0}
-            firstDataDate={firstDataDate}
-          />
           <Button variant="outline" onClick={() => setCustomizeOpen(true)} className="w-full sm:w-auto">
             <Gear size={16} className="mr-2" />
             Personalizează

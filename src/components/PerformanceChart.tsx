@@ -7,7 +7,7 @@ import type { PerformanceData } from '@/lib/types'
 interface PerformanceChartProps {
   data: PerformanceData[]
   eventType: string
-  unit: 'seconds' | 'meters'
+  unit: 'seconds' | 'meters' | 'points'
 }
 
 export function PerformanceChart({ data, eventType, unit }: PerformanceChartProps) {

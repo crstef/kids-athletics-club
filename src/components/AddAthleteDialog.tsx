@@ -19,6 +19,7 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [age, setAge] = useState('')
+  const [dateOfBirth, setDateOfBirth] = useState('')
   const [category, setCategory] = useState<AgeCategory>('U10')
   const [gender, setGender] = useState<Gender>('M')
   const [coachId, setCoachId] = useState<string>('')
@@ -26,7 +27,7 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!firstName.trim() || !lastName.trim() || !age) {
+    if (!firstName.trim() || !lastName.trim() || !age || !dateOfBirth) {
       toast.error('Completează toate câmpurile obligatorii')
       return
     }
@@ -41,6 +42,7 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       age: athleteAge,
+      dateOfBirth,
       category,
       gender,
       dateJoined: new Date().toISOString(),
@@ -50,6 +52,7 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
     setFirstName('')
     setLastName('')
     setAge('')
+    setDateOfBirth('')
     setCategory('U10')
     setGender('M')
     setCoachId('')
@@ -89,6 +92,16 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
               placeholder="ex: Popescu"
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="dateOfBirth">Data nașterii *</Label>
+            <Input
+              id="dateOfBirth"
+              type="date"
+              value={dateOfBirth}
+              onChange={(e) => setDateOfBirth(e.target.value)}
               required
             />
           </div>
@@ -135,12 +148,12 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
           {coaches.length > 0 && (
             <div className="space-y-2">
               <Label htmlFor="coach">Antrenor (opțional)</Label>
-              <Select value={coachId} onValueChange={setCoachId}>
+              <Select value={coachId || 'none'} onValueChange={(val) => setCoachId(val === 'none' ? '' : val)}>
                 <SelectTrigger id="coach">
                   <SelectValue placeholder="Selectează antrenor..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Fără antrenor</SelectItem>
+                  <SelectItem value="none">Fără antrenor</SelectItem>
                   {coaches.map((coach) => (
                     <SelectItem key={coach.id} value={coach.id}>
                       {`${coach.firstName} ${coach.lastName}`}

@@ -124,7 +124,7 @@ export function CoachApprovalRequests({
   return (
     <>
       <Card className="border-accent shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-accent/10 to-accent/5">
+        <CardHeader className="bg-linear-to-r from-accent/10 to-accent/5">
           <CardTitle className="flex items-center gap-2">
             <Clock size={24} weight="fill" className="text-accent" />
             Cereri de Aprobare
@@ -145,7 +145,7 @@ export function CoachApprovalRequests({
               if (!user) return null
 
               return (
-                <div key={request.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-5 border-2 border-accent/20 rounded-xl gap-4 bg-gradient-to-br from-card to-accent/5 hover:shadow-md transition-all">
+                <div key={request.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-5 border-2 border-accent/20 rounded-xl gap-4 bg-linear-to-br from-card to-accent/5 hover:shadow-md transition-all">
                   <div className="space-y-2 flex-1">
                     <div className="font-semibold text-lg">
                       {user.firstName} {user.lastName}

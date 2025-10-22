@@ -107,12 +107,12 @@ export function EditAthleteDialog({ athlete, parents, onEdit }: EditAthleteDialo
           </div>
           <div className="space-y-2">
             <Label htmlFor="edit-parentId">Părinte (opțional)</Label>
-            <Select value={parentId} onValueChange={setParentId}>
+            <Select value={parentId || 'none'} onValueChange={(val) => setParentId(val === 'none' ? '' : val)}>
               <SelectTrigger id="edit-parentId">
                 <SelectValue placeholder="Selectează părintele" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Fără părinte</SelectItem>
+                <SelectItem value="none">Fără părinte</SelectItem>
                 {parents.map((parent) => (
                   <SelectItem key={parent.id} value={parent.id}>
                     {parent.firstName} {parent.lastName}
