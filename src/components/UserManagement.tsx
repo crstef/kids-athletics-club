@@ -11,17 +11,18 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Switch } from '@/components/ui/switch'
 import { MagnifyingGlass, Plus, PencilSimple, Trash, UserCircle, Eye, EyeSlash, CheckCircle } from '@phosphor-icons/react'
 import { toast } from 'sonner'
-import type { User, UserRole } from '@/lib/types'
+import type { User, UserRole, Role } from '@/lib/types'
 
 interface UserManagementProps {
   users: User[]
+  roles: Role[]
   currentUserId: string
   onAddUser: (userData: Omit<User, 'id' | 'createdAt'>) => void
   onUpdateUser: (userId: string, userData: Partial<User>) => void
   onDeleteUser: (userId: string) => void
 }
 
-export function UserManagement({ users, currentUserId, onAddUser, onUpdateUser, onDeleteUser }: UserManagementProps) {
+export function UserManagement({ users, roles, currentUserId, onAddUser, onUpdateUser, onDeleteUser }: UserManagementProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState<UserRole | 'all'>('all')
   const [addDialogOpen, setAddDialogOpen] = useState(false)
@@ -65,7 +66,11 @@ export function UserManagement({ users, currentUserId, onAddUser, onUpdateUser, 
     setPassword('')
     setFirstName('')
     setLastName('')
-    setRole('parent')
+    // Set first active role as default, or 'parent' if exists
+    const defaultRole = roles.find(r => r.isActive && r.name === 'parent')?.name || 
+                        roles.find(r => r.isActive)?.name || 
+                        'parent'
+    setRole(defaultRole as UserRole)
     setSpecialization('')
     setIsActive(true)
     setNeedsApproval(false)
@@ -203,15 +208,22 @@ export function UserManagement({ users, currentUserId, onAddUser, onUpdateUser, 
   }
 
   const getRoleBadge = (role: UserRole) => {
-    switch (role) {
-      case 'superadmin':
-        return <Badge variant="default">SuperAdmin</Badge>
-      case 'coach':
-        return <Badge variant="secondary">Antrenor</Badge>
-      case 'parent':
-        return <Badge variant="outline">Părinte</Badge>
-      case 'athlete':
-        return <Badge className="bg-accent text-accent-foreground">Atlet</Badge>
+    // Use dynamic badge for any role
+    const roleObj = roles.find(r => r.name === role)
+    if (!roleObj) return <Badge variant="outline">{role}</Badge>
+    
+    // Different variants for different roles
+    if (role.toLowerCase().includes('admin')) {
+      return <Badge variant="default">{role}</Badge>
+    } else if (role.toLowerCase().includes('coach') || role.toLowerCase().includes('antrenor')) {
+      return <Badge variant="secondary">{role}</Badge>
+    } else if (role.toLowerCase().includes('parent') || role.toLowerCase().includes('părinte')) {
+      return <Badge variant="outline">{role}</Badge>
+    } else if (role.toLowerCase().includes('athlete') || role.toLowerCase().includes('atlet')) {
+      return <Badge className="bg-accent text-accent-foreground">{role}</Badge>
+    } else {
+      // Manager or other custom roles
+      return <Badge className="bg-blue-500 text-white">{role}</Badge>
     }
   }
 
@@ -247,10 +259,11 @@ export function UserManagement({ users, currentUserId, onAddUser, onUpdateUser, 
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Toate Rolurile</SelectItem>
-            <SelectItem value="superadmin">SuperAdmin</SelectItem>
-            <SelectItem value="coach">Antrenor</SelectItem>
-            <SelectItem value="parent">Părinte</SelectItem>
-            <SelectItem value="athlete">Atlet</SelectItem>
+            {roles.filter(r => r.isActive).map(r => (
+              <SelectItem key={r.id} value={r.name}>
+                {r.name}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
@@ -426,10 +439,11 @@ export function UserManagement({ users, currentUserId, onAddUser, onUpdateUser, 
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="parent">Părinte</SelectItem>
-                  <SelectItem value="coach">Antrenor</SelectItem>
-                  <SelectItem value="athlete">Atlet</SelectItem>
-                  <SelectItem value="superadmin">SuperAdmin</SelectItem>
+                  {roles.filter(r => r.isActive).map(r => (
+                    <SelectItem key={r.id} value={r.name}>
+                      {r.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -565,10 +579,11 @@ export function UserManagement({ users, currentUserId, onAddUser, onUpdateUser, 
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="parent">Părinte</SelectItem>
-                  <SelectItem value="coach">Antrenor</SelectItem>
-                  <SelectItem value="athlete">Atlet</SelectItem>
-                  <SelectItem value="superadmin">SuperAdmin</SelectItem>
+                  {roles.filter(r => r.isActive).map(r => (
+                    <SelectItem key={r.id} value={r.name}>
+                      {r.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

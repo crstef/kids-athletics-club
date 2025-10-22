@@ -979,6 +979,7 @@ function AppContent() {
             <TabsContent value="users">
               <UserManagement
                 users={users || []}
+                roles={roles || []}
                 currentUserId={currentUser.id}
                 onAddUser={handleAddUser}
                 onUpdateUser={handleUpdateUser}
