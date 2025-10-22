@@ -1,25 +1,48 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { PencilSimple } from '@phosphor-icons/react'
-import type { Athlete, User } from '@/lib/types'
+import type { Athlete, User, AgeCategory } from '@/lib/types'
 
 interface EditAthleteDialogProps {
   athlete: Athlete
   parents: User[]
+  coaches?: User[]
   onEdit: (id: string, data: Partial<Athlete>) => void
 }
 
-export function EditAthleteDialog({ athlete, parents, onEdit }: EditAthleteDialogProps) {
+export function EditAthleteDialog({ athlete, parents, coaches, onEdit }: EditAthleteDialogProps) {
   const [open, setOpen] = useState(false)
   const [firstName, setFirstName] = useState(athlete.firstName)
   const [lastName, setLastName] = useState(athlete.lastName)
   const [dateOfBirth, setDateOfBirth] = useState(athlete.dateOfBirth)
   const [gender, setGender] = useState<'M' | 'F'>(athlete.gender)
+  const [coachId, setCoachId] = useState(athlete.coachId || '')
   const [parentId, setParentId] = useState(athlete.parentId || '')
+
+  // Calculate age and category from date of birth
+  const calculatedAge = useMemo(() => {
+    if (!dateOfBirth) return 0
+    const today = new Date()
+    const birthDate = new Date(dateOfBirth)
+    let age = today.getFullYear() - birthDate.getFullYear()
+    const monthDiff = today.getMonth() - birthDate.getMonth()
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--
+    }
+    return age
+  }, [dateOfBirth])
+
+  const calculatedCategory = useMemo((): AgeCategory => {
+    if (calculatedAge < 10) return 'U10'
+    if (calculatedAge < 12) return 'U12'
+    if (calculatedAge < 14) return 'U14'
+    if (calculatedAge < 16) return 'U16'
+    return 'U18'
+  }, [calculatedAge])
 
   // Reset form when dialog opens with athlete data
   useEffect(() => {
@@ -28,6 +51,7 @@ export function EditAthleteDialog({ athlete, parents, onEdit }: EditAthleteDialo
       setLastName(athlete.lastName)
       setDateOfBirth(athlete.dateOfBirth)
       setGender(athlete.gender)
+      setCoachId(athlete.coachId || '')
       setParentId(athlete.parentId || '')
     }
   }, [open, athlete])
@@ -43,7 +67,10 @@ export function EditAthleteDialog({ athlete, parents, onEdit }: EditAthleteDialo
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       dateOfBirth,
+      age: calculatedAge,
+      category: calculatedCategory,
       gender,
+      coachId: coachId || undefined,
       parentId: parentId || undefined
     })
 
@@ -94,6 +121,22 @@ export function EditAthleteDialog({ athlete, parents, onEdit }: EditAthleteDialo
             />
           </div>
           <div className="space-y-2">
+            <Label>Vârstă (calculată automat)</Label>
+            <Input
+              value={`${calculatedAge} ani`}
+              disabled
+              className="bg-muted"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Categorie (calculată automat)</Label>
+            <Input
+              value={calculatedCategory}
+              disabled
+              className="bg-muted"
+            />
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="edit-gender">Gen</Label>
             <Select value={gender} onValueChange={(value: 'M' | 'F') => setGender(value)}>
               <SelectTrigger id="edit-gender">
@@ -105,6 +148,24 @@ export function EditAthleteDialog({ athlete, parents, onEdit }: EditAthleteDialo
               </SelectContent>
             </Select>
           </div>
+          {coaches && coaches.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="edit-coachId">Antrenor (opțional)</Label>
+              <Select value={coachId || 'none'} onValueChange={(val) => setCoachId(val === 'none' ? '' : val)}>
+                <SelectTrigger id="edit-coachId">
+                  <SelectValue placeholder="Selectează antrenorul" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Fără antrenor</SelectItem>
+                  {coaches.map((coach) => (
+                    <SelectItem key={coach.id} value={coach.id}>
+                      {coach.firstName} {coach.lastName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="edit-parentId">Părinte (opțional)</Label>
             <Select value={parentId || 'none'} onValueChange={(val) => setParentId(val === 'none' ? '' : val)}>

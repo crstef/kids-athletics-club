@@ -1123,6 +1123,7 @@ function AppContent() {
                       athlete={athlete}
                       resultsCount={getAthleteResultsCount(athlete.id)}
                       parents={parents}
+                      coaches={coaches}
                       onViewDetails={handleViewAthleteDetails}
                       onViewChart={handleViewAthleteChart}
                       onEdit={handleEditAthlete}
@@ -1331,6 +1332,7 @@ function AppContent() {
                         athlete={athlete}
                         resultsCount={getAthleteResultsCount(athlete.id)}
                         parents={parents}
+                        coaches={coaches}
                         onViewDetails={handleViewAthleteDetails}
                         onViewChart={handleViewAthleteChart}
                         onEdit={handleEditAthlete}
@@ -1409,11 +1411,11 @@ function AppContent() {
                     athlete={athlete}
                     resultsCount={getAthleteResultsCount(athlete.id)}
                     parents={parents}
+                    coaches={coaches}
                     onViewDetails={handleViewAthleteDetails}
                     onViewChart={handleViewAthleteChart}
                     onEdit={handleEditAthlete}
                     onDelete={handleDeleteAthlete}
-                    hideEdit={true}
                   />
                 ))}
               </div>

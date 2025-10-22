@@ -11,6 +11,7 @@ interface AthleteCardProps {
   athlete: Athlete
   resultsCount: number
   parents?: User[]
+  coaches?: User[]
   onViewDetails: (athlete: Athlete) => void
   onViewChart: (athlete: Athlete) => void
   onEdit?: (id: string, data: Partial<Athlete>) => void
@@ -19,7 +20,7 @@ interface AthleteCardProps {
   hideEdit?: boolean
 }
 
-export function AthleteCard({ athlete, resultsCount, parents, onViewDetails, onViewChart, onEdit, onDelete, hideDelete, hideEdit }: AthleteCardProps) {
+export function AthleteCard({ athlete, resultsCount, parents, coaches, onViewDetails, onViewChart, onEdit, onDelete, hideDelete, hideEdit }: AthleteCardProps) {
   const avatarColor = getAvatarColor(athlete.id)
   
   return (
@@ -79,6 +80,7 @@ export function AthleteCard({ athlete, resultsCount, parents, onViewDetails, onV
                 <EditAthleteDialog 
                   athlete={athlete}
                   parents={parents}
+                  coaches={coaches}
                   onEdit={onEdit}
                 />
               </div>
