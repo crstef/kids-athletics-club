@@ -1,5 +1,7 @@
 export type AgeCategory = 'U10' | 'U12' | 'U14' | 'U16' | 'U18'
 
+export type Gender = 'M' | 'F'
+
 export interface AgeCategoryCustom {
   id: string
   name: string
@@ -142,6 +144,7 @@ export interface Athlete {
   lastName: string
   age: number
   category: AgeCategory
+  gender: Gender
   dateJoined: string
   avatar?: string
   coachId?: string

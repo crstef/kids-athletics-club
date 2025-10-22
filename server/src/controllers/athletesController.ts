@@ -31,6 +31,7 @@ export const getAllAthletes = async (req: AuthRequest, res: Response) => {
       lastName: athlete.last_name,
       age: athlete.age,
       category: athlete.category,
+      gender: athlete.gender,
       dateJoined: athlete.date_joined,
       avatar: athlete.avatar,
       coachId: athlete.coach_id,
@@ -50,17 +51,17 @@ export const createAthlete = async (req: AuthRequest, res: Response) => {
   const client = await pool.connect();
   
   try {
-    const { firstName, lastName, age, category, dateJoined, avatar, coachId } = req.body;
+    const { firstName, lastName, age, category, gender, dateJoined, avatar, coachId } = req.body;
 
     if (!firstName || !lastName || !age || !category || !dateJoined) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
     const result = await client.query(
-      `INSERT INTO athletes (first_name, last_name, age, category, date_joined, avatar, coach_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
-       RETURNING id, first_name, last_name, age, category, date_joined, avatar, coach_id, created_at`,
-      [firstName, lastName, age, category, dateJoined, avatar || null, coachId || null]
+      `INSERT INTO athletes (first_name, last_name, age, category, gender, date_joined, avatar, coach_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING id, first_name, last_name, age, category, gender, date_joined, avatar, coach_id, created_at`,
+      [firstName, lastName, age, category, gender || null, dateJoined, avatar || null, coachId || null]
     );
 
     const athlete = result.rows[0];
@@ -71,6 +72,7 @@ export const createAthlete = async (req: AuthRequest, res: Response) => {
       lastName: athlete.last_name,
       age: athlete.age,
       category: athlete.category,
+      gender: athlete.gender,
       dateJoined: athlete.date_joined,
       avatar: athlete.avatar,
       coachId: athlete.coach_id,
@@ -89,7 +91,7 @@ export const updateAthlete = async (req: AuthRequest, res: Response) => {
   
   try {
     const { id } = req.params;
-    const { firstName, lastName, age, category, dateJoined, avatar, coachId } = req.body;
+    const { firstName, lastName, age, category, gender, dateJoined, avatar, coachId } = req.body;
 
     const athlete = await client.query('SELECT id FROM athletes WHERE id = $1', [id]);
     if (athlete.rows.length === 0) {
@@ -116,6 +118,10 @@ export const updateAthlete = async (req: AuthRequest, res: Response) => {
       updates.push(`category = $${paramCount++}`);
       values.push(category);
     }
+    if (gender !== undefined) {
+      updates.push(`gender = $${paramCount++}`);
+      values.push(gender);
+    }
     if (dateJoined !== undefined) {
       updates.push(`date_joined = $${paramCount++}`);
       values.push(dateJoined);
@@ -136,7 +142,7 @@ export const updateAthlete = async (req: AuthRequest, res: Response) => {
     values.push(id);
     const result = await client.query(
       `UPDATE athletes SET ${updates.join(', ')} WHERE id = $${paramCount}
-       RETURNING id, first_name, last_name, age, category, date_joined, avatar, coach_id, created_at`,
+       RETURNING id, first_name, last_name, age, category, gender, date_joined, avatar, coach_id, created_at`,
       values
     );
 
@@ -148,6 +154,7 @@ export const updateAthlete = async (req: AuthRequest, res: Response) => {
       lastName: updatedAthlete.last_name,
       age: updatedAthlete.age,
       category: updatedAthlete.category,
+      gender: updatedAthlete.gender,
       dateJoined: updatedAthlete.date_joined,
       avatar: updatedAthlete.avatar,
       coachId: updatedAthlete.coach_id,

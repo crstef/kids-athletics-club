@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { AGE_CATEGORIES } from '@/lib/constants'
-import type { Athlete, AgeCategory, User } from '@/lib/types'
+import type { Athlete, AgeCategory, Gender, User } from '@/lib/types'
 
 interface AddAthleteDialogProps {
   onAdd: (athlete: Omit<Athlete, 'id'>) => void
@@ -20,6 +20,7 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
   const [lastName, setLastName] = useState('')
   const [age, setAge] = useState('')
   const [category, setCategory] = useState<AgeCategory>('U10')
+  const [gender, setGender] = useState<Gender>('M')
   const [coachId, setCoachId] = useState<string>('')
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -41,6 +42,7 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
       lastName: lastName.trim(),
       age: athleteAge,
       category,
+      gender,
       dateJoined: new Date().toISOString(),
       coachId: coachId || undefined
     })
@@ -49,6 +51,7 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
     setLastName('')
     setAge('')
     setCategory('U10')
+    setGender('M')
     setCoachId('')
     setOpen(false)
   }
@@ -114,6 +117,18 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
                     {cat}
                   </SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="gender">Gen *</Label>
+            <Select value={gender} onValueChange={(v) => setGender(v as Gender)}>
+              <SelectTrigger id="gender">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="M">Masculin</SelectItem>
+                <SelectItem value="F">Feminin</SelectItem>
               </SelectContent>
             </Select>
           </div>
