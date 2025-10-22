@@ -357,15 +357,15 @@ export const addSampleData = async (req: Request, res: Response) => {
 };
 
 /**
- * Fix existing admin user to be superadmin
+ * Fix existing admin user to be superadmin OR create new superadmin if not exists
  * GET /api/setup/fix-admin-role
  */
 export const fixAdminRole = async (req: Request, res: Response) => {
   const client = await pool.connect();
   
   try {
-    // Update admin@clubatletism.ro to be superadmin
-    const result = await client.query(
+    // Try to update existing admin@clubatletism.ro to superadmin
+    let result = await client.query(
       `UPDATE users 
        SET role = 'superadmin', 
            updated_at = NOW()
@@ -373,13 +373,41 @@ export const fixAdminRole = async (req: Request, res: Response) => {
        RETURNING id, email, first_name, last_name, role`,
     );
 
+    let user;
+    let wasCreated = false;
+
+    // If user doesn't exist, create it
     if (result.rows.length === 0) {
-      return res.status(404).json({ 
-        error: 'Admin user not found. Create one first via /api/setup/create-admin' 
-      });
+      const hashedPassword = hashPassword('admin123');
+      
+      result = await client.query(
+        `INSERT INTO users (
+          email,
+          password,
+          first_name,
+          last_name,
+          role,
+          is_active,
+          needs_approval,
+          created_at,
+          updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+        RETURNING id, email, first_name, last_name, role`,
+        [
+          'admin@clubatletism.ro',
+          hashedPassword,
+          'Super',
+          'Admin',
+          'superadmin',
+          true,
+          false
+        ]
+      );
+      
+      wasCreated = true;
     }
 
-    const user = result.rows[0];
+    user = result.rows[0];
 
     // Grant all permissions to this user
     await client.query(`
@@ -391,18 +419,25 @@ export const fixAdminRole = async (req: Request, res: Response) => {
 
     res.status(200).json({
       success: true,
-      message: 'Admin user upgraded to SuperAdmin successfully!',
+      message: wasCreated 
+        ? 'SuperAdmin user created successfully!' 
+        : 'Admin user upgraded to SuperAdmin successfully!',
+      wasCreated,
       user: {
         id: user.id,
         email: user.email,
         firstName: user.first_name,
         lastName: user.last_name,
         role: user.role
+      },
+      credentials: {
+        email: 'admin@clubatletism.ro',
+        password: 'admin123'
       }
     });
   } catch (error) {
     console.error('Fix admin role error:', error);
-    res.status(500).json({ error: 'Failed to fix admin role' });
+    res.status(500).json({ error: 'Failed to fix/create admin user' });
   } finally {
     client.release();
   }
