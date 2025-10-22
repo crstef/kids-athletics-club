@@ -634,7 +634,17 @@ function AppContent() {
 
   const handleAddUser = async (userData: Omit<User, 'id' | 'createdAt'>) => {
     try {
-      await apiClient.createUser(userData)
+      // Find roleId based on role name
+      const role = (roles || []).find(r => r.name === userData.role)
+      const userDataWithRole = {
+        ...userData,
+        roleId: role?.id || null,
+        // SuperAdmin creates users - no approval needed
+        needsApproval: false,
+        isActive: true
+      }
+      
+      await apiClient.createUser(userDataWithRole)
       await refetchUsers()
       toast.success('Utilizator adăugat cu succes!')
     } catch (error: any) {

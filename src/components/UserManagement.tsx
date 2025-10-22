@@ -11,7 +11,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Switch } from '@/components/ui/switch'
 import { MagnifyingGlass, Plus, PencilSimple, Trash, UserCircle, Eye, EyeSlash, CheckCircle } from '@phosphor-icons/react'
 import { toast } from 'sonner'
-import { hashPassword } from '@/lib/crypto'
 import type { User, UserRole } from '@/lib/types'
 
 interface UserManagementProps {
@@ -115,11 +114,9 @@ export function UserManagement({ users, currentUserId, onAddUser, onUpdateUser, 
       return
     }
 
-    const hashedPassword = await hashPassword(password)
-
     const userData: any = {
       email: email.trim(),
-      password: hashedPassword,
+      password: password,
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       role,
@@ -169,7 +166,7 @@ export function UserManagement({ users, currentUserId, onAddUser, onUpdateUser, 
     }
 
     if (password) {
-      userData.password = await hashPassword(password)
+      userData.password = password
     }
 
     if (role === 'coach') {
