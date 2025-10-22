@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState } from 'react'
 import { useLocalStorage } from '@/hooks/use-local-storage'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -8,7 +8,6 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Users, Trophy, ListNumbers, TrendUp, ArrowRight, Gear } from '@phosphor-icons/react'
 import { StatWidget } from './StatWidget'
-import { PeriodFilter, getFilteredResults, getInitialDateRange, getFirstDataDate, type Period } from './PeriodFilter'
 import { formatResult } from '@/lib/constants'
 import type { Athlete, Result } from '@/lib/types'
 
@@ -41,38 +40,25 @@ export function DashboardStats({ athletes, results, onNavigateToAthletes, onView
     { id: 'w4', type: 'stats-probes', title: 'Probe Active', size: 'small', enabled: true }
   ])
   const [customizeOpen, setCustomizeOpen] = useState(false)
-  const [period, setPeriod] = useState<Period>('7days')
-  const [dateRange, setDateRange] = useState<{ start: Date; end: Date }>(() => 
-    getInitialDateRange(results, '7days')
-  )
   
-  const firstDataDate = useMemo(() => getFirstDataDate(results), [results])
-
-  useEffect(() => {
-    setDateRange(getInitialDateRange(results, period))
-  }, [period, results])
-
-  const filteredResults = useMemo(() => {
-    return getFilteredResults(results, period, dateRange)
-  }, [results, period, dateRange])
-  
+  // Dashboard shows ALL data without period filtering
   const totalAthletes = athletes.length
-  const totalResults = filteredResults.length
+  const totalResults = results.length
   const activeAthletes = useMemo(() => 
-    athletes.filter(a => filteredResults.some(r => r.athleteId === a.id)).length,
-    [athletes, filteredResults]
+    athletes.filter(a => results.some(r => r.athleteId === a.id)).length,
+    [athletes, results]
   )
 
   const recentResults = useMemo(() =>
-    filteredResults
+    results
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       .slice(0, 10),
-    [filteredResults]
+    [results]
   )
 
   const activeProbes = useMemo(() => 
-    new Set(filteredResults.map(r => r.eventType)).size,
-    [filteredResults]
+    new Set(results.map(r => r.eventType)).size,
+    [results]
   )
 
   const categoryBreakdown = useMemo(() => {
@@ -84,14 +70,14 @@ export function DashboardStats({ athletes, results, onNavigateToAthletes, onView
   }, [athletes])
 
   const probeBreakdown = useMemo(() => {
-    const breakdown = filteredResults.reduce((acc, result) => {
+    const breakdown = results.reduce((acc, result) => {
       acc[result.eventType] = (acc[result.eventType] || 0) + 1
       return acc
     }, {} as Record<string, number>)
     return Object.entries(breakdown)
       .map(([probe, count]) => ({ probe, count }))
       .sort((a, b) => b.count - a.count)
-  }, [filteredResults])
+  }, [results])
 
   const totalAthletesDetails = (
     <div className="space-y-4">
@@ -305,15 +291,7 @@ export function DashboardStats({ athletes, results, onNavigateToAthletes, onView
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <PeriodFilter 
-          value={period} 
-          onChange={setPeriod}
-          dateRange={dateRange}
-          onDateRangeChange={setDateRange}
-          hasData={results.length > 0}
-          firstDataDate={firstDataDate}
-        />
+      <div className="flex justify-end">
         <Button variant="outline" size="sm" onClick={() => setCustomizeOpen(true)} className="text-xs sm:text-sm">
           <Gear size={14} className="sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
           Personalizează
