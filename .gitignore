@@ -12,6 +12,9 @@ dist-ssr
 *-dist
 *.local
 
+# Development-only file - production uses dist/index.html
+/index.html
+
 # Note: dist/ and server/dist/ are now INCLUDED for production deployment
 # To avoid committing them, use: git update-index --assume-unchanged dist/ server/dist/
 
