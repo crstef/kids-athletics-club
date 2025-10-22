@@ -9,6 +9,8 @@ interface AuthContextType {
   isParent: boolean
   isSuperAdmin: boolean
   isAthlete: boolean
+  permissions: string[]
+  hasPermission: (permission: string) => boolean
   logout: () => void
   loading: boolean
 }
@@ -56,9 +58,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isParent = currentUser?.role === 'parent'
   const isSuperAdmin = currentUser?.role === 'superadmin'
   const isAthlete = currentUser?.role === 'athlete'
+  
+  const permissions = currentUser?.permissions || []
+  const hasPermission = (permission: string) => permissions.includes(permission)
 
   return (
-    <AuthContext.Provider value={{ currentUser, setCurrentUser, isCoach, isParent, isSuperAdmin, isAthlete, logout, loading }}>
+    <AuthContext.Provider value={{ currentUser, setCurrentUser, isCoach, isParent, isSuperAdmin, isAthlete, permissions, hasPermission, logout, loading }}>
       {children}
     </AuthContext.Provider>
   )

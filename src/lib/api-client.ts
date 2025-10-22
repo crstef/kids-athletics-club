@@ -153,6 +153,13 @@ class ApiClient {
     });
   }
 
+  async updateEvent(id: string, data: any) {
+    return this.request(`/events/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
   async deleteEvent(id: string) {
     return this.request(`/events/${id}`, { method: 'DELETE' });
   }

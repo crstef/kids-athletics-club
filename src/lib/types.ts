@@ -103,6 +103,7 @@ export interface User {
   needsApproval?: boolean
   approvedBy?: string
   approvedAt?: string
+  permissions?: string[]
 }
 
 export interface SuperAdmin extends User {
@@ -113,7 +114,6 @@ export interface Coach extends User {
   role: 'coach'
   specialization?: string
   probeId?: string
-  permissions?: PermissionType
 }
 
 export interface CoachProbe {
@@ -129,13 +129,11 @@ export interface CoachProbe {
 
 export interface Parent extends User {
   role: 'parent'
-  permissions?: PermissionType
 }
 
 export interface AthleteUser extends User {
   role: 'athlete'
   athleteId?: string
-  permissions?: PermissionType
 }
 
 export interface Athlete {

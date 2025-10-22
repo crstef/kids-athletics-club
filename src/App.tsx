@@ -36,8 +36,33 @@ import { hashPassword } from '@/lib/crypto'
 import { DEFAULT_PERMISSIONS, DEFAULT_ROLES } from '@/lib/permissions'
 import type { Athlete, Result, AgeCategory, User, Coach, AccessRequest, Message, EventTypeCustom, Permission, UserPermission, AccountApprovalRequest, Role, AgeCategoryCustom } from '@/lib/types'
 
+// Definiție tab-uri dinamice bazate pe permisiuni
+interface TabConfig {
+  id: string
+  label: string
+  icon?: any
+  permission?: string
+  roles?: string[] // roluri care pot vedea tab-ul fără verificare de permisiune
+  showBadge?: (count: number) => boolean
+}
+
+const TAB_CONFIGS: TabConfig[] = [
+  { id: 'dashboard', label: 'Dashboard', roles: ['superadmin', 'coach', 'parent'] },
+  { id: 'athletes', label: 'Atleți', permission: 'athletes.view' },
+  { id: 'events', label: 'Probe', permission: 'events.view' },
+  { id: 'results', label: 'Rezultate', permission: 'results.view' },
+  { id: 'coaches', label: 'Antrenori', permission: 'users.view', roles: ['superadmin'] },
+  { id: 'requests', label: 'Cereri', icon: Envelope, permission: 'approval_requests.view' },
+  { id: 'messages', label: 'Mesaje', icon: ChatCircleDots, permission: 'messages.view' },
+  { id: 'approvals', label: 'Aprobări', permission: 'approval_requests.approve', roles: ['superadmin'] },
+  { id: 'users', label: 'Utilizatori', permission: 'users.view', roles: ['superadmin'] },
+  { id: 'roles', label: 'Roluri', permission: 'roles.view', roles: ['superadmin'] },
+  { id: 'permissions', label: 'Permisiuni', permission: 'permissions.view', roles: ['superadmin'] },
+  { id: 'categories', label: 'Categorii', permission: 'age_categories.view', roles: ['superadmin'] },
+]
+
 function AppContent() {
-  const { currentUser, setCurrentUser, isCoach, isParent, isSuperAdmin, isAthlete, logout, loading: authLoading } = useAuth()
+  const { currentUser, setCurrentUser, isCoach, isParent, isSuperAdmin, isAthlete, hasPermission, logout, loading: authLoading } = useAuth()
   const [athletes, setAthletes, athletesLoading, athletesError, refetchAthletes] = useAthletes()
   const [results, setResults, resultsLoading, resultsError, refetchResults] = useResults()
   const [users, setUsers, usersLoading, usersError, refetchUsers] = useUsers()
@@ -397,6 +422,17 @@ function AppContent() {
     }
   }
 
+  const handleEditProbe = async (id: string, probeData: Partial<EventTypeCustom>) => {
+    try {
+      await apiClient.updateEvent(id, probeData)
+      await refetchProbes()
+      toast.success('Probă actualizată cu succes!')
+    } catch (error: any) {
+      toast.error(error.message || 'Eroare la actualizarea probei')
+      console.error('Error updating probe:', error)
+    }
+  }
+
   const handleDeleteProbe = async (id: string) => {
     try {
       await apiClient.deleteEvent(id)
@@ -751,6 +787,24 @@ function AppContent() {
     return 0
   }, [accessRequests, approvalRequests, currentUser, isCoach, isSuperAdmin])
 
+  // Determină ce tab-uri să fie vizibile pentru utilizatorul curent
+  const visibleTabs = useMemo(() => {
+    if (!currentUser) return []
+    
+    return TAB_CONFIGS.filter(tab => {
+      // Dacă tab-ul are roluri specificate și utilizatorul are unul din ele
+      if (tab.roles && tab.roles.includes(currentUser.role)) {
+        return true
+      }
+      // Altfel verifică permisiunea
+      if (tab.permission) {
+        return hasPermission(tab.permission)
+      }
+      // Dacă nu are nici rol, nici permisiune specificată, nu se afișează
+      return false
+    })
+  }, [currentUser, hasPermission])
+
   const selectedParent = parents.find(p => p.id === selectedParentId)
 
   const currentAthlete = useMemo(() => {
@@ -915,21 +969,38 @@ function AppContent() {
           <Tabs value={superAdminActiveTab} onValueChange={setSuperAdminActiveTab} className="space-y-4 sm:space-y-6">
             <div className="overflow-x-auto -mx-3 sm:-mx-4 px-3 sm:px-4 pb-2">
               <TabsList className="inline-flex w-auto min-w-full bg-muted/50 p-1.5 rounded-xl">
-                <TabsTrigger value="dashboard" className="data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap text-xs sm:text-sm">Dashboard</TabsTrigger>
-                <TabsTrigger value="approvals" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap text-xs sm:text-sm">
-                  Aprobări
-                  {pendingRequestsCount > 0 && (
-                    <Badge variant="destructive" className="ml-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs animate-pulse">
-                      {pendingRequestsCount}
-                    </Badge>
-                  )}
-                </TabsTrigger>
-                <TabsTrigger value="users" className="data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap text-xs sm:text-sm">Utilizatori</TabsTrigger>
-                <TabsTrigger value="roles" className="data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap text-xs sm:text-sm">Roluri</TabsTrigger>
-                <TabsTrigger value="permissions" className="data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap text-xs sm:text-sm">Permisiuni</TabsTrigger>
-                <TabsTrigger value="categories" className="data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap text-xs sm:text-sm">Categorii</TabsTrigger>
-                <TabsTrigger value="events" className="data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap text-xs sm:text-sm">Probe</TabsTrigger>
-                <TabsTrigger value="athletes" className="data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap text-xs sm:text-sm">Atleți</TabsTrigger>
+                {visibleTabs.map(tab => {
+                  const Icon = tab.icon
+                  const showBadge = tab.id === 'requests' && pendingRequestsCount > 0
+                  const showMessagesBadge = tab.id === 'messages' && unreadMessagesCount > 0
+                  const showApprovalsBadge = tab.id === 'approvals' && pendingRequestsCount > 0
+                  
+                  return (
+                    <TabsTrigger 
+                      key={tab.id} 
+                      value={tab.id} 
+                      className="gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap text-xs sm:text-sm"
+                    >
+                      {Icon && <Icon size={14} className="sm:w-4 sm:h-4" />}
+                      <span className={Icon ? "hidden sm:inline" : ""}>{tab.label}</span>
+                      {showBadge && (
+                        <Badge variant="destructive" className="ml-1 h-4 w-4 sm:h-5 sm:w-5 rounded-full p-0 flex items-center justify-center text-[10px] sm:text-xs animate-pulse">
+                          {pendingRequestsCount}
+                        </Badge>
+                      )}
+                      {showMessagesBadge && (
+                        <Badge variant="destructive" className="ml-1 h-4 w-4 sm:h-5 sm:w-5 rounded-full p-0 flex items-center justify-center text-[10px] sm:text-xs animate-pulse">
+                          {unreadMessagesCount}
+                        </Badge>
+                      )}
+                      {showApprovalsBadge && (
+                        <Badge variant="destructive" className="ml-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs animate-pulse">
+                          {pendingRequestsCount}
+                        </Badge>
+                      )}
+                    </TabsTrigger>
+                  )
+                })}
               </TabsList>
             </div>
 
@@ -1207,29 +1278,32 @@ function AppContent() {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
           <div className="overflow-x-auto -mx-3 sm:-mx-4 px-3 sm:px-4 pb-2">
             <TabsList className="inline-flex w-auto min-w-full bg-muted/50 p-1.5 rounded-xl">
-              <TabsTrigger value="dashboard" className="data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap text-xs sm:text-sm">Dashboard</TabsTrigger>
-              <TabsTrigger value="athletes" className="data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap text-xs sm:text-sm">Atleți</TabsTrigger>
-              {!isCoach && <TabsTrigger value="coaches" className="data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap text-xs sm:text-sm">Antrenori</TabsTrigger>}
-              <TabsTrigger value="requests" className="gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap text-xs sm:text-sm">
-                <Envelope size={14} className="sm:w-4 sm:h-4" />
-                <span className="hidden sm:inline">Cereri</span>
-                {isCoach && pendingRequestsCount > 0 && (
-                  <Badge variant="destructive" className="ml-1 h-4 w-4 sm:h-5 sm:w-5 rounded-full p-0 flex items-center justify-center text-[10px] sm:text-xs animate-pulse">
-                    {pendingRequestsCount}
-                  </Badge>
-                )}
-              </TabsTrigger>
-              {isCoach && (
-                <TabsTrigger value="messages" className="gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap text-xs sm:text-sm">
-                  <ChatCircleDots size={14} className="sm:w-4 sm:h-4" />
-                  <span className="hidden sm:inline">Mesaje</span>
-                  {unreadMessagesCount > 0 && (
-                    <Badge variant="destructive" className="ml-1 h-4 w-4 sm:h-5 sm:w-5 rounded-full p-0 flex items-center justify-center text-[10px] sm:text-xs animate-pulse">
-                      {unreadMessagesCount}
-                    </Badge>
-                  )}
-                </TabsTrigger>
-              )}
+              {visibleTabs.map(tab => {
+                const Icon = tab.icon
+                const showBadge = tab.id === 'requests' && pendingRequestsCount > 0
+                const showMessagesBadge = tab.id === 'messages' && unreadMessagesCount > 0
+                
+                return (
+                  <TabsTrigger 
+                    key={tab.id} 
+                    value={tab.id} 
+                    className="gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap text-xs sm:text-sm"
+                  >
+                    {Icon && <Icon size={14} className="sm:w-4 sm:h-4" />}
+                    <span className={Icon ? "hidden sm:inline" : ""}>{tab.label}</span>
+                    {showBadge && (
+                      <Badge variant="destructive" className="ml-1 h-4 w-4 sm:h-5 sm:w-5 rounded-full p-0 flex items-center justify-center text-[10px] sm:text-xs animate-pulse">
+                        {pendingRequestsCount}
+                      </Badge>
+                    )}
+                    {showMessagesBadge && (
+                      <Badge variant="destructive" className="ml-1 h-4 w-4 sm:h-5 sm:w-5 rounded-full p-0 flex items-center justify-center text-[10px] sm:text-xs animate-pulse">
+                        {unreadMessagesCount}
+                      </Badge>
+                    )}
+                  </TabsTrigger>
+                )
+              })}
             </TabsList>
           </div>
 
@@ -1498,6 +1572,27 @@ function AppContent() {
               </div>
             </TabsContent>
           )}
+
+          <TabsContent value="events">
+            <ProbeManagement
+              events={probes || []}
+              onAddEvent={handleAddProbe}
+              onDeleteEvent={handleDeleteProbe}
+            />
+          </TabsContent>
+
+          <TabsContent value="results">
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-semibold">Rezultate</h3>
+                <p className="text-sm text-muted-foreground">Gestionarea rezultatelor atleților</p>
+              </div>
+              {/* Aici poate fi adăugat un component dedicat pentru gestionarea rezultatelor */}
+              <div className="text-center py-8 text-muted-foreground">
+                Funcționalitate în dezvoltare
+              </div>
+            </div>
+          </TabsContent>
         </Tabs>
 
         {isCoach && pendingRequestsCount > 0 && activeTab !== 'requests' && (
