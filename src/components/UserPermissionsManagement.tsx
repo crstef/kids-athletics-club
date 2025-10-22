@@ -295,7 +295,7 @@ export function UserPermissionsManagement({
         <TabsContent value="pending" className="space-y-4">
           {pendingRequests.length > 0 ? (
             <Card className="border-accent shadow-lg">
-              <CardHeader className="bg-gradient-to-r from-accent/10 to-accent/5">
+              <CardHeader className="bg-linear-to-r from-accent/10 to-accent/5">
                 <CardTitle className="flex items-center gap-2">
                   <Warning size={24} weight="fill" className="text-accent" />
                   Cereri de Aprobare Cont
@@ -320,7 +320,7 @@ export function UserPermissionsManagement({
                     const isUserActive = user.isActive && !user.needsApproval
 
                     return (
-                      <div key={request.id} className="flex flex-col sm:flex-row sm:items-start justify-between p-5 border-2 border-accent/20 rounded-xl gap-4 bg-gradient-to-br from-card to-accent/5 hover:shadow-md transition-all">
+                      <div key={request.id} className="flex flex-col sm:flex-row sm:items-start justify-between p-5 border-2 border-accent/20 rounded-xl gap-4 bg-linear-to-br from-card to-accent/5 hover:shadow-md transition-all">
                         <div className="space-y-2 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
                             <div className="font-semibold text-lg">

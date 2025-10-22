@@ -86,6 +86,7 @@ export function useApi<T>(
     if (autoFetch && !authLoading && currentUser && !hasFetched) {
       fetchData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoFetch, authLoading, currentUser, hasFetched]);
 
   const setData = useCallback((valueOrFn: T | ((current: T) => T)) => {

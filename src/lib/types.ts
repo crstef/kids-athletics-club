@@ -145,9 +145,11 @@ export interface Athlete {
   age: number
   category: AgeCategory
   gender: Gender
+  dateOfBirth: string
   dateJoined: string
   avatar?: string
   coachId?: string
+  parentId?: string
 }
 
 export interface Result {

@@ -115,7 +115,7 @@ export function EditAthleteDialog({ athlete, parents, onEdit }: EditAthleteDialo
                 <SelectItem value="">Fără părinte</SelectItem>
                 {parents.map((parent) => (
                   <SelectItem key={parent.id} value={parent.id}>
-                    {parent.name}
+                    {parent.firstName} {parent.lastName}
                   </SelectItem>
                 ))}
               </SelectContent>

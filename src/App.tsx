@@ -740,15 +740,15 @@ function AppContent() {
 
   if (!currentUser) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-linear-to-br from-primary/5 via-background to-accent/5 flex items-center justify-center p-4">
         <Toaster position="top-right" richColors />
         <div className="text-center space-y-6 sm:space-y-8 p-4 sm:p-8 max-w-md w-full">
           <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 blur-3xl rounded-full" />
+            <div className="absolute inset-0 bg-linear-to-r from-primary/20 to-accent/20 blur-3xl rounded-full" />
             <Trophy size={64} weight="fill" className="sm:w-20 sm:h-20 text-accent mx-auto relative animate-in zoom-in duration-500" />
           </div>
           <div className="space-y-2 sm:space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <h1 className="text-3xl sm:text-5xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent" style={{ fontFamily: 'Outfit', letterSpacing: '-0.02em' }}>
+            <h1 className="text-3xl sm:text-5xl font-bold bg-linear-to-r from-primary to-accent bg-clip-text text-transparent" style={{ fontFamily: 'Outfit', letterSpacing: '-0.02em' }}>
               Club Atletism
             </h1>
             <p className="text-base sm:text-lg text-muted-foreground">Management Atleți Juniori</p>
@@ -765,7 +765,7 @@ function AppContent() {
               <UserCircle size={18} className="sm:w-5 sm:h-5" />
               Autentificare / Înregistrare
             </span>
-            <div className="absolute inset-0 bg-gradient-to-r from-primary to-accent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="absolute inset-0 bg-linear-to-r from-primary to-accent opacity-0 group-hover:opacity-100 transition-opacity" />
           </Button>
         </div>
         <AuthDialog
@@ -782,11 +782,11 @@ function AppContent() {
       <div className="min-h-screen bg-background">
         <Toaster position="top-right" richColors />
         
-        <header className="border-b bg-gradient-to-r from-card via-card/80 to-card backdrop-blur-md sticky top-0 z-10 shadow-sm">
+        <header className="border-b bg-linear-to-r from-card via-card/80 to-card backdrop-blur-md sticky top-0 z-10 shadow-sm">
           <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 sm:gap-3">
-                <div className="p-1.5 sm:p-2 bg-gradient-to-br from-accent/10 to-accent/5 rounded-xl">
+                <div className="p-1.5 sm:p-2 bg-linear-to-br from-accent/10 to-accent/5 rounded-xl">
                   <Trophy size={20} weight="fill" className="sm:w-7 sm:h-7 text-accent" />
                 </div>
                 <div>
@@ -845,11 +845,11 @@ function AppContent() {
       <div className="min-h-screen bg-background">
         <Toaster position="top-right" richColors />
         
-        <header className="border-b bg-gradient-to-r from-primary/10 via-primary/5 to-accent/10 backdrop-blur-md sticky top-0 z-10 shadow-sm">
+        <header className="border-b bg-linear-to-r from-primary/10 via-primary/5 to-accent/10 backdrop-blur-md sticky top-0 z-10 shadow-sm">
           <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 sm:gap-3">
-                <div className="p-1.5 sm:p-2 bg-gradient-to-br from-primary/20 to-primary/10 rounded-xl">
+                <div className="p-1.5 sm:p-2 bg-linear-to-br from-primary/20 to-primary/10 rounded-xl">
                   <ShieldCheck size={20} weight="fill" className="sm:w-7 sm:h-7 text-primary" />
                 </div>
                 <div>
@@ -1085,11 +1085,11 @@ function AppContent() {
       <div className="min-h-screen bg-background">
         <Toaster position="top-right" richColors />
         
-        <header className="border-b bg-gradient-to-r from-card via-card/80 to-card backdrop-blur-md sticky top-0 z-10 shadow-sm">
+        <header className="border-b bg-linear-to-r from-card via-card/80 to-card backdrop-blur-md sticky top-0 z-10 shadow-sm">
           <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 sm:gap-3">
-                <div className="p-1.5 sm:p-2 bg-gradient-to-br from-accent/10 to-accent/5 rounded-xl">
+                <div className="p-1.5 sm:p-2 bg-linear-to-br from-accent/10 to-accent/5 rounded-xl">
                   <Trophy size={20} weight="fill" className="sm:w-7 sm:h-7 text-accent" />
                 </div>
                 <div>
@@ -1131,11 +1131,11 @@ function AppContent() {
     <div className="min-h-screen bg-background">
       <Toaster position="top-right" richColors />
       
-        <header className="border-b bg-gradient-to-r from-card via-card/80 to-card backdrop-blur-md sticky top-0 z-10 shadow-sm">
+        <header className="border-b bg-linear-to-r from-card via-card/80 to-card backdrop-blur-md sticky top-0 z-10 shadow-sm">
           <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 sm:gap-3">
-                <div className="p-1.5 sm:p-2 bg-gradient-to-br from-secondary/10 to-secondary/5 rounded-xl">
+                <div className="p-1.5 sm:p-2 bg-linear-to-br from-secondary/10 to-secondary/5 rounded-xl">
                   <Trophy size={20} weight="fill" className="sm:w-7 sm:h-7 text-secondary" />
                 </div>
                 <div>
@@ -1220,7 +1220,7 @@ function AppContent() {
                 {myAthletes.length === 0 ? (
                   <div className="text-center py-16 space-y-6">
                     <div className="relative inline-block">
-                      <div className="absolute inset-0 bg-gradient-to-r from-accent/20 to-primary/20 blur-3xl" />
+                      <div className="absolute inset-0 bg-linear-to-r from-accent/20 to-primary/20 blur-3xl" />
                       <Trophy size={80} weight="duotone" className="text-muted-foreground/50 mx-auto relative animate-in zoom-in duration-500" />
                     </div>
                     <div className="space-y-3">
@@ -1296,7 +1296,7 @@ function AppContent() {
               <div className="text-center py-16 border border-dashed rounded-lg">
                 <div className="space-y-4">
                   <div className="relative inline-block">
-                    <div className="absolute inset-0 bg-gradient-to-r from-muted/20 to-muted/10 blur-2xl" />
+                    <div className="absolute inset-0 bg-linear-to-r from-muted/20 to-muted/10 blur-2xl" />
                     <Trophy size={64} weight="duotone" className="text-muted-foreground/40 mx-auto relative" />
                   </div>
                   <div>
@@ -1341,7 +1341,7 @@ function AppContent() {
                 <div className="text-center py-16 border border-dashed rounded-lg">
                   <div className="space-y-4">
                     <div className="relative inline-block">
-                      <div className="absolute inset-0 bg-gradient-to-r from-secondary/20 to-secondary/10 blur-2xl" />
+                      <div className="absolute inset-0 bg-linear-to-r from-secondary/20 to-secondary/10 blur-2xl" />
                       <Users size={64} weight="duotone" className="text-muted-foreground/40 mx-auto relative" />
                     </div>
                     <div>
@@ -1361,7 +1361,7 @@ function AppContent() {
                         <div className="flex items-start justify-between">
                           <div className="flex items-center gap-3">
                             <Avatar className="h-12 w-12 ring-2 ring-background">
-                              <AvatarFallback className="bg-gradient-to-br from-secondary to-secondary/70 text-white font-semibold">
+                              <AvatarFallback className="bg-linear-to-br from-secondary to-secondary/70 text-white font-semibold">
                                 {coach.firstName[0]}{coach.lastName[0]}
                               </AvatarFallback>
                             </Avatar>
