@@ -8,24 +8,20 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Plus, Eye, EyeSlash } from '@phosphor-icons/react'
 import { hashPassword } from '@/lib/crypto'
 import { toast } from 'sonner'
-import type { Coach, CoachProbe } from '@/lib/types'
+import type { Coach } from '@/lib/types'
 
 interface AddCoachDialogProps {
-  probes: CoachProbe[]
   onAdd: (coach: Omit<Coach, 'id' | 'createdAt'>, requiresApproval: boolean) => void
 }
 
-export function AddCoachDialog({ probes, onAdd }: AddCoachDialogProps) {
+export function AddCoachDialog({ onAdd }: AddCoachDialogProps) {
   const [open, setOpen] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
-  const [probeId, setProbeId] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [requiresApproval, setRequiresApproval] = useState(false)
-  
-  const activeProbes = probes.filter(p => p.isActive)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -48,7 +44,6 @@ export function AddCoachDialog({ probes, onAdd }: AddCoachDialogProps) {
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       role: 'coach',
-      probeId: probeId || undefined,
       isActive: !requiresApproval,
       needsApproval: requiresApproval
     }, requiresApproval)
@@ -57,7 +52,6 @@ export function AddCoachDialog({ probes, onAdd }: AddCoachDialogProps) {
     setPassword('')
     setFirstName('')
     setLastName('')
-    setProbeId('')
     setShowPassword(false)
     setRequiresApproval(false)
     setOpen(false)
@@ -133,22 +127,6 @@ export function AddCoachDialog({ probes, onAdd }: AddCoachDialogProps) {
               placeholder="ex: Popescu"
               required
             />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="coach-probe">Probă (opțional)</Label>
-            <Select value={probeId} onValueChange={setProbeId}>
-              <SelectTrigger id="coach-probe">
-                <SelectValue placeholder="Selectează proba" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Fără probă</SelectItem>
-                {activeProbes.map((probe) => (
-                  <SelectItem key={probe.id} value={probe.id}>
-                    {probe.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
           <div className="flex items-center space-x-2 py-2">
             <Checkbox

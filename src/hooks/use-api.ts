@@ -143,10 +143,6 @@ export function useAgeCategories() {
   return useApi<any[]>('age-categories', []); // Lazy load - only when add athlete dialog opened
 }
 
-export function useProbes() {
-  return useApi<any[]>('coach-probes', []); // Lazy load - only when add coach dialog opened
-}
-
 export function useUserPermissions() {
   return useApi<any[]>('user-permissions', []); // Lazy load - only when permissions panel opened
 }

@@ -22,19 +22,18 @@ import { CoachDashboard } from '@/components/CoachDashboard'
 import { ParentDashboard } from '@/components/ParentDashboard'
 import { MessagingPanel } from '@/components/MessagingPanel'
 import { SuperAdminDashboard } from '@/components/SuperAdminDashboard'
-import { EventManagement } from '@/components/EventManagement'
+import { EventManagement as ProbeManagement } from '@/components/EventManagement'
 import { AthleteDashboard } from '@/components/AthleteDashboard'
 import { UserManagement } from '@/components/UserManagement'
 import { PermissionsSystem } from '@/components/PermissionsSystem'
 import { UserPermissionsManagement } from '@/components/UserPermissionsManagement'
 import { RoleManagement } from '@/components/RoleManagement'
 import { AgeCategoryManagement } from '@/components/AgeCategoryManagement'
-import { ProbeManagement } from '@/components/ProbeManagement'
 import { apiClient } from '@/lib/api-client'
-import { useAthletes, useResults, useUsers, useAccessRequests, useMessages, useEvents, usePermissions, useUserPermissions, useApprovalRequests, useRoles, useAgeCategories, useProbes } from '@/hooks/use-api'
+import { useAthletes, useResults, useUsers, useAccessRequests, useMessages, useEvents, usePermissions, useUserPermissions, useApprovalRequests, useRoles, useAgeCategories } from '@/hooks/use-api'
 import { hashPassword } from '@/lib/crypto'
 import { DEFAULT_PERMISSIONS, DEFAULT_ROLES } from '@/lib/permissions'
-import type { Athlete, Result, AgeCategory, User, Coach, AccessRequest, Message, EventTypeCustom, Permission, UserPermission, AccountApprovalRequest, Role, AgeCategoryCustom, CoachProbe } from '@/lib/types'
+import type { Athlete, Result, AgeCategory, User, Coach, AccessRequest, Message, EventTypeCustom, Permission, UserPermission, AccountApprovalRequest, Role, AgeCategoryCustom } from '@/lib/types'
 
 function AppContent() {
   const { currentUser, setCurrentUser, isCoach, isParent, isSuperAdmin, isAthlete, logout, loading: authLoading } = useAuth()
@@ -43,13 +42,12 @@ function AppContent() {
   const [users, setUsers, usersLoading, usersError, refetchUsers] = useUsers()
   const [accessRequests, setAccessRequests, accessRequestsLoading, accessRequestsError, refetchAccessRequests] = useAccessRequests()
   const [messages, setMessages, messagesLoading, messagesError, refetchMessages] = useMessages()
-  const [events, setEvents, eventsLoading, eventsError, refetchEvents] = useEvents()
+  const [probes, setProbes, probesLoading, probesError, refetchProbes] = useEvents()
   const [permissions, setPermissions, permissionsLoading, permissionsError, refetchPermissions] = usePermissions()
   const [userPermissions, setUserPermissions, userPermissionsLoading, userPermissionsError, refetchUserPermissions] = useUserPermissions()
   const [approvalRequests, setApprovalRequests, approvalRequestsLoading, approvalRequestsError, refetchApprovalRequests] = useApprovalRequests()
   const [roles, setRoles, rolesLoading, rolesError, refetchRoles] = useRoles()
   const [ageCategories, setAgeCategories, ageCategoriesLoading, ageCategoriesError, refetchAgeCategories] = useAgeCategories()
-  const [probes, setProbes, probesLoading, probesError, refetchProbes] = useProbes()
   const [selectedAthlete, setSelectedAthlete] = useState<Athlete | null>(null)
   const [selectedAthleteTab, setSelectedAthleteTab] = useState<'results' | 'evolution'>('results')
   const [deleteAthleteId, setDeleteAthleteId] = useState<string | null>(null)
@@ -91,17 +89,11 @@ function AppContent() {
         setTimeout(() => {
           if (ageCategories.length === 0) refetchAgeCategories()
         }, 2500)
-        setTimeout(() => {
-          if (probes.length === 0) refetchProbes()
-        }, 3000)
       } else {
-        // For non-admin users, load categories and probes with delay
+        // For non-admin users, load categories with delay
         setTimeout(() => {
           if (ageCategories.length === 0) refetchAgeCategories()
         }, 400)
-        setTimeout(() => {
-          if (probes.length === 0) refetchProbes()
-        }, 600)
       }
     }
   }, [currentUser, authLoading, isSuperAdmin, dataFetched])
@@ -119,8 +111,8 @@ function AppContent() {
   }, [activeTab, currentUser])
 
   useEffect(() => {
-    if (activeTab === 'evenimente' && events.length === 0 && currentUser) {
-      refetchEvents()
+    if (activeTab === 'probe' && probes.length === 0 && currentUser) {
+      refetchProbes()
     }
   }, [activeTab, currentUser])
 
@@ -141,45 +133,6 @@ function AppContent() {
   useEffect(() => {
     const initSuperAdmin = async () => {
       setApprovalRequests([])
-      
-      const existingProbes = probes || []
-      if (existingProbes.length === 0) {
-        const defaultProbes: CoachProbe[] = [
-          {
-            id: `probe-${Date.now()}-1`,
-            name: 'Sprint',
-            description: 'Antrenori specializați în alergări de viteză',
-            isActive: true,
-            createdAt: new Date().toISOString(),
-            createdBy: 'system'
-          },
-          {
-            id: `probe-${Date.now()}-2`,
-            name: 'Sărituri',
-            description: 'Antrenori specializați în sărituri (lungime, înălțime)',
-            isActive: true,
-            createdAt: new Date().toISOString(),
-            createdBy: 'system'
-          },
-          {
-            id: `probe-${Date.now()}-3`,
-            name: 'Alergări Lungi',
-            description: 'Antrenori specializați în alergări de semifond și fond',
-            isActive: true,
-            createdAt: new Date().toISOString(),
-            createdBy: 'system'
-          },
-          {
-            id: `probe-${Date.now()}-4`,
-            name: 'Aruncări',
-            description: 'Antrenori specializați în aruncări (disc, suliță, greutate)',
-            isActive: true,
-            createdAt: new Date().toISOString(),
-            createdBy: 'system'
-          }
-        ]
-        setProbes(defaultProbes)
-      }
 
       const existingUsers = users || []
       const hasSuperAdmin = existingUsers.some(u => u.role === 'superadmin')
@@ -533,31 +486,6 @@ function AppContent() {
 
   const handleDeleteAgeCategory = (categoryId: string) => {
     setAgeCategories((current) => (current || []).filter(c => c.id !== categoryId))
-  }
-
-  const handleAddProbe = (probeData: Omit<CoachProbe, 'id' | 'createdAt' | 'createdBy'>) => {
-    setProbes((current) => [
-      ...(current || []),
-      {
-        ...probeData,
-        id: `probe-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        createdAt: new Date().toISOString(),
-        createdBy: currentUser?.id || 'system'
-      }
-    ])
-  }
-
-  const handleUpdateProbe = (probeId: string, updates: Partial<CoachProbe>) => {
-    setProbes((current) =>
-      (current || []).map(p => p.id === probeId ? { ...p, ...updates } : p)
-    )
-  }
-
-  const handleDeleteProbe = (probeId: string) => {
-    setProbes((current) => (current || []).filter(p => p.id !== probeId))
-    setUsers((current) =>
-      (current || []).map(u => (u as Coach).probeId === probeId ? { ...u, probeId: undefined } : u)
-    )
   }
 
   const handleApproveAccount = (requestId: string) => {
@@ -955,8 +883,7 @@ function AppContent() {
                 <TabsTrigger value="roles" className="data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap text-xs sm:text-sm">Roluri</TabsTrigger>
                 <TabsTrigger value="permissions" className="data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap text-xs sm:text-sm">Permisiuni</TabsTrigger>
                 <TabsTrigger value="categories" className="data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap text-xs sm:text-sm">Categorii</TabsTrigger>
-                <TabsTrigger value="groups" className="data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap text-xs sm:text-sm">Probe</TabsTrigger>
-                <TabsTrigger value="events" className="data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap text-xs sm:text-sm">Evenimente</TabsTrigger>
+                <TabsTrigger value="events" className="data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap text-xs sm:text-sm">Probe</TabsTrigger>
                 <TabsTrigger value="athletes" className="data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap text-xs sm:text-sm">Atleți</TabsTrigger>
               </TabsList>
             </div>
@@ -965,7 +892,7 @@ function AppContent() {
               <SuperAdminDashboard
                 users={users || []}
                 athletes={athletes || []}
-                events={events || []}
+                events={probes || []}
                 permissions={permissions || []}
                 onNavigateToTab={setSuperAdminActiveTab}
                 onViewAthleteDetails={(athlete) => {
@@ -1045,21 +972,11 @@ function AppContent() {
               />
             </TabsContent>
 
-            <TabsContent value="groups">
-              <ProbeManagement
-                probes={probes || []}
-                currentUserId={currentUser.id}
-                onAddProbe={handleAddProbe}
-                onUpdateProbe={handleUpdateProbe}
-                onDeleteProbe={handleDeleteProbe}
-              />
-            </TabsContent>
-
             <TabsContent value="events">
-              <EventManagement
-                events={events || []}
-                onAddEvent={handleAddEvent}
-                onDeleteEvent={handleDeleteEvent}
+              <ProbeManagement
+                events={probes || []}
+                onAddEvent={handleAddProbe}
+                onDeleteEvent={handleDeleteProbe}
               />
             </TabsContent>
 
@@ -1401,7 +1318,7 @@ function AppContent() {
                   <h3 className="text-lg font-semibold">Antrenori</h3>
                   <p className="text-sm text-muted-foreground">Membrii echipei de coaching</p>
                 </div>
-                <AddCoachDialog probes={probes || []} onAdd={handleAddCoach} />
+                <AddCoachDialog onAdd={handleAddCoach} />
               </div>
               {coaches.length === 0 ? (
                 <div className="text-center py-16 border border-dashed rounded-lg">
@@ -1422,8 +1339,6 @@ function AppContent() {
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {coaches.map((coach) => {
                     const coachAthletes = (athletes || []).filter(a => a.coachId === coach.id)
-                    const coachData = coach as Coach
-                    const coachProbe = coachData.probeId ? (probes || []).find(p => p.id === coachData.probeId) : null
                     return (
                       <Card key={coach.id} className="p-6 space-y-3 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-secondary/50">
                         <div className="flex items-start justify-between">
@@ -1441,9 +1356,6 @@ function AppContent() {
                             </div>
                           </div>
                         </div>
-                        {coachProbe && (
-                          <Badge variant="secondary" className="w-fit">{coachProbe.name}</Badge>
-                        )}
                         <div className="pt-2 border-t flex items-center justify-between">
                           <span className="text-sm text-muted-foreground">Atleți:</span>
                           <Badge variant="outline" className="font-semibold">{coachAthletes.length}</Badge>

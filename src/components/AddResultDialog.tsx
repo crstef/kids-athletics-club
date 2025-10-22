@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Plus } from '@phosphor-icons/react'
-import type { Result, CoachProbe } from '@/lib/types'
+import type { Result, EventTypeCustom } from '@/lib/types'
 import { useApi } from '@/hooks/use-api'
 
 interface AddResultDialogProps {
@@ -21,17 +21,15 @@ export function AddResultDialog({ athleteId, athleteName, onAdd }: AddResultDial
   const [value, setValue] = useState('')
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const [notes, setNotes] = useState('')
-  const [unit, setUnit] = useState<'seconds' | 'meters'>('seconds')
+  const [unit, setUnit] = useState<'seconds' | 'meters' | 'points'>('seconds')
 
-  const [probes, setProbes, loading] = useApi<CoachProbe[]>('/api/coach-probes', [], { autoFetch: true })
+  const [probes, setProbes, loading] = useApi<EventTypeCustom[]>('/api/events', [], { autoFetch: true })
 
   // Set default event when probes load
   useEffect(() => {
     if (probes.length > 0 && !eventType) {
       setEventType(probes[0].name)
-      // Auto-detect unit based on probe name
-      const probeName = probes[0].name.toLowerCase()
-      setUnit(probeName.includes('m') && !probeName.includes('jump') ? 'seconds' : 'meters')
+      setUnit(probes[0].unit)
     }
   }, [probes, eventType])
 
@@ -63,16 +61,30 @@ export function AddResultDialog({ athleteId, athleteName, onAdd }: AddResultDial
 
   const handleProbeChange = (probeName: string) => {
     setEventType(probeName)
-    // Auto-detect unit based on probe name
-    const lowerName = probeName.toLowerCase()
-    if (lowerName.includes('m') && !lowerName.includes('jump')) {
-      setUnit('seconds')
-    } else {
-      setUnit('meters')
+    // Find probe and set unit
+    const probe = probes.find(p => p.name === probeName)
+    if (probe) {
+      setUnit(probe.unit)
     }
   }
 
-  const placeholder = unit === 'seconds' ? 'ex: 12.45' : 'ex: 5.25'
+  const getPlaceholder = () => {
+    switch (unit) {
+      case 'seconds': return 'ex: 12.45'
+      case 'meters': return 'ex: 5.25'
+      case 'points': return 'ex: 850'
+      default: return 'ex: 10.00'
+    }
+  }
+
+  const getUnitLabel = () => {
+    switch (unit) {
+      case 'seconds': return 'secunde'
+      case 'meters': return 'metri'
+      case 'points': return 'puncte'
+      default: return unit
+    }
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -94,7 +106,7 @@ export function AddResultDialog({ athleteId, athleteName, onAdd }: AddResultDial
                 <SelectValue placeholder={loading ? 'Se încarcă...' : 'Selectează proba'} />
               </SelectTrigger>
               <SelectContent>
-                {probes.filter(p => p.isActive).map((probe) => (
+                {probes.map((probe) => (
                   <SelectItem key={probe.id} value={probe.name}>
                     {probe.description ? `${probe.name} - ${probe.description}` : probe.name}
                   </SelectItem>
@@ -104,7 +116,7 @@ export function AddResultDialog({ athleteId, athleteName, onAdd }: AddResultDial
           </div>
           <div className="space-y-2">
             <Label htmlFor="value">
-              Rezultat ({unit === 'seconds' ? 'secunde' : 'metri'})
+              Rezultat ({getUnitLabel()})
             </Label>
             <Input
               id="value"
@@ -113,7 +125,7 @@ export function AddResultDialog({ athleteId, athleteName, onAdd }: AddResultDial
               min="0.01"
               value={value}
               onChange={(e) => setValue(e.target.value)}
-              placeholder={placeholder}
+              placeholder={getPlaceholder()}
               required
             />
           </div>
