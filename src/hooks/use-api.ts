@@ -100,16 +100,17 @@ export function useApi<T>(
 
 // Specialized hooks for specific data types
 // Note: autoFetch is now false by default, so data must be fetched manually by calling the returned refetch function
+// CRITICAL: Only autoFetch for absolutely essential data to avoid ERR_INSUFFICIENT_RESOURCES
 export function useUsers() {
-  return useApi<any[]>('users', [], { autoFetch: true }); // Admin-level data
+  return useApi<any[]>('users', []); // Lazy load - only when needed
 }
 
 export function useAthletes() {
-  return useApi<any[]>('athletes', [], { autoFetch: true }); // Core dashboard data
+  return useApi<any[]>('athletes', []); // Lazy load with delay after login
 }
 
 export function useResults() {
-  return useApi<any[]>('results', [], { autoFetch: true }); // Core dashboard data
+  return useApi<any[]>('results', []); // Lazy load with delay after login
 }
 
 export function useEvents() {
@@ -125,11 +126,11 @@ export function useMessages() {
 }
 
 export function usePermissions() {
-  return useApi<any[]>('permissions', [], { autoFetch: true }); // Admin/permission system needs this
+  return useApi<any[]>('permissions', []); // Lazy load - only when permissions panel opened
 }
 
 export function useRoles() {
-  return useApi<any[]>('roles', [], { autoFetch: true }); // Admin/permission system needs this
+  return useApi<any[]>('roles', []); // Lazy load - only when permissions panel opened
 }
 
 export function useApprovalRequests() {
@@ -137,13 +138,13 @@ export function useApprovalRequests() {
 }
 
 export function useAgeCategories() {
-  return useApi<any[]>('age-categories', [], { autoFetch: true }); // Core data for athlete forms
+  return useApi<any[]>('age-categories', []); // Lazy load - only when add athlete dialog opened
 }
 
 export function useProbes() {
-  return useApi<any[]>('coach-probes', [], { autoFetch: true }); // Core data for coach forms
+  return useApi<any[]>('coach-probes', []); // Lazy load - only when add coach dialog opened
 }
 
 export function useUserPermissions() {
-  return useApi<any[]>('user-permissions', [], { autoFetch: true }); // Admin/permission system needs this
+  return useApi<any[]>('user-permissions', []); // Lazy load - only when permissions panel opened
 }

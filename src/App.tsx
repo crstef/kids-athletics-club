@@ -61,7 +61,48 @@ function AppContent() {
   const [activeTab, setActiveTab] = useState('dashboard')
   const [superAdminActiveTab, setSuperAdminActiveTab] = useState('dashboard')
 
-  // Lazy loading: fetch data only when tab is activated
+  // Lazy loading: fetch data sequentially with delays to avoid ERR_INSUFFICIENT_RESOURCES
+  useEffect(() => {
+    if (currentUser && !authLoading) {
+      // Load core dashboard data first - immediate
+      if (athletes.length === 0) refetchAthletes()
+      
+      setTimeout(() => {
+        if (results.length === 0) refetchResults()
+      }, 200)
+      
+      // Load essential data for super admin after login - staggered loading
+      if (isSuperAdmin) {
+        setTimeout(() => {
+          if (users.length === 0) refetchUsers()
+        }, 500)
+        setTimeout(() => {
+          if (permissions.length === 0) refetchPermissions()
+        }, 1000)
+        setTimeout(() => {
+          if (roles.length === 0) refetchRoles()
+        }, 1500)
+        setTimeout(() => {
+          if (userPermissions.length === 0) refetchUserPermissions()
+        }, 2000)
+        setTimeout(() => {
+          if (ageCategories.length === 0) refetchAgeCategories()
+        }, 2500)
+        setTimeout(() => {
+          if (probes.length === 0) refetchProbes()
+        }, 3000)
+      } else {
+        // For non-admin users, load categories and probes with delay
+        setTimeout(() => {
+          if (ageCategories.length === 0) refetchAgeCategories()
+        }, 400)
+        setTimeout(() => {
+          if (probes.length === 0) refetchProbes()
+        }, 600)
+      }
+    }
+  }, [currentUser, authLoading, isSuperAdmin])
+
   useEffect(() => {
     if (activeTab === 'antrenori' && accessRequests.length === 0) {
       refetchAccessRequests()
@@ -85,6 +126,14 @@ function AppContent() {
       refetchMessages()
     }
   }, [activeTab])
+
+  useEffect(() => {
+    if (superAdminActiveTab === 'permisiuni' || superAdminActiveTab === 'roluri') {
+      if (permissions.length === 0) refetchPermissions()
+      if (roles.length === 0) refetchRoles()
+      if (userPermissions.length === 0) refetchUserPermissions()
+    }
+  }, [superAdminActiveTab])
 
   useEffect(() => {
     const initSuperAdmin = async () => {
