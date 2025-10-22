@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.fixAdminRole = exports.addSampleData = exports.createAdminUser = exports.initializeData = void 0;
+exports.fixAdminRole = exports.addGenderColumn = exports.addSampleData = exports.createAdminUser = exports.initializeData = void 0;
 const database_1 = __importDefault(require("../config/database"));
 const crypto_1 = __importDefault(require("crypto"));
 const hashPassword = (password) => {
@@ -330,9 +330,53 @@ const addSampleData = async (req, res) => {
 };
 exports.addSampleData = addSampleData;
 /**
- * Fix existing admin user to be superadmin OR create new superadmin if not exists
- * GET /api/setup/fix-admin-role
+ * Add gender column to athletes table (migration)
+ * GET /api/setup/add-gender-column
  */
+const addGenderColumn = async (req, res) => {
+    const client = await database_1.default.connect();
+    try {
+        // Check if column already exists
+        const checkColumn = await client.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'athletes' 
+      AND column_name = 'gender'
+    `);
+        if (checkColumn.rows.length > 0) {
+            return res.status(200).json({
+                success: true,
+                message: 'Gender column already exists',
+                alreadyExists: true
+            });
+        }
+        // Add gender column
+        await client.query(`
+      ALTER TABLE athletes 
+      ADD COLUMN gender VARCHAR(1) CHECK (gender IN ('M', 'F'))
+    `);
+        // Add comment
+        await client.query(`
+      COMMENT ON COLUMN athletes.gender IS 'Gender of athlete: M (Male) or F (Female)'
+    `);
+        res.status(200).json({
+            success: true,
+            message: 'Gender column added successfully to athletes table!',
+            alreadyExists: false
+        });
+    }
+    catch (error) {
+        console.error('Add gender column error:', error);
+        res.status(500).json({
+            error: 'Failed to add gender column',
+            details: error instanceof Error ? error.message : 'Unknown error'
+        });
+    }
+    finally {
+        client.release();
+    }
+};
+exports.addGenderColumn = addGenderColumn;
 const fixAdminRole = async (req, res) => {
     const client = await database_1.default.connect();
     try {

@@ -357,9 +357,56 @@ export const addSampleData = async (req: Request, res: Response) => {
 };
 
 /**
- * Fix existing admin user to be superadmin OR create new superadmin if not exists
- * GET /api/setup/fix-admin-role
+ * Add gender column to athletes table (migration)
+ * GET /api/setup/add-gender-column
  */
+export const addGenderColumn = async (req: Request, res: Response) => {
+  const client = await pool.connect();
+  
+  try {
+    // Check if column already exists
+    const checkColumn = await client.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'athletes' 
+      AND column_name = 'gender'
+    `);
+
+    if (checkColumn.rows.length > 0) {
+      return res.status(200).json({
+        success: true,
+        message: 'Gender column already exists',
+        alreadyExists: true
+      });
+    }
+
+    // Add gender column
+    await client.query(`
+      ALTER TABLE athletes 
+      ADD COLUMN gender VARCHAR(1) CHECK (gender IN ('M', 'F'))
+    `);
+
+    // Add comment
+    await client.query(`
+      COMMENT ON COLUMN athletes.gender IS 'Gender of athlete: M (Male) or F (Female)'
+    `);
+
+    res.status(200).json({
+      success: true,
+      message: 'Gender column added successfully to athletes table!',
+      alreadyExists: false
+    });
+  } catch (error) {
+    console.error('Add gender column error:', error);
+    res.status(500).json({ 
+      error: 'Failed to add gender column',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  } finally {
+    client.release();
+  }
+};
+
 export const fixAdminRole = async (req: Request, res: Response) => {
   const client = await pool.connect();
   
