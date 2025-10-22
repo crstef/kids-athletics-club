@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,6 +9,29 @@ import { toast } from 'sonner'
 import { AGE_CATEGORIES } from '@/lib/constants'
 import type { Athlete, AgeCategory, Gender, User } from '@/lib/types'
 
+// Funcție pentru calcularea vârstei din data nașterii
+function calculateAge(dateOfBirth: string): number {
+  const today = new Date()
+  const birthDate = new Date(dateOfBirth)
+  let age = today.getFullYear() - birthDate.getFullYear()
+  const monthDiff = today.getMonth() - birthDate.getMonth()
+  
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--
+  }
+  
+  return age
+}
+
+// Funcție pentru determinarea categoriei pe bază de vârstă
+function determineCategory(age: number): AgeCategory {
+  if (age < 10) return 'U10'
+  if (age < 12) return 'U12'
+  if (age < 14) return 'U14'
+  if (age < 16) return 'U16'
+  return 'U18'
+}
+
 interface AddAthleteDialogProps {
   onAdd: (athlete: Omit<Athlete, 'id'>) => void
   coaches?: User[]
@@ -18,22 +41,30 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
   const [open, setOpen] = useState(false)
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
-  const [age, setAge] = useState('')
+  const [age, setAge] = useState<number | null>(null)
   const [dateOfBirth, setDateOfBirth] = useState('')
   const [category, setCategory] = useState<AgeCategory>('U10')
   const [gender, setGender] = useState<Gender>('M')
   const [coachId, setCoachId] = useState<string>('')
 
+  // Calculează automat vârsta și categoria când se schimbă data nașterii
+  useEffect(() => {
+    if (dateOfBirth) {
+      const calculatedAge = calculateAge(dateOfBirth)
+      setAge(calculatedAge)
+      setCategory(determineCategory(calculatedAge))
+    }
+  }, [dateOfBirth])
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!firstName.trim() || !lastName.trim() || !age || !dateOfBirth) {
+    if (!firstName.trim() || !lastName.trim() || !dateOfBirth || age === null) {
       toast.error('Completează toate câmpurile obligatorii')
       return
     }
 
-    const athleteAge = parseInt(age)
-    if (athleteAge < 6 || athleteAge > 18) {
+    if (age < 6 || age > 18) {
       toast.error('Vârsta trebuie să fie între 6 și 18 ani')
       return
     }
@@ -41,7 +72,7 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
     onAdd({
       firstName: firstName.trim(),
       lastName: lastName.trim(),
-      age: athleteAge,
+      age,
       dateOfBirth,
       category,
       gender,
@@ -51,7 +82,7 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
 
     setFirstName('')
     setLastName('')
-    setAge('')
+    setAge(null)
     setDateOfBirth('')
     setCategory('U10')
     setGender('M')
@@ -105,34 +136,26 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
               required
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="age">Vârstă *</Label>
-            <Input
-              id="age"
-              type="number"
-              min="6"
-              max="18"
-              value={age}
-              onChange={(e) => setAge(e.target.value)}
-              placeholder="ex: 12"
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="category">Categorie *</Label>
-            <Select value={category} onValueChange={(v) => setCategory(v as AgeCategory)}>
-              <SelectTrigger id="category">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {AGE_CATEGORIES.map((cat) => (
-                  <SelectItem key={cat} value={cat}>
-                    {cat}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {age !== null && (
+            <>
+              <div className="space-y-2">
+                <Label>Vârstă (calculată automat)</Label>
+                <Input
+                  value={`${age} ani`}
+                  disabled
+                  className="bg-muted"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Categorie (calculată automat)</Label>
+                <Input
+                  value={category}
+                  disabled
+                  className="bg-muted"
+                />
+              </div>
+            </>
+          )}
           <div className="space-y-2">
             <Label htmlFor="gender">Gen *</Label>
             <Select value={gender} onValueChange={(v) => setGender(v as Gender)}>

@@ -61,6 +61,12 @@ export function DashboardStats({ athletes, results, onNavigateToAthletes, onView
     [results]
   )
 
+  const genderBreakdown = useMemo(() => {
+    const male = athletes.filter(a => a.gender === 'M').length
+    const female = athletes.filter(a => a.gender === 'F').length
+    return { male, female }
+  }, [athletes])
+
   const categoryBreakdown = useMemo(() => {
     const breakdown = athletes.reduce((acc, athlete) => {
       acc[athlete.category] = (acc[athlete.category] || 0) + 1
@@ -81,26 +87,49 @@ export function DashboardStats({ athletes, results, onNavigateToAthletes, onView
 
   const totalAthletesDetails = (
     <div className="space-y-4">
-      <p className="text-muted-foreground text-sm">
-        Distribuția atletilor pe categorii de vârstă
+      <p className="text-muted-foreground text-sm mb-4">
+        Distribuția atletilor pe gen și categorii de vârstă
       </p>
-      <div className="space-y-3">
-        {categoryBreakdown.map(({ category, count }) => (
-          <div key={category} className="flex items-center justify-between p-2 sm:p-3 border rounded-lg">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <Badge variant="outline" className="text-sm sm:text-lg px-2 sm:px-3 py-0.5 sm:py-1">
-                {category}
-              </Badge>
-              <span className="font-medium text-sm sm:text-base">{count} atleți</span>
-            </div>
-            <div className="w-16 sm:w-24 bg-muted rounded-full h-2 overflow-hidden">
-              <div 
-                className="bg-primary h-full transition-all"
-                style={{ width: `${(count / totalAthletes) * 100}%` }}
-              />
-            </div>
+      
+      {/* Statistici pe gen */}
+      <div className="grid grid-cols-2 gap-3 mb-6">
+        <div className="p-3 border rounded-lg bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
+          <div className="text-sm text-muted-foreground mb-1">Băieți</div>
+          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{genderBreakdown.male}</div>
+          <div className="text-xs text-muted-foreground mt-1">
+            {totalAthletes > 0 ? Math.round((genderBreakdown.male / totalAthletes) * 100) : 0}%
           </div>
-        ))}
+        </div>
+        <div className="p-3 border rounded-lg bg-pink-50 dark:bg-pink-950/20 border-pink-200 dark:border-pink-800">
+          <div className="text-sm text-muted-foreground mb-1">Fete</div>
+          <div className="text-2xl font-bold text-pink-600 dark:text-pink-400">{genderBreakdown.female}</div>
+          <div className="text-xs text-muted-foreground mt-1">
+            {totalAthletes > 0 ? Math.round((genderBreakdown.female / totalAthletes) * 100) : 0}%
+          </div>
+        </div>
+      </div>
+
+      {/* Distribuție pe categorii */}
+      <div>
+        <p className="text-sm font-medium mb-3">Pe categorii de vârstă</p>
+        <div className="space-y-3">
+          {categoryBreakdown.map(({ category, count }) => (
+            <div key={category} className="flex items-center justify-between p-2 sm:p-3 border rounded-lg">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <Badge variant="outline" className="text-sm sm:text-lg px-2 sm:px-3 py-0.5 sm:py-1">
+                  {category}
+                </Badge>
+                <span className="font-medium text-sm sm:text-base">{count} atleți</span>
+              </div>
+              <div className="w-16 sm:w-24 bg-muted rounded-full h-2 overflow-hidden">
+                <div 
+                  className="bg-primary h-full transition-all"
+                  style={{ width: `${(count / totalAthletes) * 100}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
       {onNavigateToAthletes && (
         <Button onClick={onNavigateToAthletes} className="w-full mt-4 text-sm sm:text-base">
@@ -117,9 +146,9 @@ export function DashboardStats({ athletes, results, onNavigateToAthletes, onView
       </p>
       <div className="space-y-2">
         {athletes
-          .filter(a => filteredResults.some(r => r.athleteId === a.id))
+          .filter(a => results.some(r => r.athleteId === a.id))
           .map(athlete => {
-            const athleteResults = filteredResults.filter(r => r.athleteId === athlete.id)
+            const athleteResults = results.filter(r => r.athleteId === athlete.id)
             return (
               <div 
                 key={athlete.id} 
@@ -134,7 +163,7 @@ export function DashboardStats({ athletes, results, onNavigateToAthletes, onView
                   <Badge variant="secondary" className="text-sm sm:text-lg px-2 sm:px-3 py-0.5 sm:py-1">
                     {athleteResults.length}
                   </Badge>
-                  <ArrowRight size={16} className="text-muted-foreground flex-shrink-0" />
+                  <ArrowRight size={16} className="text-muted-foreground shrink-0" />
                 </div>
               </div>
             )

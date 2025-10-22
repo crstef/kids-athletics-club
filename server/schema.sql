@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS athletes (
     age INTEGER NOT NULL,
     category VARCHAR(10) NOT NULL,
     gender VARCHAR(1) CHECK (gender IN ('M', 'F')),
+    date_of_birth DATE NOT NULL,
     date_joined TIMESTAMP NOT NULL,
     avatar TEXT,
     coach_id UUID,

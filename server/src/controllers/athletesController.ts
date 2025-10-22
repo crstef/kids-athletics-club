@@ -91,7 +91,7 @@ export const updateAthlete = async (req: AuthRequest, res: Response) => {
   
   try {
     const { id } = req.params;
-    const { firstName, lastName, age, category, gender, dateJoined, avatar, coachId } = req.body;
+    const { firstName, lastName, age, category, gender, dateOfBirth, dateJoined, avatar, coachId } = req.body;
 
     const athlete = await client.query('SELECT id FROM athletes WHERE id = $1', [id]);
     if (athlete.rows.length === 0) {
@@ -122,6 +122,10 @@ export const updateAthlete = async (req: AuthRequest, res: Response) => {
       updates.push(`gender = $${paramCount++}`);
       values.push(gender);
     }
+    if (dateOfBirth !== undefined) {
+      updates.push(`date_of_birth = $${paramCount++}`);
+      values.push(dateOfBirth);
+    }
     if (dateJoined !== undefined) {
       updates.push(`date_joined = $${paramCount++}`);
       values.push(dateJoined);
@@ -142,7 +146,7 @@ export const updateAthlete = async (req: AuthRequest, res: Response) => {
     values.push(id);
     const result = await client.query(
       `UPDATE athletes SET ${updates.join(', ')} WHERE id = $${paramCount}
-       RETURNING id, first_name, last_name, age, category, gender, date_joined, avatar, coach_id, created_at`,
+       RETURNING id, first_name, last_name, age, category, gender, date_of_birth, date_joined, avatar, coach_id, created_at`,
       values
     );
 
@@ -155,6 +159,7 @@ export const updateAthlete = async (req: AuthRequest, res: Response) => {
       age: updatedAthlete.age,
       category: updatedAthlete.category,
       gender: updatedAthlete.gender,
+      dateOfBirth: updatedAthlete.date_of_birth,
       dateJoined: updatedAthlete.date_joined,
       avatar: updatedAthlete.avatar,
       coachId: updatedAthlete.coach_id,
