@@ -205,19 +205,34 @@ export const getCurrentUser = async (req: Request, res: Response) => {
 
     // Get user permissions from role
     let permissions: string[] = [];
-    if (user.role_id) {
-      console.log(`[getCurrentUser] Fetching permissions for user ${user.email} with role_id: ${user.role_id}`);
+    
+    // Try to get role_id, if null then fetch by role name
+    let roleIdToUse = user.role_id;
+    if (!roleIdToUse && user.role) {
+      console.log(`[getCurrentUser] User ${user.email} has no role_id, fetching by role name: ${user.role}`);
+      const roleResult = await client.query(
+        `SELECT id FROM roles WHERE name = $1`,
+        [user.role]
+      );
+      if (roleResult.rows.length > 0) {
+        roleIdToUse = roleResult.rows[0].id;
+        console.log(`[getCurrentUser] Found role_id: ${roleIdToUse} for role: ${user.role}`);
+      }
+    }
+    
+    if (roleIdToUse) {
+      console.log(`[getCurrentUser] Fetching permissions for user ${user.email} with role_id: ${roleIdToUse}`);
       const rolePermissions = await client.query(
         `SELECT p.name 
          FROM role_permissions rp
          JOIN permissions p ON rp.permission_id = p.id
          WHERE rp.role_id = $1`,
-        [user.role_id]
+        [roleIdToUse]
       );
       permissions = rolePermissions.rows.map(row => row.name);
       console.log(`[getCurrentUser] Found ${permissions.length} permissions:`, permissions);
     } else {
-      console.log(`[getCurrentUser] User ${user.email} has no role_id, returning empty permissions`);
+      console.log(`[getCurrentUser] User ${user.email} has no role_id and couldn't find role by name, returning empty permissions`);
     }
 
     res.json({
