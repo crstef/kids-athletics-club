@@ -12,6 +12,7 @@ import { MagnifyingGlass, SortAscending, Trophy, SignOut, UserCircle, Envelope, 
 import { AuthProvider, useAuth } from '@/lib/auth-context'
 import { AuthDialog } from '@/components/AuthDialog'
 import { AddAthleteDialog } from '@/components/AddAthleteDialog'
+import { EditAthleteDialog } from '@/components/EditAthleteDialog'
 import { AddCoachDialog } from '@/components/AddCoachDialog'
 import { AthleteCard } from '@/components/AthleteCard'
 import { AthleteDetailsDialog } from '@/components/AthleteDetailsDialog'
@@ -233,77 +234,6 @@ function AppContent() {
         ]
         setAgeCategories(defaultAgeCategories)
       }
-
-      // Initialize default probes if none exist
-      const existingProbes = probes || []
-      if (existingProbes.length === 0) {
-        const defaultProbes: EventTypeCustom[] = [
-          {
-            id: `probe-${Date.now()}-1`,
-            name: '60m Sprint',
-            category: 'running',
-            unit: 'seconds',
-            description: 'Alergare viteză pe 60 metri',
-            createdAt: new Date().toISOString()
-          },
-          {
-            id: `probe-${Date.now()}-2`,
-            name: '100m Sprint',
-            category: 'running',
-            unit: 'seconds',
-            description: 'Alergare viteză pe 100 metri',
-            createdAt: new Date().toISOString()
-          },
-          {
-            id: `probe-${Date.now()}-3`,
-            name: '400m',
-            category: 'running',
-            unit: 'seconds',
-            description: 'Alergare semifond pe 400 metri',
-            createdAt: new Date().toISOString()
-          },
-          {
-            id: `probe-${Date.now()}-4`,
-            name: 'Săritură în lungime',
-            category: 'jumping',
-            unit: 'meters',
-            description: 'Săritură în lungime cu elan',
-            createdAt: new Date().toISOString()
-          },
-          {
-            id: `probe-${Date.now()}-5`,
-            name: 'Săritură în înălțime',
-            category: 'jumping',
-            unit: 'meters',
-            description: 'Săritură în înălțime cu elan',
-            createdAt: new Date().toISOString()
-          },
-          {
-            id: `probe-${Date.now()}-6`,
-            name: 'Aruncarea greutății',
-            category: 'throwing',
-            unit: 'meters',
-            description: 'Aruncare greutate pentru copii',
-            createdAt: new Date().toISOString()
-          }
-        ]
-        
-        // Save default probes to backend
-        try {
-          for (const probe of defaultProbes) {
-            await apiClient.createEvent({
-              name: probe.name,
-              category: probe.category,
-              unit: probe.unit,
-              description: probe.description
-            })
-          }
-          await refetchProbes()
-        } catch (error) {
-          console.error('Error creating default probes:', error)
-        }
-      }
-
     }
     
     initSuperAdmin()
@@ -361,6 +291,17 @@ function AppContent() {
 
   const handleDeleteAthlete = (id: string) => {
     setDeleteAthleteId(id)
+  }
+
+  const handleEditAthlete = async (id: string, data: Partial<Athlete>) => {
+    try {
+      await apiClient.updateAthlete(id, data)
+      await refetchAthletes()
+      toast.success('Sportiv actualizat cu succes!')
+    } catch (error: any) {
+      toast.error(error.message || 'Eroare la actualizarea sportivului')
+      console.error('Error updating athlete:', error)
+    }
   }
 
   const confirmDeleteAthlete = async () => {
@@ -1092,8 +1033,10 @@ function AppContent() {
                       key={athlete.id}
                       athlete={athlete}
                       resultsCount={getAthleteResultsCount(athlete.id)}
+                      parents={parents}
                       onViewDetails={handleViewAthleteDetails}
                       onViewChart={handleViewAthleteChart}
+                      onEdit={handleEditAthlete}
                       onDelete={handleDeleteAthlete}
                     />
                   ))}
@@ -1295,8 +1238,10 @@ function AppContent() {
                         key={athlete.id}
                         athlete={athlete}
                         resultsCount={getAthleteResultsCount(athlete.id)}
+                        parents={parents}
                         onViewDetails={handleViewAthleteDetails}
                         onViewChart={handleViewAthleteChart}
+                        onEdit={handleEditAthlete}
                         onDelete={handleDeleteAthlete}
                       />
                     ))}
@@ -1371,9 +1316,12 @@ function AppContent() {
                     key={athlete.id}
                     athlete={athlete}
                     resultsCount={getAthleteResultsCount(athlete.id)}
+                    parents={parents}
                     onViewDetails={handleViewAthleteDetails}
                     onViewChart={handleViewAthleteChart}
+                    onEdit={handleEditAthlete}
                     onDelete={handleDeleteAthlete}
+                    hideEdit={true}
                   />
                 ))}
               </div>

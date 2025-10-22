@@ -23,9 +23,9 @@ export function useApi<T>(
   const [error, setError] = useState<Error | null>(null);
   const [hasFetched, setHasFetched] = useState<boolean>(false);
 
-  const fetchData = useCallback(async (force: boolean = false) => {
-    // Skip if already fetched and not forcing
-    if (hasFetched && !force) {
+  const fetchData = useCallback(async () => {
+    // Only fetch if we haven't fetched yet
+    if (hasFetched) {
       return;
     }
     
@@ -103,7 +103,8 @@ export function useApi<T>(
   }, []);
 
   const forceRefetch = useCallback(() => {
-    return fetchData(true);
+    setHasFetched(false); // Reset flag to allow refetch
+    return fetchData();
   }, [fetchData]);
 
   return [data, setData, loading, error, forceRefetch];

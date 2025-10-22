@@ -2,20 +2,24 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { ChartLine, Trash, Trophy } from '@phosphor-icons/react'
+import { ChartLine, Trash, Trophy, PencilSimple } from '@phosphor-icons/react'
+import { EditAthleteDialog } from './EditAthleteDialog'
 import { getInitials, getAvatarColor } from '@/lib/constants'
-import type { Athlete, Result } from '@/lib/types'
+import type { Athlete, Result, User } from '@/lib/types'
 
 interface AthleteCardProps {
   athlete: Athlete
   resultsCount: number
+  parents?: User[]
   onViewDetails: (athlete: Athlete) => void
   onViewChart: (athlete: Athlete) => void
+  onEdit?: (id: string, data: Partial<Athlete>) => void
   onDelete: (id: string) => void
   hideDelete?: boolean
+  hideEdit?: boolean
 }
 
-export function AthleteCard({ athlete, resultsCount, onViewDetails, onViewChart, onDelete, hideDelete }: AthleteCardProps) {
+export function AthleteCard({ athlete, resultsCount, parents, onViewDetails, onViewChart, onEdit, onDelete, hideDelete, hideEdit }: AthleteCardProps) {
   const avatarColor = getAvatarColor(athlete.id)
   
   return (
@@ -70,6 +74,15 @@ export function AthleteCard({ athlete, resultsCount, onViewDetails, onViewChart,
               <ChartLine size={16} />
               <span className="sr-only">Vezi grafic</span>
             </Button>
+            {!hideEdit && onEdit && parents && (
+              <div onClick={(e) => e.stopPropagation()} className="opacity-0 group-hover:opacity-100 transition-opacity">
+                <EditAthleteDialog 
+                  athlete={athlete}
+                  parents={parents}
+                  onEdit={onEdit}
+                />
+              </div>
+            )}
             {!hideDelete && (
               <Button
                 size="sm"
