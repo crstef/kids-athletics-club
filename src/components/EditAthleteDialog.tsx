@@ -84,7 +84,7 @@ export function EditAthleteDialog({ athlete, parents, onEdit }: EditAthleteDialo
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="edit-dateOfBirth">Data nașterii</Label>
+            <Label htmlFor="edit-dateOfBirth">Data nașterii (dd/mm/yyyy)</Label>
             <Input
               id="edit-dateOfBirth"
               type="date"

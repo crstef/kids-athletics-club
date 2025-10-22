@@ -96,7 +96,7 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="dateOfBirth">Data nașterii *</Label>
+            <Label htmlFor="dateOfBirth">Data nașterii (dd/mm/yyyy) *</Label>
             <Input
               id="dateOfBirth"
               type="date"

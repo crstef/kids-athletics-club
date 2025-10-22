@@ -6,8 +6,17 @@ export const getAllEvents = async (req: AuthRequest, res: Response) => {
   const client = await pool.connect();
   try {
     const result = await client.query('SELECT * FROM events ORDER BY created_at DESC');
-    res.json(result.rows);
+    const events = result.rows.map(row => ({
+      id: row.id,
+      name: row.name,
+      category: row.category,
+      unit: row.unit,
+      description: row.description,
+      createdAt: row.created_at
+    }));
+    res.json(events);
   } catch (error) {
+    console.error('Get events error:', error);
     res.status(500).json({ error: 'Internal server error' });
   } finally {
     client.release();
@@ -22,8 +31,17 @@ export const createEvent = async (req: AuthRequest, res: Response) => {
       'INSERT INTO events (name, category, unit, description) VALUES ($1, $2, $3, $4) RETURNING *',
       [name, category, unit, description || null]
     );
-    res.status(201).json(result.rows[0]);
+    const row = result.rows[0];
+    res.status(201).json({
+      id: row.id,
+      name: row.name,
+      category: row.category,
+      unit: row.unit,
+      description: row.description,
+      createdAt: row.created_at
+    });
   } catch (error) {
+    console.error('Create event error:', error);
     res.status(500).json({ error: 'Internal server error' });
   } finally {
     client.release();
