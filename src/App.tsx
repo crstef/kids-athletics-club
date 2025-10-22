@@ -376,25 +376,25 @@ function AppContent() {
     }
   }
 
-  const handleAddEvent = async (eventData: Omit<EventTypeCustom, 'id' | 'createdAt'>) => {
+  const handleAddProbe = async (probeData: Omit<EventTypeCustom, 'id' | 'createdAt'>) => {
     try {
-      await apiClient.createEvent(eventData)
-      await refetchEvents()
+      await apiClient.createEvent(probeData)
+      await refetchProbes()
       toast.success('Probă adăugată cu succes!')
     } catch (error: any) {
       toast.error(error.message || 'Eroare la adăugarea probei')
-      console.error('Error creating event:', error)
+      console.error('Error creating probe:', error)
     }
   }
 
-  const handleDeleteEvent = async (id: string) => {
+  const handleDeleteProbe = async (id: string) => {
     try {
       await apiClient.deleteEvent(id)
-      await refetchEvents()
+      await refetchProbes()
       toast.success('Probă ștearsă cu succes!')
     } catch (error: any) {
       toast.error(error.message || 'Eroare la ștergerea probei')
-      console.error('Error deleting event:', error)
+      console.error('Error deleting probe:', error)
     }
   }
 
