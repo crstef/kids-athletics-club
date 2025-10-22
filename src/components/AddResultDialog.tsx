@@ -96,8 +96,7 @@ export function AddResultDialog({ athleteId, athleteName, onAdd }: AddResultDial
               <SelectContent>
                 {probes.filter(p => p.isActive).map((probe) => (
                   <SelectItem key={probe.id} value={probe.name}>
-                    {probe.name}
-                    {probe.description && <span className="text-xs text-muted-foreground ml-2">- {probe.description}</span>}
+                    {probe.description ? `${probe.name} - ${probe.description}` : probe.name}
                   </SelectItem>
                 ))}
               </SelectContent>

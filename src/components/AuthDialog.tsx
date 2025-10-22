@@ -260,8 +260,7 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
                         ) : (
                           coaches.map((coach) => (
                             <SelectItem key={coach.id} value={coach.id}>
-                              {coach.firstName} {coach.lastName}
-                              {(coach as any).specialization && ` - ${(coach as any).specialization}`}
+                              {`${coach.firstName} ${coach.lastName}${(coach as any).specialization ? ` - ${(coach as any).specialization}` : ''}`}
                             </SelectItem>
                           ))
                         )}
