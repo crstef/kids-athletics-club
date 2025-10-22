@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react'
-import { useKV } from '@github/spark/hooks'
+import { useLocalStorage } from '@/hooks/use-local-storage'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -34,7 +34,7 @@ interface DashboardStatsProps {
 }
 
 export function DashboardStats({ athletes, results, onNavigateToAthletes, onViewAthleteDetails }: DashboardStatsProps) {
-  const [widgets, setWidgets] = useKV<Widget[]>('dashboard-widgets', [
+  const [widgets, setWidgets] = useLocalStorage<Widget[]>('dashboard-widgets', [
     { id: 'w1', type: 'stats-total', title: 'Total Atleți', size: 'small', enabled: true },
     { id: 'w2', type: 'stats-active', title: 'Atleți Activi', size: 'small', enabled: true },
     { id: 'w3', type: 'stats-results', title: 'Total Rezultate', size: 'small', enabled: true },

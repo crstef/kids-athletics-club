@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useKV } from '@github/spark/hooks'
+import { useLocalStorage } from '@/hooks/use-local-storage'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -35,7 +35,7 @@ interface SuperAdminDashboardProps {
 }
 
 export function SuperAdminDashboard({ users, athletes, events, permissions, onNavigateToTab, onViewAthleteDetails }: SuperAdminDashboardProps) {
-  const [widgets, setWidgets] = useKV<Widget[]>('superadmin-dashboard-widgets', [
+  const [widgets, setWidgets] = useLocalStorage<Widget[]>('superadmin-dashboard-widgets', [
     { id: 'w1', type: 'stats-users', title: 'Utilizatori', size: 'small', enabled: true },
     { id: 'w2', type: 'stats-athletes', title: 'Atleți Înregistrați', size: 'small', enabled: true },
     { id: 'w3', type: 'stats-events', title: 'Probe Sportive', size: 'small', enabled: true },

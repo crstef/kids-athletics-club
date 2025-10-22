@@ -66,7 +66,7 @@ export function CoachDashboard({
   onApproveAccount,
   onRejectAccount
 }: CoachDashboardProps) {
-  const [widgets, setWidgets] = useKV<Widget[]>('coach-dashboard-widgets', [
+  const [widgets, setWidgets] = useLocalStorage<Widget[]>('coach-dashboard-widgets', [
     { id: 'w1', type: 'stats-total', title: 'Total Atleți', size: 'small', enabled: true },
     { id: 'w2', type: 'stats-active', title: 'Atleți Activi', size: 'small', enabled: true },
     { id: 'w3', type: 'stats-results', title: 'Total Rezultate', size: 'small', enabled: true },

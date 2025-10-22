@@ -55,9 +55,9 @@ export function ParentDashboard({
   onCreateRequest,
   onSendMessage,
   onMarkAsRead,
-  onViewAthleteDetails
+  onViewAthleteDetails,
 }: ParentDashboardProps) {
-  const [widgets, setWidgets] = useKV<Widget[]>('parent-dashboard-widgets', [
+  const [widgets, setWidgets] = useLocalStorage<Widget[]>('parent-dashboard-widgets', [
     { id: 'w1', type: 'stats-results', title: 'Total Rezultate', size: 'small', enabled: true },
     { id: 'w2', type: 'stats-events', title: 'Probe Practicate', size: 'small', enabled: true },
     { id: 'w3', type: 'stats-recent', title: 'Ultima Lună', size: 'small', enabled: true },

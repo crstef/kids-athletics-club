@@ -282,3 +282,76 @@ export const createAdminUser = async (req: Request, res: Response) => {
     client.release();
   }
 };
+
+/**
+ * Add sample athletes and results for testing
+ * GET /api/setup/add-sample-data
+ */
+export const addSampleData = async (req: Request, res: Response) => {
+  const client = await pool.connect();
+  
+  try {
+    const results: any = {
+      athletes: 0,
+      results: 0
+    };
+
+    // Insert sample athletes
+    const athletesResult = await client.query(`
+      INSERT INTO athletes (first_name, last_name, age, category, gender, date_joined, created_at) VALUES
+      ('Ion', 'Popescu', 10, 'U10', 'M', '2024-01-15', NOW()),
+      ('Maria', 'Ionescu', 12, 'U12', 'F', '2024-01-20', NOW()),
+      ('Andrei', 'Georgescu', 14, 'U14', 'M', '2024-02-01', NOW()),
+      ('Elena', 'Dumitrescu', 16, 'U16', 'F', '2024-02-10', NOW()),
+      ('Mihai', 'Popa', 11, 'U12', 'M', '2024-03-01', NOW()),
+      ('Ana', 'Radu', 13, 'U14', 'F', '2024-03-15', NOW()),
+      ('Alexandru', 'Constantin', 15, 'U16', 'M', '2024-04-01', NOW()),
+      ('Ioana', 'Stanciu', 17, 'U18', 'F', '2024-04-10', NOW()),
+      ('Cristian', 'Marin', 9, 'U10', 'M', '2024-05-01', NOW()),
+      ('Sofia', 'Toma', 11, 'U12', 'F', '2024-05-15', NOW())
+      ON CONFLICT DO NOTHING
+      RETURNING id
+    `);
+    results.athletes = athletesResult.rowCount || 0;
+
+    // Get athlete IDs for results
+    const athletes = await client.query('SELECT id FROM athletes ORDER BY created_at LIMIT 10');
+    
+    if (athletes.rows.length > 0) {
+      // Insert sample results - various athletic events
+      const resultsQuery = `
+        INSERT INTO results (athlete_id, event_type, value, unit, date, location, created_at) VALUES
+        ($1, '60m Sprint', 8.5, 'secunde', '2024-06-01', 'Stadion Național', NOW()),
+        ($2, '100m Sprint', 14.2, 'secunde', '2024-06-01', 'Stadion Național', NOW()),
+        ($3, '200m Sprint', 28.5, 'secunde', '2024-06-05', 'Stadion Național', NOW()),
+        ($4, '400m Alergare', 68.3, 'secunde', '2024-06-05', 'Stadion Național', NOW()),
+        ($5, 'Săritură în lungime', 4.2, 'metri', '2024-06-10', 'Arena Sportivă', NOW()),
+        ($6, 'Săritură în înălțime', 1.45, 'metri', '2024-06-10', 'Arena Sportivă', NOW()),
+        ($7, 'Aruncarea greutății', 9.5, 'metri', '2024-06-15', 'Stadion Tineretului', NOW()),
+        ($8, '800m Alergare', 2.35, 'minute', '2024-06-15', 'Stadion Tineretului', NOW()),
+        ($9, '60m Sprint', 9.2, 'secunde', '2024-06-20', 'Complexul Sportiv', NOW()),
+        ($10, '100m Sprint', 15.1, 'secunde', '2024-06-20', 'Complexul Sportiv', NOW()),
+        ($1, 'Săritură în lungime', 3.8, 'metri', '2024-06-25', 'Arena Sportivă', NOW()),
+        ($2, 'Săritură în înălțime', 1.35, 'metri', '2024-06-25', 'Arena Sportivă', NOW()),
+        ($3, '400m Alergare', 65.8, 'secunde', '2024-07-01', 'Stadion Național', NOW()),
+        ($4, '800m Alergare', 2.28, 'minute', '2024-07-01', 'Stadion Național', NOW()),
+        ($5, 'Aruncarea greutății', 10.2, 'metri', '2024-07-05', 'Stadion Tineretului', NOW())
+        ON CONFLICT DO NOTHING
+      `;
+      
+      const resultsData = await client.query(resultsQuery, athletes.rows.map(a => a.id));
+      results.results = resultsData.rowCount || 0;
+    }
+
+    res.json({
+      success: true,
+      message: 'Sample data added successfully!',
+      data: results
+    });
+  } catch (error) {
+    console.error('Add sample data error:', error);
+    res.status(500).json({ error: 'Failed to add sample data' });
+  } finally {
+    client.release();
+  }
+};
