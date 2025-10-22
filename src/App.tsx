@@ -391,7 +391,7 @@ function AppContent() {
 
   const handleUpdateAccessRequest = async (id: string, status: 'approved' | 'rejected') => {
     try {
-      await apiClient.updateAccessRequest(id, { status })
+      await apiClient.updateAccessRequest(id, status)
       await refetchAccessRequests()
       toast.success(`Cerere ${status === 'approved' ? 'aprobată' : 'respinsă'} cu succes!`)
     } catch (error: any) {
@@ -402,7 +402,7 @@ function AppContent() {
 
   const handleSendMessage = async (messageData: Omit<Message, 'id' | 'timestamp'>) => {
     try {
-      await apiClient.sendMessage(messageData)
+      await apiClient.createMessage(messageData)
       await refetchMessages()
       toast.success('Mesaj trimis cu succes!')
     } catch (error: any) {
