@@ -21,6 +21,7 @@ export function useApi<T>(
   const [data, setDataState] = useState<T>(initialValue);
   const [loading, setLoading] = useState<boolean>(autoFetch);
   const [error, setError] = useState<Error | null>(null);
+  const [hasFetched, setHasFetched] = useState<boolean>(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -70,6 +71,7 @@ export function useApi<T>(
       }
       
       setDataState(result);
+      setHasFetched(true);
     } catch (err) {
       const error = err as Error;
       setError(error);
@@ -80,11 +82,11 @@ export function useApi<T>(
   }, [key, initialValue, onError]);
 
   useEffect(() => {
-    // Only fetch if autoFetch is true, auth is not loading, and a user is logged in.
-    if (autoFetch && !authLoading && currentUser) {
+    // Only fetch if autoFetch is true, auth is not loading, user is logged in, and we haven't fetched yet
+    if (autoFetch && !authLoading && currentUser && !hasFetched) {
       fetchData();
     }
-  }, [fetchData, autoFetch, authLoading, currentUser]);
+  }, [autoFetch, authLoading, currentUser, hasFetched]);
 
   const setData = useCallback((valueOrFn: T | ((current: T) => T)) => {
     setDataState(prevData => {
