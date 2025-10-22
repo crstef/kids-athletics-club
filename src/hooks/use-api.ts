@@ -110,45 +110,45 @@ export function useApi<T>(
 // Note: autoFetch is now false by default, so data must be fetched manually by calling the returned refetch function
 // CRITICAL: Only autoFetch for absolutely essential data to avoid ERR_INSUFFICIENT_RESOURCES
 export function useUsers() {
-  return useApi<any[]>('users', []); // Lazy load - only when needed
+  return useApi<any[]>('users', [], { autoFetch: true });
 }
 
 export function useAthletes() {
-  return useApi<any[]>('athletes', []); // Lazy load with delay after login
+  return useApi<any[]>('athletes', [], { autoFetch: true });
 }
 
 export function useResults() {
-  return useApi<any[]>('results', []); // Lazy load with delay after login
+  return useApi<any[]>('results', [], { autoFetch: true });
 }
 
 export function useEvents() {
-  return useApi<any[]>('events', []); // Lazy load - only when tab clicked
+  return useApi<any[]>('events', [], { autoFetch: true });
 }
 
 export function useAccessRequests() {
-  return useApi<any[]>('access-requests', []); // Lazy load - only when tab clicked
+  return useApi<any[]>('access-requests', [], { autoFetch: true });
 }
 
 export function useMessages() {
-  return useApi<any[]>('messages', []); // Lazy load - only when tab clicked
+  return useApi<any[]>('messages', [], { autoFetch: true });
 }
 
 export function usePermissions() {
-  return useApi<any[]>('permissions', []); // Lazy load - only when permissions panel opened
+  return useApi<any[]>('permissions', [], { autoFetch: true });
 }
 
 export function useRoles() {
-  return useApi<any[]>('roles', []); // Lazy load - only when permissions panel opened
+  return useApi<any[]>('roles', [], { autoFetch: true });
 }
 
 export function useApprovalRequests() {
-  return useApi<any[]>('approval-requests', []); // Lazy load - only when tab clicked
+  return useApi<any[]>('approval-requests', [], { autoFetch: true });
 }
 
 export function useAgeCategories() {
-  return useApi<any[]>('age-categories', []); // Lazy load - only when add athlete dialog opened
+  return useApi<any[]>('age-categories', [], { autoFetch: true });
 }
 
 export function useUserPermissions() {
-  return useApi<any[]>('user-permissions', []); // Lazy load - only when permissions panel opened
+  return useApi<any[]>('user-permissions', [], { autoFetch: true });
 }
