@@ -234,6 +234,75 @@ function AppContent() {
         setAgeCategories(defaultAgeCategories)
       }
 
+      // Initialize default probes if none exist
+      const existingProbes = probes || []
+      if (existingProbes.length === 0) {
+        const defaultProbes: EventTypeCustom[] = [
+          {
+            id: `probe-${Date.now()}-1`,
+            name: '60m Sprint',
+            category: 'running',
+            unit: 'seconds',
+            description: 'Alergare viteză pe 60 metri',
+            createdAt: new Date().toISOString()
+          },
+          {
+            id: `probe-${Date.now()}-2`,
+            name: '100m Sprint',
+            category: 'running',
+            unit: 'seconds',
+            description: 'Alergare viteză pe 100 metri',
+            createdAt: new Date().toISOString()
+          },
+          {
+            id: `probe-${Date.now()}-3`,
+            name: '400m',
+            category: 'running',
+            unit: 'seconds',
+            description: 'Alergare semifond pe 400 metri',
+            createdAt: new Date().toISOString()
+          },
+          {
+            id: `probe-${Date.now()}-4`,
+            name: 'Săritură în lungime',
+            category: 'jumping',
+            unit: 'meters',
+            description: 'Săritură în lungime cu elan',
+            createdAt: new Date().toISOString()
+          },
+          {
+            id: `probe-${Date.now()}-5`,
+            name: 'Săritură în înălțime',
+            category: 'jumping',
+            unit: 'meters',
+            description: 'Săritură în înălțime cu elan',
+            createdAt: new Date().toISOString()
+          },
+          {
+            id: `probe-${Date.now()}-6`,
+            name: 'Aruncarea greutății',
+            category: 'throwing',
+            unit: 'meters',
+            description: 'Aruncare greutate pentru copii',
+            createdAt: new Date().toISOString()
+          }
+        ]
+        
+        // Save default probes to backend
+        try {
+          for (const probe of defaultProbes) {
+            await apiClient.createEvent({
+              name: probe.name,
+              category: probe.category,
+              unit: probe.unit,
+              description: probe.description
+            })
+          }
+          await refetchProbes()
+        } catch (error) {
+          console.error('Error creating default probes:', error)
+        }
+      }
 
     }
     

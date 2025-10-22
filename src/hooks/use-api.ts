@@ -23,7 +23,12 @@ export function useApi<T>(
   const [error, setError] = useState<Error | null>(null);
   const [hasFetched, setHasFetched] = useState<boolean>(false);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (force: boolean = false) => {
+    // Skip if already fetched and not forcing
+    if (hasFetched && !force) {
+      return;
+    }
+    
     setLoading(true);
     setError(null);
     try {
@@ -97,7 +102,11 @@ export function useApi<T>(
     });
   }, []);
 
-  return [data, setData, loading, error, fetchData];
+  const forceRefetch = useCallback(() => {
+    return fetchData(true);
+  }, [fetchData]);
+
+  return [data, setData, loading, error, forceRefetch];
 }
 
 // Specialized hooks for specific data types
