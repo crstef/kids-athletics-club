@@ -24,11 +24,6 @@ export function useApi<T>(
   const [hasFetched, setHasFetched] = useState<boolean>(false);
 
   const fetchData = useCallback(async () => {
-    // Only fetch if we haven't fetched yet
-    if (hasFetched) {
-      return;
-    }
-    
     setLoading(true);
     setError(null);
     try {
@@ -103,7 +98,7 @@ export function useApi<T>(
   }, []);
 
   const forceRefetch = useCallback(() => {
-    setHasFetched(false); // Reset flag to allow refetch
+    // Just call fetchData directly - it will update hasFetched after fetch completes
     return fetchData();
   }, [fetchData]);
 
