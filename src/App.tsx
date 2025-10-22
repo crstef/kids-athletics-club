@@ -446,56 +446,81 @@ function AppContent() {
     setUserPermissions((current) => (current || []).filter(p => p.id !== id))
   }
 
-  const handleAddRole = (roleData: Omit<Role, 'id' | 'createdAt' | 'createdBy'>) => {
-    setRoles((current) => [
-      ...(current || []),
-      {
+  const handleAddRole = async (roleData: Omit<Role, 'id' | 'createdAt' | 'createdBy'>) => {
+    try {
+      await apiClient.createRole({
         ...roleData,
-        id: `role-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        createdAt: new Date().toISOString(),
         createdBy: currentUser?.id || 'system'
-      }
-    ])
+      })
+      await refetchRoles()
+      toast.success('Rol adăugat cu succes!')
+    } catch (error: any) {
+      toast.error(error.message || 'Eroare la adăugarea rolului')
+      console.error('Error creating role:', error)
+    }
   }
 
-  const handleUpdateRole = (roleId: string, updates: Partial<Role>) => {
-    setRoles((current) =>
-      (current || []).map(r => r.id === roleId ? { ...r, ...updates } : r)
-    )
+  const handleUpdateRole = async (roleId: string, updates: Partial<Role>) => {
+    try {
+      await apiClient.updateRole(roleId, updates)
+      await refetchRoles()
+      toast.success('Rol actualizat cu succes!')
+    } catch (error: any) {
+      toast.error(error.message || 'Eroare la actualizarea rolului')
+      console.error('Error updating role:', error)
+    }
   }
 
-  const handleDeleteRole = (roleId: string) => {
+  const handleDeleteRole = async (roleId: string) => {
     const role = (roles || []).find(r => r.id === roleId)
     if (role?.name === 'superadmin') {
       toast.error('Rolul SuperAdmin nu poate fi șters')
       return
     }
-    setRoles((current) => (current || []).filter(r => r.id !== roleId))
-    setUsers((current) =>
-      (current || []).map(u => u.roleId === roleId ? { ...u, roleId: undefined } : u)
-    )
+    try {
+      await apiClient.deleteRole(roleId)
+      await refetchRoles()
+      toast.success('Rol șters cu succes!')
+    } catch (error: any) {
+      toast.error(error.message || 'Eroare la ștergerea rolului')
+      console.error('Error deleting role:', error)
+    }
   }
 
-  const handleAddAgeCategory = (categoryData: Omit<AgeCategoryCustom, 'id' | 'createdAt' | 'createdBy'>) => {
-    setAgeCategories((current) => [
-      ...(current || []),
-      {
+  const handleAddAgeCategory = async (categoryData: Omit<AgeCategoryCustom, 'id' | 'createdAt' | 'createdBy'>) => {
+    try {
+      await apiClient.createAgeCategory({
         ...categoryData,
-        id: `cat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        createdAt: new Date().toISOString(),
         createdBy: currentUser?.id || 'system'
-      }
-    ])
+      })
+      await refetchAgeCategories()
+      toast.success('Categorie de vârstă adăugată cu succes!')
+    } catch (error: any) {
+      toast.error(error.message || 'Eroare la adăugarea categoriei')
+      console.error('Error creating age category:', error)
+    }
   }
 
-  const handleUpdateAgeCategory = (categoryId: string, updates: Partial<AgeCategoryCustom>) => {
-    setAgeCategories((current) =>
-      (current || []).map(c => c.id === categoryId ? { ...c, ...updates } : c)
-    )
+  const handleUpdateAgeCategory = async (categoryId: string, updates: Partial<AgeCategoryCustom>) => {
+    try {
+      await apiClient.updateAgeCategory(categoryId, updates)
+      await refetchAgeCategories()
+      toast.success('Categorie actualizată cu succes!')
+    } catch (error: any) {
+      toast.error(error.message || 'Eroare la actualizarea categoriei')
+      console.error('Error updating age category:', error)
+    }
   }
 
-  const handleDeleteAgeCategory = (categoryId: string) => {
-    setAgeCategories((current) => (current || []).filter(c => c.id !== categoryId))
+  const handleDeleteAgeCategory = async (categoryId: string) => {
+    try {
+      await apiClient.deleteAgeCategory(categoryId)
+      await refetchAgeCategories()
+      toast.success('Categorie ștersă cu succes!')
+    } catch (error: any) {
+      toast.error(error.message || 'Eroare la ștergerea categoriei')
+      console.error('Error deleting age category:', error)
+    }
   }
 
   const handleApproveAccount = (requestId: string) => {
