@@ -78,6 +78,7 @@ function AppContent() {
   const [deleteAthleteId, setDeleteAthleteId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<AgeCategory | 'all'>('all')
+  const [coachFilter, setCoachFilter] = useState<string>('all') // 'all', 'mine', or coach ID
   const [sortBy, setSortBy] = useState<'name' | 'age' | 'results'>('name')
   const [authDialogOpen, setAuthDialogOpen] = useState(false)
   const [selectedParentId, setSelectedParentId] = useState<string>('')
@@ -720,15 +721,23 @@ function AppContent() {
 
   const myAthletes = useMemo(() => {
     if (!currentUser) return athletes || []
-    if (isSuperAdmin) return athletes || []
-    if (isCoach) {
-      return (athletes || []).filter(a => a.coachId === currentUser.id)
-    }
+    // Coaches și SuperAdmins pot vedea toți atleții
     return athletes || []
-  }, [athletes, currentUser, isCoach, isSuperAdmin])
+  }, [athletes, currentUser])
 
   const filteredAndSortedAthletes = useMemo(() => {
     let filtered = myAthletes
+
+    // Filtru după coach (pentru coaches și superadmin)
+    if (coachFilter !== 'all') {
+      if (coachFilter === 'mine' && currentUser) {
+        filtered = filtered.filter(a => a.coachId === currentUser.id)
+      } else if (coachFilter === 'none') {
+        filtered = filtered.filter(a => !a.coachId)
+      } else {
+        filtered = filtered.filter(a => a.coachId === coachFilter)
+      }
+    }
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
@@ -1093,6 +1102,21 @@ function AppContent() {
                     className="pl-10"
                   />
                 </div>
+                <Select value={coachFilter} onValueChange={setCoachFilter}>
+                  <SelectTrigger className="w-full sm:w-[180px]">
+                    <SelectValue placeholder="Antrenor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Toți antrenorii</SelectItem>
+                    {isCoach && <SelectItem value="mine">Doar ai mei</SelectItem>}
+                    {coaches.map(coach => (
+                      <SelectItem key={coach.id} value={coach.id}>
+                        {coach.firstName} {coach.lastName}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="none">Fără antrenor</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v as AgeCategory | 'all')}>
                   <SelectTrigger className="w-full sm:w-[180px]">
                     <SelectValue placeholder="Categorie" />
@@ -1357,6 +1381,21 @@ function AppContent() {
                   className="pl-10"
                 />
               </div>
+              <Select value={coachFilter} onValueChange={setCoachFilter}>
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectValue placeholder="Antrenor" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toți antrenorii</SelectItem>
+                  {isCoach && <SelectItem value="mine">Doar ai mei</SelectItem>}
+                  {coaches.map(coach => (
+                    <SelectItem key={coach.id} value={coach.id}>
+                      {coach.firstName} {coach.lastName}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="none">Fără antrenor</SelectItem>
+                </SelectContent>
+              </Select>
               <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v as AgeCategory | 'all')}>
                 <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="Categorie" />
