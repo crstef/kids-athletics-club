@@ -4,12 +4,33 @@ import { AuthRequest } from '../middleware/auth';
 
 export const getAllMessages = async (req: AuthRequest, res: Response) => {
   const client = await pool.connect();
+  const { user } = req;
   try {
-    const result = await client.query('SELECT * FROM messages ORDER BY timestamp DESC');
+    let query = `
+      SELECT m.*, 
+             uf.first_name as from_fn, uf.last_name as from_ln, 
+             ut.first_name as to_fn, ut.last_name as to_ln 
+      FROM messages m
+      JOIN users uf ON m.from_user_id = uf.id
+      JOIN users ut ON m.to_user_id = ut.id
+    `;
+    const queryParams: any[] = [];
+
+    if (user?.role !== 'superadmin') {
+      query += ' WHERE m.from_user_id = $1 OR m.to_user_id = $1';
+      queryParams.push(user?.userId);
+    }
+
+    query += ' ORDER BY m.timestamp DESC';
+
+    const result = await client.query(query, queryParams);
+
     res.json(result.rows.map(m => ({
       id: m.id,
       fromUserId: m.from_user_id,
+      fromUserName: `${m.from_fn} ${m.from_ln}`,
       toUserId: m.to_user_id,
+      toUserName: `${m.to_fn} ${m.to_ln}`,
       athleteId: m.athlete_id,
       content: m.content,
       read: m.read,

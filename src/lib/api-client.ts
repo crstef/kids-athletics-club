@@ -74,6 +74,11 @@ class ApiClient {
     return this.request('/auth/me');
   }
 
+  // Public
+  async getPublicCoaches() {
+    return this.request<any[]>('/public/coaches');
+  }
+
   // Users
   async getUsers() {
     return this.request<any[]>('/users');

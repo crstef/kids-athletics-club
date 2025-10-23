@@ -7,12 +7,26 @@ exports.updateAccessRequest = exports.createAccessRequest = exports.getAllAccess
 const database_1 = __importDefault(require("../config/database"));
 const getAllAccessRequests = async (req, res) => {
     const client = await database_1.default.connect();
+    const { user } = req;
     try {
-        const result = await client.query('SELECT * FROM access_requests ORDER BY request_date DESC');
+        let query = 'SELECT ar.*, u_parent.first_name as parent_fn, u_parent.last_name as parent_ln, a.first_name as athlete_fn, a.last_name as athlete_ln FROM access_requests ar JOIN users u_parent ON ar.parent_id = u_parent.id JOIN athletes a ON ar.athlete_id = a.id';
+        const queryParams = [];
+        if (user?.role === 'coach') {
+            query += ' WHERE ar.coach_id = $1';
+            queryParams.push(user.userId);
+        }
+        else if (user?.role === 'parent') {
+            query += ' WHERE ar.parent_id = $1';
+            queryParams.push(user.userId);
+        }
+        query += ' ORDER BY ar.request_date DESC';
+        const result = await client.query(query, queryParams);
         res.json(result.rows.map(r => ({
             id: r.id,
             parentId: r.parent_id,
+            parentName: `${r.parent_fn} ${r.parent_ln}`,
             athleteId: r.athlete_id,
+            athleteName: `${r.athlete_fn} ${r.athlete_ln}`,
             coachId: r.coach_id,
             status: r.status,
             requestDate: r.request_date,

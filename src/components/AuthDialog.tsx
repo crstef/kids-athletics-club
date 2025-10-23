@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner'
 import { Eye, EyeSlash } from '@phosphor-icons/react'
 import { apiClient } from '@/lib/api-client'
-import { useUsers, useAthletes } from '@/hooks/use-api'
+import { useUsers, useAthletes, usePublicCoaches } from '@/hooks/use-api'
 import type { User, UserRole } from '@/lib/types'
 
 interface AuthDialogProps {
@@ -18,8 +18,9 @@ interface AuthDialogProps {
 }
 
 export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
-  const [users, _setUsers, _usersLoading] = useUsers()
-  const [athletes, _setAthletes, _athletesLoading] = useAthletes()
+  const [_users, _setUsers, _usersLoading] = useUsers({ autoFetch: false });
+  const [athletes, _setAthletes, _athletesLoading] = useAthletes({ autoFetch: false });
+  const [coaches, _setCoaches, _coachesLoading, _coachesError, refetchCoaches] = usePublicCoaches();
   
   const [loginEmail, setLoginEmail] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
@@ -37,10 +38,6 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
   const [showLoginPassword, setShowLoginPassword] = useState(false)
   const [showSignupPassword, setShowSignupPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  
-  const coaches = useMemo(() => {
-    return (users || []).filter(u => u.role === 'coach')
-  }, [users])
   
   const athletesByCoach = useMemo(() => {
     if (!selectedCoachId) return []
@@ -63,7 +60,7 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
       resetForms()
     } catch (error: any) {
       if (error.message?.includes('pending approval')) {
-        toast.error('Contul tău așteaptă aprobare de la administrator')
+        toast.error('Contul tău așteaptă aprobată de la administrator')
       } else if (error.message?.includes('inactive')) {
         toast.error('Contul tău este dezactivat. Contactează administratorul.')
       } else {
@@ -121,9 +118,9 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
       
       if (signupRole !== 'superadmin') {
         if (signupRole === 'parent') {
-          toast.info('Cererea ta a fost trimisă la antrenor pentru aprobare')
+          toast.info('Cererea ta a fost trimisă la antrenor pentru aprobată')
         } else {
-          toast.info('Contul tău așteaptă aprobare de la administrator')
+          toast.info('Contul tău așteaptă aprobată de la administrator')
         }
       }
       
@@ -239,7 +236,7 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
                     <div className="text-sm text-foreground space-y-1">
                       <p>• Selectează antrenorul copilului tău din listă</p>
                       <p>• Apoi selectează copilul din lista antrenorului</p>
-                      <p>• Cererea va fi trimisă la antrenor pentru aprobare</p>
+                      <p>• Cererea va fi trimisă la antrenor pentru aprobată</p>
                     </div>
                   </div>
                   
@@ -253,14 +250,18 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
                         <SelectValue placeholder="Alege antrenorul..." />
                       </SelectTrigger>
                       <SelectContent>
-                        {coaches.length === 0 ? (
+                        {_coachesLoading ? (
+                          <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                            Se încarcă...
+                          </div>
+                        ) : coaches.length === 0 ? (
                           <div className="px-2 py-6 text-center text-sm text-muted-foreground">
                             Nu există antrenori disponibili
                           </div>
                         ) : (
                           coaches.map((coach) => (
                             <SelectItem key={coach.id} value={coach.id}>
-                              {`${coach.firstName} ${coach.lastName}${(coach as any).specialization ? ` - ${(coach as any).specialization}` : ''}`}
+                              {coach.name}
                             </SelectItem>
                           ))
                         )}
@@ -298,7 +299,7 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
                 <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 space-y-2">
                   <div className="font-semibold text-sm text-foreground">ℹ️ Informații Atlet:</div>
                   <div className="text-sm text-foreground space-y-1">
-                    <p>• Contul necesită aprobare de la antrenor</p>
+                    <p>• Contul necesită aprobată de la antrenor</p>
                     <p>• Antrenorul va asocia profilul tău la profilul din sistem</p>
                     <p>• Vei avea acces la rezultatele și statisticile tale</p>
                   </div>
@@ -309,8 +310,8 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
                 <div className="bg-secondary/10 border border-secondary/20 rounded-lg p-4 space-y-2">
                   <div className="font-semibold text-sm text-foreground">ℹ️ Informații Antrenor:</div>
                   <div className="text-sm text-foreground space-y-1">
-                    <p>• Contul necesită aprobare de la administrator</p>
-                    <p>• După aprobare vei putea gestiona atleți</p>
+                    <p>• Contul necesită aprobată de la administrator</p>
+                    <p>• După aprobată vei putea gestiona atleți</p>
                   </div>
                 </div>
               )}
@@ -407,7 +408,7 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
 
               {signupRole === 'parent' && (
                 <div className="space-y-2">
-                  <Label htmlFor="signup-notes">Notițe Aprobare (opțional)</Label>
+                  <Label htmlFor="signup-notes">Notițe Aprobată (opțional)</Label>
                   <Input
                     id="signup-notes"
                     value={approvalNotes}
@@ -419,7 +420,7 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
 
               {signupRole === 'athlete' && (
                 <div className="space-y-2">
-                  <Label htmlFor="signup-notes">Notițe Aprobare (opțional)</Label>
+                  <Label htmlFor="signup-notes">Notițe Aprobată (opțional)</Label>
                   <Input
                     id="signup-notes"
                     value={approvalNotes}

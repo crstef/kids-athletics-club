@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
 import authRoutes from './routes/auth';
+import publicRoutes from './routes/public';
 import usersRoutes from './routes/users';
 import athletesRoutes from './routes/athletes';
 import resultsRoutes from './routes/results';
@@ -79,33 +80,9 @@ app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Static uploads (serve user-uploaded files)
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-app.use('/uploads', express.static(uploadsDir));
-
-// Serve static assets when available (helps even if NODE_ENV e=development on hosting)
-if (fs.existsSync(distDir)) {
-  app.use(express.static(distDir));
-} else {
-  console.warn('[server] dist folder missing, skipping static bundle serving');
-}
-
-if (fs.existsSync(rootDir)) {
-  app.use(express.static(rootDir));
-}
-
-// Request logging (only in development)
-if (!IS_PRODUCTION) {
-  app.use((req: Request, res: Response, next: NextFunction) => {
-    console.log(`${req.method} ${req.path}`);
-    next();
-  });
-}
-
-// Routes
+// API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/public', publicRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/athletes', athletesRoutes);
 app.use('/api/results', resultsRoutes);

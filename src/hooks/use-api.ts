@@ -82,7 +82,7 @@ export function useApi<T>(
     if (autoFetch && !authLoading && currentUser && !hasFetched) {
       fetchData();
     }
-  }, [autoFetch, authLoading, currentUser, hasFetched]);
+  }, [autoFetch, authLoading, currentUser, hasFetched, fetchData]);
 
   const setData = useCallback((valueOrFn: T | ((current: T) => T)) => {
     setDataState(prevData => {
@@ -104,15 +104,50 @@ export function useApi<T>(
   return [data, setData, loading, error, forceRefetch];
 }
 
-// Specialized hooks for specific data types
-// Note: autoFetch is now false by default, so data must be fetched manually by calling the returned refetch function
-// CRITICAL: Only autoFetch for absolutely essential data to avoid ERR_INSUFFICIENT_RESOURCES
-export function useUsers() {
-  return useApi<any[]>('users', [], { autoFetch: true });
+export function usePublicCoaches(options: UseApiOptions = {}) {
+  const { autoFetch = true, onError } = options;
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(autoFetch);
+  const [error, setError] = useState<Error | null>(null);
+  const [hasFetched, setHasFetched] = useState(false);
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await apiClient.getPublicCoaches();
+      setData(result);
+      setHasFetched(true);
+    } catch (err) {
+      const error = err as Error;
+      setError(error);
+      if (onError) onError(error);
+    } finally {
+      setLoading(false);
+    }
+  }, [onError]);
+
+  useEffect(() => {
+    if (autoFetch && !hasFetched) {
+      fetchData();
+    }
+  }, [autoFetch, hasFetched, fetchData]);
+
+  const forceRefetch = useCallback(async () => {
+    setHasFetched(false);
+    await new Promise(resolve => setTimeout(resolve, 0));
+    await fetchData();
+  }, [fetchData]);
+
+  return [data, setData, loading, error, forceRefetch] as const;
 }
 
-export function useAthletes() {
-  return useApi<any[]>('athletes', [], { autoFetch: true });
+export function useUsers(options: UseApiOptions = {}) {
+  return useApi<any[]>('users', [], { autoFetch: true, ...options });
+}
+
+export function useAthletes(options: UseApiOptions = {}) {
+  return useApi<any[]>('athletes', [], { autoFetch: true, ...options });
 }
 
 export function useResults() {

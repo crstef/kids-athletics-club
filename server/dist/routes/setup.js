@@ -90,13 +90,15 @@ const initializeData = async (req, res) => {
       CROSS JOIN permissions p
       WHERE r.name = 'coach'
       AND p.name IN (
-        'athletes.view', 'athletes.create', 'athletes.edit',
+        'users.view',
+        'athletes.view', 'athletes.create', 'athletes.edit', 'athletes.delete',
         'athletes.avatar.view', 'athletes.avatar.upload',
-        'results.view', 'results.create', 'results.edit',
-        'events.view',
+        'results.view', 'results.create', 'results.edit', 'results.delete',
+        'events.view', 'events.create', 'events.edit', 'events.delete',
         'messages.view', 'messages.create',
-        'probes.view',
-        'age_categories.view'
+        'access_requests.view', 'access_requests.approve',
+        'probes.view', 'probes.manage',
+        'age_categories.view', 'age_categories.manage'
       )
       ON CONFLICT DO NOTHING
     `);

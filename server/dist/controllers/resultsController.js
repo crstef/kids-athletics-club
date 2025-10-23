@@ -7,11 +7,20 @@ exports.updateResult = exports.deleteResult = exports.createResult = exports.get
 const database_1 = __importDefault(require("../config/database"));
 const getAllResults = async (req, res) => {
     const client = await database_1.default.connect();
+    const { user } = req;
     try {
-        const result = await client.query('SELECT * FROM results ORDER BY date DESC');
+        let query = 'SELECT r.*, a.first_name, a.last_name FROM results r JOIN athletes a ON r.athlete_id = a.id';
+        const queryParams = [];
+        if (user?.role !== 'superadmin') {
+            query += ' WHERE a.coach_id = $1';
+            queryParams.push(user?.userId);
+        }
+        query += ' ORDER BY r.date DESC';
+        const result = await client.query(query, queryParams);
         res.json(result.rows.map(r => ({
             id: r.id,
             athleteId: r.athlete_id,
+            athleteName: `${r.first_name} ${r.last_name}`,
             eventType: r.event_type,
             value: parseFloat(r.value),
             unit: r.unit,

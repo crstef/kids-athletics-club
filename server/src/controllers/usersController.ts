@@ -9,14 +9,27 @@ const hashPassword = (password: string): string => {
 
 export const getAllUsers = async (req: AuthRequest, res: Response) => {
   const client = await pool.connect();
+  const { user: currentUser } = req;
   
   try {
-    const result = await client.query(
-      `SELECT id, email, first_name, last_name, role, role_id, is_active, needs_approval, 
-              probe_id, athlete_id, approved_by, approved_at, created_at
-       FROM users
-       ORDER BY created_at DESC`
-    );
+    let query = `SELECT u.id, u.email, u.first_name, u.last_name, u.role, u.role_id, u.is_active, u.needs_approval, 
+                        u.probe_id, u.athlete_id, u.approved_by, u.approved_at, u.created_at,
+                        r.name as role_name
+                 FROM users u
+                 LEFT JOIN roles r ON u.role_id = r.id`;
+    const queryParams: any[] = [];
+
+    if (currentUser?.role === 'coach') {
+      // Coaches can see the parents of the athletes they coach
+      query += ` WHERE u.role = 'parent' AND u.id IN (
+                   SELECT parent_id FROM athletes WHERE coach_id = $1
+                 ) OR u.id = $1`;
+      queryParams.push(currentUser.userId);
+    }
+
+    query += ' ORDER BY u.created_at DESC';
+
+    const result = await client.query(query, queryParams);
 
     const users = result.rows.map(user => ({
       id: user.id,
@@ -25,6 +38,7 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
       lastName: user.last_name,
       role: user.role,
       roleId: user.role_id,
+      roleName: user.role_name,
       isActive: user.is_active,
       needsApproval: user.needs_approval,
       probeId: user.probe_id,
