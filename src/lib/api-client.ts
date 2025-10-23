@@ -355,6 +355,50 @@ class ApiClient {
   async revokePermission(id: string) {
     return this.request(`/user-permissions/${id}`, { method: 'DELETE' });
   }
+
+  // Dashboards
+  async getDashboards() {
+    return this.request<any[]>('/dashboards');
+  }
+
+  async getDashboard(id: string) {
+    return this.request(`/dashboards/${id}`);
+  }
+
+  async createDashboard(data: any) {
+    return this.request('/dashboards', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateDashboard(id: string, data: any) {
+    return this.request(`/dashboards/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteDashboard(id: string) {
+    return this.request(`/dashboards/${id}`, { method: 'DELETE' });
+  }
+
+  async getRoleDashboards(roleId: string) {
+    return this.request(`/dashboards/role/${roleId}`);
+  }
+
+  async assignDashboardToRole(data: any) {
+    return this.request('/dashboards/assign', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async removeDashboardFromRole(roleId: string, dashboardId: string) {
+    return this.request(`/dashboards/role/${roleId}/dashboard/${dashboardId}`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 export const apiClient = new ApiClient();

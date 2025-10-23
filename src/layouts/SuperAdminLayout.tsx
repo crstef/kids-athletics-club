@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { SuperAdminDashboard } from '@/components/SuperAdminDashboard';
 import { UserManagement } from '@/components/UserManagement';
 import { RoleManagement } from '@/components/RoleManagement';
+import SystemManagement from '@/components/SystemManagement';
 import { PermissionsSystem } from '@/components/PermissionsSystem';
 import { AgeCategoryManagement } from '@/components/AgeCategoryManagement';
 import { ProbeManagement } from '@/components/ProbeManagement';
@@ -232,14 +233,7 @@ const SuperAdminLayout: React.FC<SuperAdminLayoutProps> = ({
           </TabsContent>
 
           <TabsContent value="roles">
-            <RoleManagement
-              roles={roles}
-              permissions={permissions}
-              currentUserId={currentUser.id}
-              onAddRole={handleAddRole}
-              onUpdateRole={handleUpdateRole}
-              onDeleteRole={handleDeleteRole}
-            />
+            <SystemManagement />
           </TabsContent>
 
           <TabsContent value="permissions">
