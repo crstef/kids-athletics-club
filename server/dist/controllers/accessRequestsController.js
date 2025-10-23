@@ -20,7 +20,7 @@ const getAllAccessRequests = async (req, res) => {
             message: r.message
         })));
     }
-    catch (error) {
+    catch (_error) {
         res.status(500).json({ error: 'Internal server error' });
     }
     finally {
@@ -44,7 +44,7 @@ const createAccessRequest = async (req, res) => {
             message: r.message
         });
     }
-    catch (error) {
+    catch (_error) {
         res.status(500).json({ error: 'Internal server error' });
     }
     finally {
@@ -69,7 +69,7 @@ const updateAccessRequest = async (req, res) => {
             message: r.message
         });
     }
-    catch (error) {
+    catch (_error) {
         res.status(500).json({ error: 'Internal server error' });
     }
     finally {

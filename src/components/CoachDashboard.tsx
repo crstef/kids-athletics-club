@@ -1,8 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
-import { useLocalStorage } from '@/hooks/use-local-storage'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -12,7 +10,6 @@ import {
   Users,
   Trophy,
   ShieldCheck,
-  X,
   Gear
 } from '@phosphor-icons/react'
 import { formatResult } from '@/lib/utils'
@@ -266,17 +263,8 @@ export function CoachDashboard({
 
 
 const PerformanceChartWrapper = ({ myAthletes, myResults }: { myAthletes: Athlete[], myResults: Result[] }) => {
-  if (myAthletes.length === 0 || myResults.length === 0) return (
-    <CardContent><p>Nu sunt suficiente date pentru a afișa graficul.</p></CardContent>
-  );
-
   const eventTypes = [...new Set(myResults.map(r => r.eventType))];
   const [selectedEvent, setSelectedEvent] = useState<string | null>(eventTypes[0] || null);
-
-  if (!selectedEvent) return (
-    <CardContent><p>Selectează o probă pentru a vedea graficul.</p></CardContent>
-  );
-
   const athleteOptions = myAthletes.map(a => ({ value: a.id, label: `${a.firstName} ${a.lastName}` }));
   const [selectedAthleteId, setSelectedAthleteId] = useState<string | null>(myAthletes[0]?.id || null);
 
@@ -291,35 +279,47 @@ const PerformanceChartWrapper = ({ myAthletes, myResults }: { myAthletes: Athlet
     return myResults.find(r => r.eventType === selectedEvent)?.unit || 'points';
   }, [myResults, selectedEvent]);
 
+  const insufficientData = myAthletes.length === 0 || myResults.length === 0;
+
   return (
     <>
-      <CardHeader className="pt-0">
-        <div className="flex gap-2 pt-2">
-          <Select value={selectedAthleteId || ''} onValueChange={(val) => setSelectedAthleteId(val)}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Selectează Atlet" />
-            </SelectTrigger>
-            <SelectContent>
-              {athleteOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={selectedEvent} onValueChange={(val) => setSelectedEvent(val)}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Selectează Probă" />
-            </SelectTrigger>
-            <SelectContent>
-              {eventTypes.map(event => <SelectItem key={event} value={event}>{event}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <PerformanceChart
-          data={chartData}
-          eventType={selectedEvent}
-          unit={unit}
-        />
-      </CardContent>
+      {insufficientData ? (
+        <CardContent><p>Nu sunt suficiente date pentru a afișa graficul.</p></CardContent>
+      ) : (
+        <>
+          <CardHeader className="pt-0">
+            <div className="flex gap-2 pt-2">
+              <Select value={selectedAthleteId || ''} onValueChange={(val) => setSelectedAthleteId(val)}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Selectează Atlet" />
+                </SelectTrigger>
+                <SelectContent>
+                  {athleteOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={selectedEvent || ''} onValueChange={(val) => setSelectedEvent(val)}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Selectează Probă" />
+                </SelectTrigger>
+                <SelectContent>
+                  {eventTypes.map(event => <SelectItem key={event} value={event}>{event}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {selectedEvent ? (
+              <PerformanceChart
+                data={chartData}
+                eventType={selectedEvent}
+                unit={unit}
+              />
+            ) : (
+              <p>Selectează o probă pentru a vedea graficul.</p>
+            )}
+          </CardContent>
+        </>
+      )}
     </>
   )
 }

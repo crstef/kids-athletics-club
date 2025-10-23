@@ -390,7 +390,7 @@ const fixAdminRole = async (req, res) => {
            updated_at = NOW()
        WHERE email = 'admin@clubatletism.ro'
        RETURNING id, email, first_name, last_name, role`);
-        let user;
+        // user is assigned once after potential create/update
         let wasCreated = false;
         // If user doesn't exist, create it
         if (result.rows.length === 0) {
@@ -417,7 +417,7 @@ const fixAdminRole = async (req, res) => {
             ]);
             wasCreated = true;
         }
-        user = result.rows[0];
+        const user = result.rows[0];
         // Grant all permissions to this user
         await client.query(`
       INSERT INTO user_permissions (user_id, permission_id, granted_by, granted_at, created_at, updated_at)

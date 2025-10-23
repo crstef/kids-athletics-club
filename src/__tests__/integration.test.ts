@@ -4,12 +4,12 @@ import type { Athlete, Result, User, AccessRequest, Message } from '../lib/types
 describe('Integration: Athlete Management Flow', () => {
   let athletes: Athlete[] = []
   let results: Result[] = []
-  let users: User[] = []
+  let _users: User[] = []
 
   beforeEach(() => {
     athletes = []
     results = []
-    users = [
+  _users = [
       {
         id: 'coach-1',
         email: 'coach@test.com',
@@ -30,6 +30,8 @@ describe('Integration: Athlete Management Flow', () => {
       lastName: 'Popescu',
       age: 14,
       category: 'U16',
+      gender: 'M',
+      dateOfBirth: '2010-01-01',
       dateJoined: new Date().toISOString(),
       coachId: 'coach-1'
     }
@@ -70,6 +72,8 @@ describe('Integration: Athlete Management Flow', () => {
       lastName: 'Popescu',
       age: 14,
       category: 'U16',
+      gender: 'M',
+      dateOfBirth: '2010-01-01',
       dateJoined: new Date().toISOString(),
       coachId: 'coach-1'
     }
@@ -80,6 +84,8 @@ describe('Integration: Athlete Management Flow', () => {
       lastName: 'Ionescu',
       age: 12,
       category: 'U14',
+      gender: 'F',
+      dateOfBirth: '2012-05-10',
       dateJoined: new Date().toISOString(),
       coachId: 'coach-1'
     }
@@ -130,6 +136,8 @@ describe('Integration: Athlete Management Flow', () => {
       lastName: 'Popescu',
       age: 14,
       category: 'U16',
+      gender: 'M',
+      dateOfBirth: '2010-01-01',
       dateJoined: new Date().toISOString(),
       coachId: 'coach-1'
     }
@@ -172,18 +180,18 @@ describe('Integration: Athlete Management Flow', () => {
     expect(athleteResults[0].value).toBeGreaterThan(athleteResults[1].value)
     expect(athleteResults[1].value).toBeGreaterThan(athleteResults[2].value)
 
-    const improvement = athleteResults[0].value - athleteResults[2].value
-    expect(improvement).toBe(0.7)
+  const improvement = athleteResults[0].value - athleteResults[2].value
+  expect(improvement).toBeCloseTo(0.7, 2)
   })
 })
 
 describe('Integration: Access Request Flow', () => {
-  let users: User[] = []
-  let athletes: Athlete[] = []
+  let _users: User[] = []
+  let _athletes: Athlete[] = []
   let accessRequests: AccessRequest[] = []
 
   beforeEach(() => {
-    users = [
+  _users = [
       {
         id: 'coach-1',
         email: 'coach@test.com',
@@ -206,13 +214,15 @@ describe('Integration: Access Request Flow', () => {
       }
     ]
 
-    athletes = [
+    _athletes = [
       {
         id: 'athlete-1',
         firstName: 'Ion',
         lastName: 'Popescu',
         age: 14,
         category: 'U16',
+        gender: 'M',
+        dateOfBirth: '2010-01-01',
         dateJoined: new Date().toISOString(),
         coachId: 'coach-1'
       }
@@ -301,10 +311,10 @@ describe('Integration: Access Request Flow', () => {
 
 describe('Integration: Messaging Flow', () => {
   let messages: Message[] = []
-  let users: User[] = []
+  let _users: User[] = []
 
   beforeEach(() => {
-    users = [
+  _users = [
       {
         id: 'coach-1',
         email: 'coach@test.com',

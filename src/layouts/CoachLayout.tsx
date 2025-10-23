@@ -14,7 +14,7 @@ import { CoachAccessRequests } from '@/components/CoachAccessRequests';
 import { MessagingPanel } from '@/components/MessagingPanel';
 import { AthleteDetailsDialog } from '@/components/AthleteDetailsDialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { User, Role, Permission, AgeCategoryCustom, EventTypeCustom, Result, Athlete, AccessRequest, Message, UserPermission, AccountApprovalRequest } from '@/lib/types';
+import { User, AgeCategoryCustom, Result, Athlete, AccessRequest, Message, AccountApprovalRequest } from '@/lib/types';
 
 interface CoachLayoutProps {
   currentUser: User

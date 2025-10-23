@@ -2,9 +2,9 @@ import { useMemo, useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { TrendUp, TrendDown, Trophy, Target, Calendar } from '@phosphor-icons/react'
-import { PeriodFilter, getFilteredResults, getInitialDateRange, getFirstDataDate, type Period } from './PeriodFilter'
-import type { Result, EventType } from '@/lib/types'
+import { TrendUp, TrendDown, Trophy, Calendar } from '@phosphor-icons/react'
+import { PeriodFilter, getFilteredResults, getInitialDateRange, getFirstDataDate } from './PeriodFilter'
+import type { Result, EventType, Period } from '@/lib/types'
 import { formatResult } from '@/lib/constants'
 
 interface ProgressStatsProps {
@@ -109,11 +109,10 @@ export function ProgressStats({ athleteName, results }: ProgressStatsProps) {
   return (
     <div className="space-y-6">
       <PeriodFilter 
-        value={period} 
-        onChange={setPeriod} 
+        period={period}
+        setPeriod={setPeriod}
         dateRange={dateRange}
-        onDateRangeChange={setDateRange}
-        hasData={results.length > 0}
+        setDateRange={setDateRange}
         firstDataDate={firstDataDate}
         className="justify-center sm:justify-start" 
       />

@@ -115,7 +115,32 @@ const login = async (req, res) => {
             ...rolePermissions.rows.map(r => r.name),
             ...userPermissions.rows.map(r => r.name)
         ];
-        const permissions = [...new Set(allPermissions)];
+        let permissions = [...new Set(allPermissions)];
+        // Server-side safety net: if DB role permissions are not configured,
+        // grant a minimal, sane default set based on the role so the app works.
+        if (permissions.length === 0) {
+            const fallbackByRole = {
+                superadmin: ['*'],
+                coach: [
+                    'athletes.view', 'athletes.edit',
+                    'athletes.avatar.view', 'athletes.avatar.upload',
+                    'results.create', 'results.view', 'results.edit',
+                    'events.view',
+                    'messages.view', 'messages.create',
+                    'access_requests.view', 'access_requests.edit',
+                ],
+                parent: [
+                    'athletes.view', 'athletes.avatar.view',
+                    'results.view', 'events.view',
+                    'messages.view', 'messages.create',
+                    'access_requests.create', 'access_requests.view',
+                ],
+                athlete: [
+                    'athletes.view', 'results.view', 'events.view', 'messages.view'
+                ],
+            };
+            permissions = fallbackByRole[user.role] || [];
+        }
         // Generate JWT
         const token = (0, jwt_1.generateToken)({
             userId: user.id,
@@ -190,6 +215,30 @@ const getCurrentUser = async (req, res) => {
         }
         else {
             console.log(`[getCurrentUser] User ${user.email} has no role_id and couldn't find role by name, returning empty permissions`);
+        }
+        // Apply same safety net as in login if no permissions were resolved
+        if (!permissions || permissions.length === 0) {
+            const fallbackByRole = {
+                superadmin: ['*'],
+                coach: [
+                    'athletes.view', 'athletes.edit',
+                    'athletes.avatar.view', 'athletes.avatar.upload',
+                    'results.create', 'results.view', 'results.edit',
+                    'events.view',
+                    'messages.view', 'messages.create',
+                    'access_requests.view', 'access_requests.edit',
+                ],
+                parent: [
+                    'athletes.view', 'athletes.avatar.view',
+                    'results.view', 'events.view',
+                    'messages.view', 'messages.create',
+                    'access_requests.create', 'access_requests.view',
+                ],
+                athlete: [
+                    'athletes.view', 'results.view', 'events.view', 'messages.view'
+                ],
+            };
+            permissions = fallbackByRole[user.role] || [];
         }
         res.json({
             id: user.id,

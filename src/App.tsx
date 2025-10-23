@@ -1,40 +1,14 @@
 import { useState, useMemo, useEffect } from 'react'
 import { Toaster, toast } from 'sonner'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
-import { Badge } from '@/components/ui/badge'
-import { Card } from '@/components/ui/card'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { MagnifyingGlass, SortAscending, Trophy, SignOut, UserCircle, Envelope, ChatCircleDots, ShieldCheck, Target, Users } from '@phosphor-icons/react'
+import { Trophy, UserCircle, Envelope, ChatCircleDots } from '@phosphor-icons/react'
 import { AuthProvider, useAuth } from './lib/auth-context'
 import { AuthDialog } from '@/components/AuthDialog'
-import { AddAthleteDialog } from '@/components/AddAthleteDialog'
-import { EditAthleteDialog } from '@/components/EditAthleteDialog'
-import { AddCoachDialog } from '@/components/AddCoachDialog'
-import { AthleteCard } from '@/components/AthleteCard'
-import { AthleteDetailsDialog } from '@/components/AthleteDetailsDialog'
-import { DashboardStats } from '@/components/DashboardStats'
-import { CoachAccessRequests } from '@/components/CoachAccessRequests'
-import { CoachApprovalRequests } from '@/components/CoachApprovalRequests'
-import { CoachDashboard } from '@/components/CoachDashboard'
-import { ParentDashboard } from '@/components/ParentDashboard'
-import { MessagingPanel } from '@/components/MessagingPanel'
-import { SuperAdminDashboard } from '@/components/SuperAdminDashboard'
-import { EventManagement as ProbeManagement } from '@/components/EventManagement'
-import { AthleteDashboard } from '@/components/AthleteDashboard'
-import { UserManagement } from '@/components/UserManagement'
-import { PermissionsSystem } from '@/components/PermissionsSystem'
-import { UserPermissionsManagement } from '@/components/UserPermissionsManagement'
-import { RoleManagement } from '@/components/RoleManagement'
-import { AgeCategoryManagement } from '@/components/AgeCategoryManagement'
 import { apiClient } from '@/lib/api-client'
 import { useAthletes, useResults, useUsers, useAccessRequests, useMessages, useEvents, usePermissions, useUserPermissions, useApprovalRequests, useRoles, useAgeCategories } from '@/hooks/use-api'
 import { hashPassword } from './lib/auth';
 import { DEFAULT_PERMISSIONS, DEFAULT_ROLES } from './lib/defaults'
-import type { Athlete, Result, AgeCategory, User, Coach, AccessRequest, Message, EventTypeCustom, Permission, UserPermission, AccountApprovalRequest, Role, AgeCategoryCustom } from '@/lib/types'
+import type { Athlete, Result, AgeCategory, User, AccessRequest, Message, EventTypeCustom, Permission, UserPermission, Role, AgeCategoryCustom } from '@/lib/types'
 import SuperAdminLayout from './layouts/SuperAdminLayout';
 import CoachLayout from './layouts/CoachLayout';
 import ParentLayout from './layouts/ParentLayout';
@@ -75,17 +49,17 @@ const DASHBOARD_COMPONENTS: Record<string, React.ComponentType<any>> = {
 
 function AppContent() {
   const { currentUser, setCurrentUser, hasPermission, logout, loading: authLoading } = useAuth()
-  const [athletes, setAthletes, athletesLoading, athletesError, refetchAthletes] = useAthletes()
-  const [results, setResults, resultsLoading, resultsError, refetchResults] = useResults()
-  const [users, setUsers, usersLoading, usersError, refetchUsers] = useUsers()
-  const [accessRequests, setAccessRequests, accessRequestsLoading, accessRequestsError, refetchAccessRequests] = useAccessRequests()
-  const [messages, setMessages, messagesLoading, messagesError, refetchMessages] = useMessages()
-  const [probes, setProbes, probesLoading, probesError, refetchProbes] = useEvents()
-  const [permissions, setPermissions, permissionsLoading, permissionsError, refetchPermissions] = usePermissions()
-  const [userPermissions, setUserPermissions, userPermissionsLoading, userPermissionsError, refetchUserPermissions] = useUserPermissions()
-  const [approvalRequests, setApprovalRequests, approvalRequestsLoading, approvalRequestsError, refetchApprovalRequests] = useApprovalRequests()
-  const [roles, setRoles, rolesLoading, rolesError, refetchRoles] = useRoles()
-  const [ageCategories, setAgeCategories, ageCategoriesLoading, ageCategoriesError, refetchAgeCategories] = useAgeCategories()
+  const [athletes, _setAthletes, _athletesLoading, _athletesError, refetchAthletes] = useAthletes()
+  const [results, _setResults, _resultsLoading, _resultsError, refetchResults] = useResults()
+  const [users, setUsers, _usersLoading, _usersError, refetchUsers] = useUsers()
+  const [accessRequests, setAccessRequests, _accessRequestsLoading, _accessRequestsError, refetchAccessRequests] = useAccessRequests()
+  const [messages, _setMessages, _messagesLoading, _messagesError, refetchMessages] = useMessages()
+  const [probes, _setProbes, _probesLoading, _probesError, refetchProbes] = useEvents()
+  const [permissions, setPermissions, _permissionsLoading, _permissionsError, refetchPermissions] = usePermissions()
+  const [userPermissions, setUserPermissions, _userPermissionsLoading, _userPermissionsError, refetchUserPermissions] = useUserPermissions()
+  const [approvalRequests, setApprovalRequests, _approvalRequestsLoading, _approvalRequestsError, refetchApprovalRequests] = useApprovalRequests()
+  const [roles, setRoles, _rolesLoading, _rolesError, refetchRoles] = useRoles()
+  const [ageCategories, setAgeCategories, _ageCategoriesLoading, _ageCategoriesError, refetchAgeCategories] = useAgeCategories()
   const [selectedAthlete, setSelectedAthlete] = useState<Athlete | null>(null)
   const [selectedAthleteTab, setSelectedAthleteTab] = useState<'results' | 'evolution'>('results')
   const [deleteAthleteId, setDeleteAthleteId] = useState<string | null>(null)
@@ -93,7 +67,7 @@ function AppContent() {
   const [categoryFilter, setCategoryFilter] = useState<AgeCategory | 'all'>('all')
   const [sortBy, setSortBy] = useState<'name' | 'age' | 'results'>('name')
   const [authDialogOpen, setAuthDialogOpen] = useState(false)
-  const [selectedParentId, setSelectedParentId] = useState<string>('')
+  
   const [activeTab, setActiveTab] = useState('dashboard')
   const [superAdminActiveTab, setSuperAdminActiveTab] = useState('dashboard')
 
@@ -280,36 +254,7 @@ function AppContent() {
     }
   }
 
-  const handleAddCoach = (coachData: Omit<Coach, 'id' | 'createdAt'>, requiresApproval: boolean) => {
-    const existingUser = (users || []).find(u => u.email.toLowerCase() === coachData.email.toLowerCase())
-    
-    if (existingUser) {
-      toast.error('Emailul este deja înregistrat')
-      return
-    }
-
-    const newCoach: Coach = {
-      ...coachData,
-      id: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      createdAt: new Date().toISOString()
-    }
-
-    setUsers((current) => [...(current || []), newCoach])
-
-    if (requiresApproval) {
-      const approvalRequest: AccountApprovalRequest = {
-        id: `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        userId: newCoach.id,
-        requestedRole: 'coach',
-        status: 'pending',
-        requestDate: new Date().toISOString()
-      }
-      setApprovalRequests((current) => [...(current || []), approvalRequest])
-      toast.success('Antrenor adăugat! Contul așteaptă aprobată.')
-    } else {
-      toast.success('Antrenor adăugat cu succes!')
-    }
-  }
+  
 
   const handleDeleteAthlete = (id: string) => {
     setDeleteAthleteId(id)
@@ -670,14 +615,7 @@ function AppContent() {
     setApprovalRequests((current) => (current || []).filter(r => r.id !== requestId))
   }
 
-  const handleUpdateUserRole = (userId: string, role: 'coach' | 'parent' | 'athlete') => {
-    setUsers((current) =>
-      (current || []).map(u =>
-        u.id === userId ? { ...u, role } : u
-      )
-    )
-    toast.success('Rol actualizat cu succes')
-  }
+  
 
   const handleAddUser = async (userData: Omit<User, 'id' | 'createdAt'>) => {
     try {
@@ -824,7 +762,7 @@ function AppContent() {
     })
   }, [currentUser, hasPermission])
 
-  const selectedParent = parents.find(p => p.id === selectedParentId)
+  
 
   const currentAthlete = useMemo(() => {
     if (!currentUser || currentUser.role !== 'athlete') return null

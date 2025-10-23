@@ -1,7 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import {
   Card,
-  CardContent,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'

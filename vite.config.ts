@@ -1,26 +1,13 @@
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react-swc";
-import { defineConfig, PluginOption } from "vite";
-
+import { defineConfig } from "vite";
 import { resolve } from 'path'
 
-const projectRoot = process.env.PROJECT_ROOT || import.meta.dirname
+const projectRoot = process.env.PROJECT_ROOT || process.cwd()
 
 // https://vite.dev/config/
-export default defineConfig(async () => {
-  const [sparkPlugin, createIconImportProxy] = await Promise.all([
-    import("@github/spark/spark-vite-plugin"),
-    import("@github/spark/vitePhosphorIconProxyPlugin")
-  ]);
-
-  return {
-    plugins: [
-      react(),
-      tailwindcss(),
-      // DO NOT REMOVE
-      (createIconImportProxy.default ?? createIconImportProxy)() as PluginOption,
-      (sparkPlugin.default ?? sparkPlugin)() as PluginOption,
-    ],
+export default defineConfig({
+  plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
       '@': resolve(projectRoot, 'src')
@@ -54,14 +41,13 @@ export default defineConfig(async () => {
     sourcemap: false,
     cssCodeSplit: true
   },
-    server: {
-      proxy: {
-        '/api': {
-          target: process.env.VITE_API_URL || 'http://localhost:3001',
-          changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api/, '')
-        }
+  server: {
+    proxy: {
+      '/api': {
+        target: process.env.VITE_API_URL || 'http://localhost:3001',
+        changeOrigin: true,
+        rewrite: (path: string) => path.replace(/^\/api/, '')
       }
     }
-  };
-});
+  }
+})

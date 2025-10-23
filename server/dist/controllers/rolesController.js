@@ -28,7 +28,7 @@ const getAllRoles = async (req, res) => {
         }
         res.json(roles);
     }
-    catch (error) {
+    catch (_error) {
         res.status(500).json({ error: 'Internal server error' });
     }
     finally {
@@ -66,7 +66,7 @@ const createRole = async (req, res) => {
             createdAt: role.created_at
         });
     }
-    catch (error) {
+    catch (_error) {
         await client.query('ROLLBACK');
         res.status(500).json({ error: 'Internal server error' });
     }
@@ -112,7 +112,7 @@ const updateRole = async (req, res) => {
         await client.query('COMMIT');
         res.json({ message: 'Role updated successfully' });
     }
-    catch (error) {
+    catch (_error) {
         await client.query('ROLLBACK');
         res.status(500).json({ error: 'Internal server error' });
     }
@@ -131,7 +131,7 @@ const deleteRole = async (req, res) => {
         await client.query('DELETE FROM roles WHERE id = $1', [req.params.id]);
         res.json({ message: 'Role deleted successfully' });
     }
-    catch (error) {
+    catch (_error) {
         res.status(500).json({ error: 'Internal server error' });
     }
     finally {

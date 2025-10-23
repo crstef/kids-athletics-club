@@ -67,7 +67,7 @@ const PERMISSION_NAMES: { value: PermissionName; label: string }[] = [
 
 export function PermissionsSystem({
   permissions,
-  currentUserId,
+  currentUserId: _currentUserId,
   onAddPermission,
   onUpdatePermission,
   onDeletePermission

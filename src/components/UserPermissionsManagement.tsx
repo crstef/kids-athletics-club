@@ -2,15 +2,12 @@ import { useState, useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
+ 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Plus, Trash, UserCheck, MagnifyingGlass, Check, X, Clock, Warning, ShieldCheck, Users as UsersIcon } from '@phosphor-icons/react'
+import { Trash, MagnifyingGlass, Check, X, Clock, Warning } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import type { User, Permission, UserPermission, Athlete, AccountApprovalRequest } from '@/lib/types'
 
@@ -31,13 +28,13 @@ interface UserPermissionsManagementProps {
 
 export function UserPermissionsManagement({
   users,
-  permissions,
-  userPermissions,
+  permissions: _permissions,
+  userPermissions: _userPermissions,
   athletes,
   approvalRequests,
-  currentUserId,
-  onGrantPermission,
-  onRevokePermission,
+  currentUserId: _currentUserId,
+  onGrantPermission: _onGrantPermission,
+  onRevokePermission: _onRevokePermission,
   onApproveAccount,
   onRejectAccount,
   onUpdateUser,
@@ -176,16 +173,7 @@ export function UserPermissionsManagement({
     setSelectedAthleteId('')
   }
 
-  const handleOpenAssociate = (user: User) => {
-    setSelectedAthleteUser(user)
-    setSelectedAthleteId((user as any).athleteId || '')
-    setAssociateDialogOpen(true)
-  }
-
-  const getPermissionName = (permId: string) => {
-    const perm = permissions.find(p => p.id === permId)
-    return perm?.description || 'Necunoscut'
-  }
+  
 
   const getAthleteName = (athleteId?: string) => {
     if (!athleteId) return null

@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+// removed unused Select imports
 import { Checkbox } from '@/components/ui/checkbox'
 import { Plus, Eye, EyeSlash } from '@phosphor-icons/react'
 import { hashPassword } from '@/lib/crypto'

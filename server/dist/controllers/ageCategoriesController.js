@@ -20,7 +20,7 @@ const getAllAgeCategories = async (req, res) => {
             createdAt: c.created_at
         })));
     }
-    catch (error) {
+    catch (_error) {
         res.status(500).json({ error: 'Internal server error' });
     }
     finally {
@@ -46,7 +46,7 @@ const createAgeCategory = async (req, res) => {
             createdAt: c.created_at
         });
     }
-    catch (error) {
+    catch (_error) {
         res.status(500).json({ error: 'Internal server error' });
     }
     finally {
@@ -98,7 +98,7 @@ const updateAgeCategory = async (req, res) => {
             createdAt: c.created_at
         });
     }
-    catch (error) {
+    catch (_error) {
         res.status(500).json({ error: 'Internal server error' });
     }
     finally {
@@ -112,7 +112,7 @@ const deleteAgeCategory = async (req, res) => {
         await client.query('DELETE FROM age_categories WHERE id = $1', [req.params.id]);
         res.json({ message: 'Age category deleted successfully' });
     }
-    catch (error) {
+    catch (_error) {
         res.status(500).json({ error: 'Internal server error' });
     }
     finally {

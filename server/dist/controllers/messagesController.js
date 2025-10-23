@@ -19,7 +19,7 @@ const getAllMessages = async (req, res) => {
             timestamp: m.timestamp
         })));
     }
-    catch (error) {
+    catch (_error) {
         res.status(500).json({ error: 'Internal server error' });
     }
     finally {
@@ -43,7 +43,7 @@ const createMessage = async (req, res) => {
             timestamp: m.timestamp
         });
     }
-    catch (error) {
+    catch (_error) {
         res.status(500).json({ error: 'Internal server error' });
     }
     finally {
@@ -58,7 +58,7 @@ const markAsRead = async (req, res) => {
         await client.query('UPDATE messages SET read = true WHERE id = ANY($1)', [messageIds]);
         res.json({ message: 'Messages marked as read' });
     }
-    catch (error) {
+    catch (_error) {
         res.status(500).json({ error: 'Internal server error' });
     }
     finally {

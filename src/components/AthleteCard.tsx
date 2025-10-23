@@ -2,10 +2,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { ChartLine, Trash, Trophy, PencilSimple } from '@phosphor-icons/react'
+import { ChartLine, Trash, Trophy } from '@phosphor-icons/react'
 import { EditAthleteDialog } from './EditAthleteDialog'
 import { getInitials, getAvatarColor } from '@/lib/constants'
-import type { Athlete, Result, User } from '@/lib/types'
+import type { Athlete, User } from '@/lib/types'
 
 interface AthleteCardProps {
   athlete: Athlete

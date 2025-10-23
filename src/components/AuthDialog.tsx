@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,7 +9,7 @@ import { toast } from 'sonner'
 import { Eye, EyeSlash } from '@phosphor-icons/react'
 import { apiClient } from '@/lib/api-client'
 import { useUsers, useAthletes } from '@/hooks/use-api'
-import type { User, UserRole, AccountApprovalRequest, Athlete } from '@/lib/types'
+import type { User, UserRole } from '@/lib/types'
 
 interface AuthDialogProps {
   open: boolean
@@ -18,8 +18,8 @@ interface AuthDialogProps {
 }
 
 export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
-  const [users, setUsers, usersLoading] = useUsers()
-  const [athletes, setAthletes, athletesLoading] = useAthletes()
+  const [users, _setUsers, _usersLoading] = useUsers()
+  const [athletes, _setAthletes, _athletesLoading] = useAthletes()
   
   const [loginEmail, setLoginEmail] = useState('')
   const [loginPassword, setLoginPassword] = useState('')

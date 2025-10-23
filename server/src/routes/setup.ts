@@ -424,7 +424,7 @@ export const fixAdminRole = async (req: Request, res: Response) => {
        RETURNING id, email, first_name, last_name, role`,
     );
 
-    let user;
+  // user is assigned once after potential create/update
     let wasCreated = false;
 
     // If user doesn't exist, create it
@@ -458,7 +458,7 @@ export const fixAdminRole = async (req: Request, res: Response) => {
       wasCreated = true;
     }
 
-    user = result.rows[0];
+  const user = result.rows[0];
 
     // Grant all permissions to this user
     await client.query(`

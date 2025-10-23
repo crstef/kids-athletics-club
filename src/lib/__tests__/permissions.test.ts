@@ -311,10 +311,14 @@ describe('Permissions system', () => {
 
     it('should return minimal permissions for athlete', () => {
       const permissions = getDefaultPermissionsForRole('athlete')
+      // Athlete can view own athlete profile and results/events/messages in app defaults
+      expect(permissions).toContain('athletes.view')
       expect(permissions).toContain('results.view')
       expect(permissions).toContain('events.view')
-      expect(permissions).not.toContain('athletes.view')
-      expect(permissions.length).toBe(2)
+      expect(permissions).toContain('messages.view')
+      // No create/edit/delete permissions by default
+      expect(permissions).not.toContain('results.create')
+      expect(permissions).not.toContain('athletes.edit')
     })
 
     it('should return empty array for unknown role', () => {

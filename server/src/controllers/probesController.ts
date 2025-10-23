@@ -14,7 +14,7 @@ export const getAllProbes = async (req: AuthRequest, res: Response) => {
       createdBy: p.created_by,
       createdAt: p.created_at
     })));
-  } catch (error) {
+  } catch (_error) {
     res.status(500).json({ error: 'Internal server error' });
   } finally {
     client.release();
@@ -39,7 +39,7 @@ export const createProbe = async (req: AuthRequest, res: Response) => {
       createdBy: p.created_by,
       createdAt: p.created_at
     });
-  } catch (error) {
+  } catch (_error) {
     res.status(500).json({ error: 'Internal server error' });
   } finally {
     client.release();
@@ -85,7 +85,7 @@ export const updateProbe = async (req: AuthRequest, res: Response) => {
       createdBy: p.created_by,
       createdAt: p.created_at
     });
-  } catch (error) {
+  } catch (_error) {
     res.status(500).json({ error: 'Internal server error' });
   } finally {
     client.release();
@@ -97,7 +97,7 @@ export const deleteProbe = async (req: AuthRequest, res: Response) => {
   try {
     await client.query('DELETE FROM coach_probes WHERE id = $1', [req.params.id]);
     res.json({ message: 'Probe deleted successfully' });
-  } catch (error) {
+  } catch (_error) {
     res.status(500).json({ error: 'Internal server error' });
   } finally {
     client.release();

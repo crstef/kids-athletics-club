@@ -177,7 +177,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 });
 
 // Error handling middleware
-app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
   const statusCode = err.statusCode || err.status || 500;
   const message = err.message || 'Internal server error';
   

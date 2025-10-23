@@ -10,7 +10,7 @@ interface PerformanceChartProps {
   unit: 'seconds' | 'meters' | 'points'
 }
 
-export function PerformanceChart({ data, eventType, unit }: PerformanceChartProps) {
+export function PerformanceChart({ data, eventType: _eventType, unit }: PerformanceChartProps) {
   const svgRef = useRef<SVGSVGElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 })

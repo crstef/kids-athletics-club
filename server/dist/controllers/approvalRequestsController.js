@@ -24,7 +24,7 @@ const getAllApprovalRequests = async (req, res) => {
             approvalNotes: r.approval_notes
         })));
     }
-    catch (error) {
+    catch (_error) {
         res.status(500).json({ error: 'Internal server error' });
     }
     finally {
@@ -49,7 +49,7 @@ const approveRequest = async (req, res) => {
         await client.query('COMMIT');
         res.json({ message: 'Request approved successfully' });
     }
-    catch (error) {
+    catch (_error) {
         await client.query('ROLLBACK');
         res.status(500).json({ error: 'Internal server error' });
     }
@@ -67,7 +67,7 @@ const rejectRequest = async (req, res) => {
        approved_by = $1, rejection_reason = $2 WHERE id = $3`, [userId, reason || null, req.params.id]);
         res.json({ message: 'Request rejected successfully' });
     }
-    catch (error) {
+    catch (_error) {
         res.status(500).json({ error: 'Internal server error' });
     }
     finally {
@@ -81,7 +81,7 @@ const deleteRequest = async (req, res) => {
         await client.query('DELETE FROM approval_requests WHERE id = $1', [req.params.id]);
         res.json({ message: 'Request deleted successfully' });
     }
-    catch (error) {
+    catch (_error) {
         res.status(500).json({ error: 'Internal server error' });
     }
     finally {

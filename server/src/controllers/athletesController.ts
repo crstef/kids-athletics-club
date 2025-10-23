@@ -1,5 +1,4 @@
 import { Response } from 'express';
-import path from 'path';
 import fs from 'fs';
 import pool from '../config/database';
 import { AuthRequest } from '../middleware/auth';
@@ -17,9 +16,16 @@ export const getAllAthletes = async (req: AuthRequest, res: Response) => {
     `;
     let params: any[] = [];
 
-    // Coaches see only their athletes, superadmin sees all
+    // Role-based scoping: superadmin -> all; coach -> by coach_id; parent -> by parent_id; athlete -> own record
     if (userRole === 'coach') {
       query += ' WHERE coach_id = $1';
+      params = [userId];
+    } else if (userRole === 'parent') {
+      query += ' WHERE parent_id = $1';
+      params = [userId];
+    } else if (userRole === 'athlete') {
+      // Find the athlete row linked to the user (users.athlete_id)
+      query += ' WHERE id = (SELECT COALESCE(athlete_id, \'\') FROM users WHERE id = $1)';
       params = [userId];
     }
 
@@ -55,17 +61,17 @@ export const createAthlete = async (req: AuthRequest, res: Response) => {
   const client = await pool.connect();
   
   try {
-    const { firstName, lastName, age, category, gender, dateJoined, avatar, coachId } = req.body;
+    const { firstName, lastName, age, category, gender, dateOfBirth, dateJoined, avatar, coachId, parentId } = req.body;
 
     if (!firstName || !lastName || !age || !category || !dateJoined) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
     const result = await client.query(
-      `INSERT INTO athletes (first_name, last_name, age, category, gender, date_joined, avatar, coach_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-       RETURNING id, first_name, last_name, age, category, gender, date_joined, avatar, coach_id, created_at`,
-      [firstName, lastName, age, category, gender || null, dateJoined, avatar || null, coachId || null]
+      `INSERT INTO athletes (first_name, last_name, age, category, gender, date_of_birth, date_joined, avatar, coach_id, parent_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       RETURNING id, first_name, last_name, age, category, gender, date_of_birth, date_joined, avatar, coach_id, parent_id, created_at`,
+      [firstName, lastName, age, category, gender || null, dateOfBirth || null, dateJoined, avatar || null, coachId || null, parentId || null]
     );
 
     const athlete = result.rows[0];
@@ -77,9 +83,11 @@ export const createAthlete = async (req: AuthRequest, res: Response) => {
       age: athlete.age,
       category: athlete.category,
       gender: athlete.gender,
+      dateOfBirth: athlete.date_of_birth,
       dateJoined: athlete.date_joined,
       avatar: athlete.avatar,
       coachId: athlete.coach_id,
+      parentId: athlete.parent_id,
       createdAt: athlete.created_at
     });
   } catch (error) {
@@ -219,7 +227,9 @@ export const uploadAthleteAvatar = async (req: AuthRequest, res: Response) => {
       // remove uploaded file if athlete not found
       try {
         fs.unlinkSync((file as any).path);
-      } catch {}
+      } catch {
+        // noop: best-effort cleanup if file already removed or path invalid
+      }
       return res.status(404).json({ error: 'Athlete not found' });
     }
 

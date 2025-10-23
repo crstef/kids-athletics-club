@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Plus } from '@phosphor-icons/react'
-import type { Result, EventTypeCustom } from '@/lib/types'
+import type { Result } from '@/lib/types'
 import { useEvents } from '@/hooks/use-api'
 
 interface AddResultDialogProps {

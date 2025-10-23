@@ -17,7 +17,7 @@ import { AddAthleteDialog } from '@/components/AddAthleteDialog';
 import { AthleteCard } from '@/components/AthleteCard';
 import { AthleteDetailsDialog } from '@/components/AthleteDetailsDialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { User, Role, Permission, AgeCategoryCustom, EventTypeCustom, Result, Athlete, AccessRequest, Message, UserPermission, AccountApprovalRequest } from '@/lib/types';
+import { User, Role, Permission, AgeCategoryCustom, EventTypeCustom, Result, Athlete } from '@/lib/types';
 
 interface SuperAdminLayoutProps {
   currentUser: User;

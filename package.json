@@ -6,13 +6,16 @@
         "dev": "vite",
         "kill": "fuser -k 5000/tcp",
         "build": "tsc -b --noCheck && vite build",
+          "build:all": "npm run -s build && cd server && npm run -s build",
+          "check:all": "npm run -s build:all && npm test",
         "lint": "eslint .",
         "optimize": "vite optimize",
         "preview": "vite preview",
-        "test": "vitest",
+        "test": "vitest --run",
         "test:watch": "vitest --watch",
         "test:ui": "vitest --ui",
-        "test:coverage": "vitest --coverage"
+        "test:coverage": "vitest --coverage",
+        "verify": "npm run build:all && npm test"
     },
     "dependencies": {
         "@heroicons/react": "^2.2.0",
@@ -98,13 +101,17 @@
         "eslint-plugin-react-hooks": "^5.2.0",
         "eslint-plugin-react-refresh": "^0.4.19",
         "globals": "^16.0.0",
+        "jsdom": "^27.0.1",
         "nodemon": "^3.1.10",
         "tailwindcss": "^4.1.11",
         "terser": "^5.44.0",
         "ts-node": "^10.9.2",
         "typescript": "~5.7.2",
         "typescript-eslint": "^8.38.0",
-        "vite": "^6.3.5"
+            "vite": "^6.3.5",
+            "vitest": "^2.1.5",
+            "@testing-library/react": "^16.0.1",
+            "@testing-library/jest-dom": "^6.6.3"
     },
     "workspaces": {
         "packages": [

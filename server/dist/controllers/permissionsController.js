@@ -19,7 +19,7 @@ const getAllPermissions = async (req, res) => {
             updatedAt: p.updated_at
         })));
     }
-    catch (error) {
+    catch (_error) {
         res.status(500).json({ error: 'Internal server error' });
     }
     finally {
@@ -43,7 +43,7 @@ const createPermission = async (req, res) => {
             createdAt: p.created_at
         });
     }
-    catch (error) {
+    catch (_error) {
         res.status(500).json({ error: 'Internal server error' });
     }
     finally {
@@ -81,7 +81,7 @@ const updatePermission = async (req, res) => {
             createdAt: p.created_at
         });
     }
-    catch (error) {
+    catch (_error) {
         res.status(500).json({ error: 'Internal server error' });
     }
     finally {
@@ -95,7 +95,7 @@ const deletePermission = async (req, res) => {
         await client.query('DELETE FROM permissions WHERE id = $1', [req.params.id]);
         res.json({ message: 'Permission deleted successfully' });
     }
-    catch (error) {
+    catch (_error) {
         res.status(500).json({ error: 'Internal server error' });
     }
     finally {

@@ -1,12 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { apiClient } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-context';
-
-type DataLoader<T> = () => Promise<T>;
-type DataSetter<T> = (data: T) => Promise<T>;
-type DataDeleter = (id: string) => Promise<void>;
-
-interface UseApiOptions<T> {
+ 
+interface UseApiOptions {
   autoFetch?: boolean;
   onError?: (error: Error) => void;
 }
@@ -14,7 +10,7 @@ interface UseApiOptions<T> {
 export function useApi<T>(
   key: string,
   initialValue: T,
-  options: UseApiOptions<T> = {}
+  options: UseApiOptions = {}
 ): [T, (valueOrFn: T | ((current: T) => T)) => void, boolean, Error | null, () => Promise<void>] {
   const { autoFetch = false, onError } = options; // Changed default to false
   const { currentUser, loading: authLoading } = useAuth();
@@ -86,7 +82,6 @@ export function useApi<T>(
     if (autoFetch && !authLoading && currentUser && !hasFetched) {
       fetchData();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoFetch, authLoading, currentUser, hasFetched]);
 
   const setData = useCallback((valueOrFn: T | ((current: T) => T)) => {

@@ -22,13 +22,26 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 })
 
-global.crypto = {
-  subtle: {
-    digest: async (algorithm: string, data: BufferSource) => {
-      const hashArray = Array.from(new Uint8Array(data as ArrayBuffer))
-      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
-      const encoder = new TextEncoder()
-      return encoder.encode(hashHex).buffer
+// Provide a minimal crypto.subtle mock for environments where it's not settable directly
+try {
+  Object.defineProperty(globalThis, 'crypto', {
+    configurable: true,
+    value: {
+      subtle: {
+        digest: async (_algorithm: string, data: BufferSource) => {
+          const bytes = new Uint8Array(data as ArrayBuffer)
+          // Simple non-cryptographic hash substitute for tests only
+          let hash = 0
+          for (let i = 0; i < bytes.length; i++) {
+            hash = (hash * 31 + bytes[i]) >>> 0
+          }
+          const hex = hash.toString(16).padStart(8, '0')
+          const encoder = new TextEncoder()
+          return encoder.encode(hex).buffer
+        }
+      }
     }
-  }
-} as any
+  })
+} catch {
+  // ignore errors in test environment (crypto may already be defined)
+}

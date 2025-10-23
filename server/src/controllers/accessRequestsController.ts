@@ -16,7 +16,7 @@ export const getAllAccessRequests = async (req: AuthRequest, res: Response) => {
       responseDate: r.response_date,
       message: r.message
     })));
-  } catch (error) {
+  } catch (_error) {
     res.status(500).json({ error: 'Internal server error' });
   } finally {
     client.release();
@@ -41,7 +41,7 @@ export const createAccessRequest = async (req: AuthRequest, res: Response) => {
       requestDate: r.request_date,
       message: r.message
     });
-  } catch (error) {
+  } catch (_error) {
     res.status(500).json({ error: 'Internal server error' });
   } finally {
     client.release();
@@ -67,7 +67,7 @@ export const updateAccessRequest = async (req: AuthRequest, res: Response) => {
       responseDate: r.response_date,
       message: r.message
     });
-  } catch (error) {
+  } catch (_error) {
     res.status(500).json({ error: 'Internal server error' });
   } finally {
     client.release();

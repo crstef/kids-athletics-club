@@ -20,7 +20,7 @@ export const getAllApprovalRequests = async (req: AuthRequest, res: Response) =>
       childName: r.child_name,
       approvalNotes: r.approval_notes
     })));
-  } catch (error) {
+  } catch (_error) {
     res.status(500).json({ error: 'Internal server error' });
   } finally {
     client.release();
@@ -57,7 +57,7 @@ export const approveRequest = async (req: AuthRequest, res: Response) => {
     
     await client.query('COMMIT');
     res.json({ message: 'Request approved successfully' });
-  } catch (error) {
+  } catch (_error) {
     await client.query('ROLLBACK');
     res.status(500).json({ error: 'Internal server error' });
   } finally {
@@ -78,7 +78,7 @@ export const rejectRequest = async (req: AuthRequest, res: Response) => {
     );
     
     res.json({ message: 'Request rejected successfully' });
-  } catch (error) {
+  } catch (_error) {
     res.status(500).json({ error: 'Internal server error' });
   } finally {
     client.release();
@@ -90,7 +90,7 @@ export const deleteRequest = async (req: AuthRequest, res: Response) => {
   try {
     await client.query('DELETE FROM approval_requests WHERE id = $1', [req.params.id]);
     res.json({ message: 'Request deleted successfully' });
-  } catch (error) {
+  } catch (_error) {
     res.status(500).json({ error: 'Internal server error' });
   } finally {
     client.release();

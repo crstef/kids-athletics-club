@@ -36,7 +36,8 @@ export function AthleteDetailsDialog({
   onUploadAvatar,
   defaultTab = 'results'
 }: AthleteDetailsDialogProps) {
-  const { hasPermission } = useAuth()
+  // Access auth context to ensure hook order; value not used directly here
+  useAuth()
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [selectedEvent, setSelectedEvent] = useState<EventType | 'all'>('all')
 

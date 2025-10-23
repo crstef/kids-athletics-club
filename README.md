@@ -12,7 +12,7 @@ Aplicație web pentru managementul atleților juniori din cadrul clubului de atl
 - ✅ CodeQL security scan passed (0 vulnerabilities)
 - ✅ Documentație completă de deployment
 
-**Documentație completă**: Vezi [EXECUTIVE-SUMMARY.md](./EXECUTIVE-SUMMARY.md) pentru prezentare generală sau [PRODUCTION-DEPLOYMENT-GUIDE.md](./PRODUCTION-DEPLOYMENT-GUIDE.md) pentru deployment.
+Documentația a fost simplificată pentru a păstra doar ce e actual și util. Ghidurile vechi au fost eliminate pentru a reduce zgomotul.
 
 ## 📋 Cuprins
 
@@ -23,6 +23,7 @@ Aplicație web pentru managementul atleților juniori din cadrul clubului de atl
 - [Funcționalități](#-funcționalități-superadmin)
 - [Testare](#-testare)
 - [Development](#-development)
+ - [Repo Hygiene](#-repo-hygiene)
 
 ## 🏗 Arhitectură
 
@@ -49,13 +50,13 @@ Contul de SuperAdmin este creat automat la inițializarea bazei de date.
 
 **Aplicația este PRODUCTION READY!** ✅
 
-Pentru deployment, vezi documentația completă:
-- **[EXECUTIVE-SUMMARY.md](./EXECUTIVE-SUMMARY.md)** - ⭐ Prezentare generală (START HERE)
-- **[PRODUCTION-DEPLOYMENT-GUIDE.md](./PRODUCTION-DEPLOYMENT-GUIDE.md)** - Checklist complet deployment
-- **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Ghid detaliat deployment
-- **[FINAL-PRODUCTION-READINESS.md](./FINAL-PRODUCTION-READINESS.md)** - Status tehnic complet
-- **[SECURITY-SCAN-RESULTS.md](./SECURITY-SCAN-RESULTS.md)** - Rezultate CodeQL scan
-- **[SECURITY-SUMMARY.md](./SECURITY-SUMMARY.md)** - Recomandări securitate
+Pași recomandați pentru deployment (rezumat):
+1) Instalează dependențele la rădăcină și în `server/`
+2) Configurează `.env` în `server/` (conexiune Postgres, JWT_SECRET etc.)
+3) Inițializează baza de date: `./init-db.sh`
+4) Build frontend: `npm run build`
+5) Build backend: `cd server && npm run build`
+6) Rulează backend-ul: `cd server && npm start`
 
 ### Quick Start Production
 
@@ -176,13 +177,8 @@ npm run test:ui
 - **Branches**: 70%
 - **Statements**: 70%
 
-### Documentație Completă Testare
-Vezi [TESTING.md](./TESTING.md) pentru:
-- Structura detaliată a testelor
-- Exemple de teste
-- Best practices
-- Troubleshooting
-- Cum să adaugi teste noi
+### Note Testare
+Suita de teste (Vitest) acoperă scenarii de business, integrare și validare. Rularea este centralizată prin scripturile `npm test` și opțiunile aferente.
 
 ## 💻 Development
 
@@ -299,19 +295,17 @@ npm run lint
 │   │   └── use-api.ts    # API data hooks
 │   ├── __tests__/        # Integration tests
 │   └── App.tsx           # Main component
+├── dist/                  # Frontend production build (to deploy)
 ├── init-db.sh            # Database initialization
-├── DEPLOYMENT.md         # Deployment guide
-├── MIGRATION-GUIDE.md    # Migration guide
-└── SECURITY-SUMMARY.md   # Security report
+├── README.md             # This file
+└── LICENSE               # License
 ```
 
 ## 📝 Note Importante
 
 - Aplicația folosește autentificare JWT cu token-uri securizate
 - Datele sunt stocate în PostgreSQL cu indexare optimizată
-- **Pentru producție**: Vezi [DEPLOYMENT.md](./DEPLOYMENT.md) pentru configurare completă
-- **Securitate**: Vezi [SECURITY-SUMMARY.md](./SECURITY-SUMMARY.md) pentru raportul de securitate
-- **Migrare**: Vezi [MIGRATION-GUIDE.md](./MIGRATION-GUIDE.md) pentru detalii despre arhitectura API
+- Pentru producție, urmați pașii rezumați din secțiunea „Deployment Production”
 - Testele asigură calitatea și stabilitatea codului
 
 ## 🔒 Securitate
@@ -324,7 +318,15 @@ Aplicația implementează:
 - 🔶 Rate limiting (recomandat pentru producție)
 - 🔶 HTTPS (necesar pentru producție)
 
-Vezi [SECURITY-SUMMARY.md](./SECURITY-SUMMARY.md) pentru detalii complete.
+Recomandări suplimentare: activați rate limiting și HTTPS în producție.
+
+## 🧹 Repo Hygiene
+
+Pentru a păstra repo-ul curat și ușor de întreținut:
+- Menținem un singur folder de build frontend: `dist/` la rădăcină (prod). Nu păstrăm build-uri în `src/`.
+- Evităm fișierele generate accidental la rădăcină (index-*.js/css, *-vendors-*.js) — sunt ignorate prin `.gitignore`.
+- Log-urile și arhivele (ex. `dist.tar.gz`) nu se păstrează în git.
+- Documentația veche a fost eliminată; acest README și fișierele `.env.example` rămân ca surse principale.
 
 ## 🤝 Contributing
 

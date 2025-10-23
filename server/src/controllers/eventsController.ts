@@ -7,7 +7,7 @@ export const getAllEvents = async (req: AuthRequest, res: Response) => {
   try {
     const result = await client.query('SELECT * FROM events ORDER BY created_at DESC');
     res.json(result.rows);
-  } catch (error) {
+  } catch (_error) {
     res.status(500).json({ error: 'Internal server error' });
   } finally {
     client.release();
@@ -23,7 +23,7 @@ export const createEvent = async (req: AuthRequest, res: Response) => {
       [name, category, unit, description || null]
     );
     res.status(201).json(result.rows[0]);
-  } catch (error) {
+  } catch (_error) {
     res.status(500).json({ error: 'Internal server error' });
   } finally {
     client.release();
@@ -35,7 +35,7 @@ export const deleteEvent = async (req: AuthRequest, res: Response) => {
   try {
     await client.query('DELETE FROM events WHERE id = $1', [req.params.id]);
     res.json({ message: 'Event deleted successfully' });
-  } catch (error) {
+  } catch (_error) {
     res.status(500).json({ error: 'Internal server error' });
   } finally {
     client.release();

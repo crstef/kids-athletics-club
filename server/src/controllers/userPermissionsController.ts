@@ -16,7 +16,7 @@ export const getAllUserPermissions = async (req: AuthRequest, res: Response) => 
       grantedAt: up.granted_at,
       expiresAt: up.expires_at
     })));
-  } catch (error) {
+  } catch (_error) {
     res.status(500).json({ error: 'Internal server error' });
   } finally {
     client.release();
@@ -44,7 +44,7 @@ export const grantPermission = async (req: AuthRequest, res: Response) => {
       grantedAt: up.granted_at,
       expiresAt: up.expires_at
     });
-  } catch (error) {
+  } catch (_error) {
     res.status(500).json({ error: 'Internal server error' });
   } finally {
     client.release();
@@ -56,7 +56,7 @@ export const revokePermission = async (req: AuthRequest, res: Response) => {
   try {
     await client.query('DELETE FROM user_permissions WHERE id = $1', [req.params.id]);
     res.json({ message: 'Permission revoked successfully' });
-  } catch (error) {
+  } catch (_error) {
     res.status(500).json({ error: 'Internal server error' });
   } finally {
     client.release();

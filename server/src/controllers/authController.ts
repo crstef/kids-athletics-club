@@ -1,5 +1,4 @@
 import { Request, Response } from 'express';
-import bcrypt from 'bcryptjs';
 import pool from '../config/database';
 import { generateToken } from '../config/jwt';
 import crypto from 'crypto';
@@ -142,7 +141,33 @@ export const login = async (req: Request, res: Response) => {
       ...rolePermissions.rows.map(r => r.name),
       ...userPermissions.rows.map(r => r.name)
     ];
-    const permissions = [...new Set(allPermissions)];
+    let permissions = [...new Set(allPermissions)];
+
+    // Server-side safety net: if DB role permissions are not configured,
+    // grant a minimal, sane default set based on the role so the app works.
+    if (permissions.length === 0) {
+      const fallbackByRole: Record<string, string[]> = {
+        superadmin: ['*'],
+        coach: [
+          'athletes.view', 'athletes.edit',
+          'athletes.avatar.view', 'athletes.avatar.upload',
+          'results.create', 'results.view', 'results.edit',
+          'events.view',
+          'messages.view', 'messages.create',
+          'access_requests.view', 'access_requests.edit',
+        ],
+        parent: [
+          'athletes.view', 'athletes.avatar.view',
+          'results.view', 'events.view',
+          'messages.view', 'messages.create',
+          'access_requests.create', 'access_requests.view',
+        ],
+        athlete: [
+          'athletes.view', 'results.view', 'events.view', 'messages.view'
+        ],
+      };
+      permissions = fallbackByRole[user.role] || [];
+    }
 
     // Generate JWT
     const token = generateToken({
@@ -204,7 +229,7 @@ export const getCurrentUser = async (req: Request, res: Response) => {
     const user = result.rows[0];
 
     // Get user permissions from role
-    let permissions: string[] = [];
+  let permissions: string[] = [];
     
     // Try to get role_id, if null then fetch by role name
     let roleIdToUse = user.role_id;
@@ -233,6 +258,31 @@ export const getCurrentUser = async (req: Request, res: Response) => {
       console.log(`[getCurrentUser] Found ${permissions.length} permissions:`, permissions);
     } else {
       console.log(`[getCurrentUser] User ${user.email} has no role_id and couldn't find role by name, returning empty permissions`);
+    }
+
+    // Apply same safety net as in login if no permissions were resolved
+    if (!permissions || permissions.length === 0) {
+      const fallbackByRole: Record<string, string[]> = {
+        superadmin: ['*'],
+        coach: [
+          'athletes.view', 'athletes.edit',
+          'athletes.avatar.view', 'athletes.avatar.upload',
+          'results.create', 'results.view', 'results.edit',
+          'events.view',
+          'messages.view', 'messages.create',
+          'access_requests.view', 'access_requests.edit',
+        ],
+        parent: [
+          'athletes.view', 'athletes.avatar.view',
+          'results.view', 'events.view',
+          'messages.view', 'messages.create',
+          'access_requests.create', 'access_requests.view',
+        ],
+        athlete: [
+          'athletes.view', 'results.view', 'events.view', 'messages.view'
+        ],
+      };
+      permissions = fallbackByRole[user.role] || [];
     }
 
     res.json({

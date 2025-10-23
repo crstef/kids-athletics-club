@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Plus } from '@phosphor-icons/react'
 import { toast } from 'sonner'
-import { AGE_CATEGORIES } from '@/lib/constants'
+// AGE_CATEGORIES not used here (category is derived dynamically)
 import type { Athlete, AgeCategory, Gender, User } from '@/lib/types'
 import { useAuth } from '@/lib/auth-context'
 import { PermissionGate } from './PermissionGate'
@@ -40,7 +40,8 @@ interface AddAthleteDialogProps {
 }
 
 export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps) {
-  const { hasPermission } = useAuth()
+  // Access auth to ensure hooks order; value not directly used
+  useAuth()
   const [open, setOpen] = useState(false)
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
