@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Toaster } from '@/components/ui/sonner';
 import { Button } from '@/components/ui/button';
 import { SignOut, Trophy } from '@phosphor-icons/react';
+import { MyPermissionsDialog } from '@/components/MyPermissionsDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { CoachDashboard } from '@/components/CoachDashboard';
@@ -158,6 +159,7 @@ const CoachLayout = ({
                 <Trophy size={16} weight="fill" className="text-accent" />
                 <span className="text-sm font-medium">{currentUser.firstName} {currentUser.lastName}</span>
               </div>
+              <MyPermissionsDialog />
               <Button variant="outline" size="sm" onClick={logout} className="gap-1.5 sm:gap-2 h-8 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm">
                 <SignOut size={14} className="sm:w-4 sm:h-4" />
                 <span className="hidden sm:inline">Deconectare</span>

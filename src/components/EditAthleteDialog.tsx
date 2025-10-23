@@ -19,10 +19,21 @@ interface EditAthleteDialogProps {
 
 export function EditAthleteDialog({ athlete, parents, coaches, onEdit, onUploadAvatar }: EditAthleteDialogProps) {
   const { hasPermission } = useAuth()
+  const normalizeDate = (val?: string | null) => {
+    if (!val) return ''
+    // Accept already-normalized YYYY-MM-DD or ISO strings; return YYYY-MM-DD
+    const s = String(val)
+    if (s.length >= 10) return s.slice(0, 10)
+    try {
+      return new Date(s).toISOString().slice(0, 10)
+    } catch {
+      return ''
+    }
+  }
   const [open, setOpen] = useState(false)
   const [firstName, setFirstName] = useState(athlete.firstName)
   const [lastName, setLastName] = useState(athlete.lastName)
-  const [dateOfBirth, setDateOfBirth] = useState(athlete.dateOfBirth)
+  const [dateOfBirth, setDateOfBirth] = useState(normalizeDate(athlete.dateOfBirth))
   const [gender, setGender] = useState<'M' | 'F'>(athlete.gender)
   const [coachId, setCoachId] = useState(athlete.coachId || '')
   const [parentId, setParentId] = useState(athlete.parentId || '')
@@ -55,7 +66,7 @@ export function EditAthleteDialog({ athlete, parents, coaches, onEdit, onUploadA
     if (open) {
       setFirstName(athlete.firstName)
       setLastName(athlete.lastName)
-      setDateOfBirth(athlete.dateOfBirth)
+      setDateOfBirth(normalizeDate(athlete.dateOfBirth))
       setGender(athlete.gender)
       setCoachId(athlete.coachId || '')
       setParentId(athlete.parentId || '')

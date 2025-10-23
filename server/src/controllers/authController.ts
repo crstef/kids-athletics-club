@@ -143,31 +143,30 @@ export const login = async (req: Request, res: Response) => {
     ];
     let permissions = [...new Set(allPermissions)];
 
-    // Server-side safety net: if DB role permissions are not configured,
-    // grant a minimal, sane default set based on the role so the app works.
-    if (permissions.length === 0) {
-      const fallbackByRole: Record<string, string[]> = {
-        superadmin: ['*'],
-        coach: [
-          'athletes.view', 'athletes.edit',
-          'athletes.avatar.view', 'athletes.avatar.upload',
-          'results.create', 'results.view', 'results.edit',
-          'events.view',
-          'messages.view', 'messages.create',
-          'access_requests.view', 'access_requests.edit',
-        ],
-        parent: [
-          'athletes.view', 'athletes.avatar.view',
-          'results.view', 'events.view',
-          'messages.view', 'messages.create',
-          'access_requests.create', 'access_requests.view',
-        ],
-        athlete: [
-          'athletes.view', 'results.view', 'events.view', 'messages.view'
-        ],
-      };
-      permissions = fallbackByRole[user.role] || [];
-    }
+    // Always guarantee a minimal, sane default set based on role.
+    // This unions DB-resolved permissions with our baseline so partial DB configs don't break UX.
+    const baselineByRole: Record<string, string[]> = {
+      superadmin: ['*'],
+      coach: [
+        'athletes.view', 'athletes.edit',
+        'athletes.avatar.view', 'athletes.avatar.upload',
+        'results.create', 'results.view', 'results.edit',
+        'events.view',
+        'messages.view', 'messages.create',
+        'access_requests.view', 'access_requests.edit',
+      ],
+      parent: [
+        'athletes.view', 'athletes.avatar.view',
+        'results.view', 'events.view',
+        'messages.view', 'messages.create',
+        'access_requests.create', 'access_requests.view',
+      ],
+      athlete: [
+        'athletes.view', 'results.view', 'events.view', 'messages.view'
+      ],
+    };
+    const baseline = baselineByRole[user.role] || [];
+    permissions = [...new Set([ ...baseline, ...permissions ])];
 
     // Generate JWT
     const token = generateToken({
@@ -260,30 +259,29 @@ export const getCurrentUser = async (req: Request, res: Response) => {
       console.log(`[getCurrentUser] User ${user.email} has no role_id and couldn't find role by name, returning empty permissions`);
     }
 
-    // Apply same safety net as in login if no permissions were resolved
-    if (!permissions || permissions.length === 0) {
-      const fallbackByRole: Record<string, string[]> = {
-        superadmin: ['*'],
-        coach: [
-          'athletes.view', 'athletes.edit',
-          'athletes.avatar.view', 'athletes.avatar.upload',
-          'results.create', 'results.view', 'results.edit',
-          'events.view',
-          'messages.view', 'messages.create',
-          'access_requests.view', 'access_requests.edit',
-        ],
-        parent: [
-          'athletes.view', 'athletes.avatar.view',
-          'results.view', 'events.view',
-          'messages.view', 'messages.create',
-          'access_requests.create', 'access_requests.view',
-        ],
-        athlete: [
-          'athletes.view', 'results.view', 'events.view', 'messages.view'
-        ],
-      };
-      permissions = fallbackByRole[user.role] || [];
-    }
+    // Apply same union baseline logic as in login to avoid partial DB configs breaking UX
+    const baselineByRole2: Record<string, string[]> = {
+      superadmin: ['*'],
+      coach: [
+        'athletes.view', 'athletes.edit',
+        'athletes.avatar.view', 'athletes.avatar.upload',
+        'results.create', 'results.view', 'results.edit',
+        'events.view',
+        'messages.view', 'messages.create',
+        'access_requests.view', 'access_requests.edit',
+      ],
+      parent: [
+        'athletes.view', 'athletes.avatar.view',
+        'results.view', 'events.view',
+        'messages.view', 'messages.create',
+        'access_requests.create', 'access_requests.view',
+      ],
+      athlete: [
+        'athletes.view', 'results.view', 'events.view', 'messages.view'
+      ],
+    };
+    const baseline2 = baselineByRole2[user.role] || [];
+    permissions = [...new Set([ ...baseline2, ...permissions ])];
 
     res.json({
       id: user.id,
