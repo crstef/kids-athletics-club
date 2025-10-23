@@ -62,7 +62,7 @@ for (const name of rootFiles) {
   }
 }
 
-// 2) Copy new built files from dist to root (only hashed assets, NOT index.html)
+// 2) Copy new built files from dist to root (hashed assets + index.html)
 const distFiles = fs.readdirSync(distDir);
 const toCopy = distFiles.filter((name) => isHashedAsset(name));
 
@@ -70,13 +70,24 @@ for (const name of toCopy) {
   fs.copyFileSync(path.join(distDir, name), path.join(repoRoot, name));
 }
 
+// Always copy dist/index.html to the repo root for production hosting
+const distIndex = path.join(distDir, 'index.html');
+if (fs.existsSync(distIndex)) {
+  fs.copyFileSync(distIndex, path.join(repoRoot, 'index.html'));
+}
+
 // 3) Stage them for commit (force add in case of ignore rules)
-if (toCopy.length > 0) {
-  const filesArg = toCopy.map((f) => `'${f}'`).join(' ');
+const staged = [...toCopy];
+if (fs.existsSync(path.join(repoRoot, 'index.html'))) {
+  staged.push('index.html');
+}
+
+if (staged.length > 0) {
+  const filesArg = staged.map((f) => `'${f}'`).join(' ');
   const out = run(`git add -f ${filesArg}`);
   if (out) process.stdout.write(out);
-  console.log(`publish-webroot: staged ${toCopy.length} file(s):`);
-  for (const f of toCopy) console.log(`  - ${f}`);
+  console.log(`publish-webroot: staged ${staged.length} file(s):`);
+  for (const f of staged) console.log(`  - ${f}`);
 } else {
   console.log('publish-webroot: nothing to copy/stage.');
 }
