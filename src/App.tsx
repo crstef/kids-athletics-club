@@ -97,22 +97,28 @@ function AppContent() {
   }, [activeTab, currentUser])
 
   useEffect(() => {
-    if (activeTab === 'cereri' && approvalRequests.length === 0 && currentUser) {
+    if (activeTab === 'requests' && approvalRequests.length === 0 && currentUser) {
       refetchApprovalRequests()
     }
-  }, [activeTab, currentUser])
+  }, [activeTab, currentUser, approvalRequests.length, refetchApprovalRequests])
 
   useEffect(() => {
-    if (activeTab === 'probe' && probes.length === 0 && currentUser) {
+    if (activeTab === 'events' && probes.length === 0 && currentUser) {
       refetchProbes()
     }
-  }, [activeTab, currentUser])
+  }, [activeTab, currentUser, probes.length, refetchProbes])
 
   useEffect(() => {
-    if (activeTab === 'mesaje' && messages.length === 0 && currentUser) {
+    if (activeTab === 'messages' && messages.length === 0 && currentUser) {
       refetchMessages()
     }
-  }, [activeTab, currentUser])
+  }, [activeTab, currentUser, messages.length, refetchMessages])
+
+  useEffect(() => {
+    if (activeTab === 'categories' && ageCategories.length === 0 && currentUser) {
+      refetchAgeCategories()
+    }
+  }, [activeTab, currentUser, ageCategories.length, refetchAgeCategories])
 
   useEffect(() => {
     if (superAdminActiveTab === 'permisiuni' || superAdminActiveTab === 'roluri') {
