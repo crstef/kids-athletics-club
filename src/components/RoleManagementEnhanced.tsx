@@ -307,7 +307,23 @@ export default function RoleManagementEnhanced({ roles, dashboards, onRefresh }:
                 <div className="flex items-center gap-3">
                   <Checkbox
                     checked={selectedDashboards.has(dashboard.id)}
-                    onCheckedChange={() => handleToggleDashboard(dashboard.id)}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        const newSelected = new Set(selectedDashboards)
+                        newSelected.add(dashboard.id)
+                        setSelectedDashboards(newSelected)
+                        if (newSelected.size === 1) {
+                          setDefaultDashboardId(dashboard.id)
+                        }
+                      } else {
+                        const newSelected = new Set(selectedDashboards)
+                        newSelected.delete(dashboard.id)
+                        if (defaultDashboardId === dashboard.id) {
+                          setDefaultDashboardId('')
+                        }
+                        setSelectedDashboards(newSelected)
+                      }
+                    }}
                   />
                   <div>
                     <p className="font-medium">{dashboard.displayName}</p>

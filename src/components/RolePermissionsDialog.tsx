@@ -147,7 +147,15 @@ export default function RolePermissionsDialog({
                       >
                         <Checkbox
                           checked={rolePermissions.has(permission.id)}
-                          onCheckedChange={() => handleTogglePermission(permission.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setRolePermissions(new Set([...rolePermissions, permission.id]))
+                            } else {
+                              const newSet = new Set(rolePermissions)
+                              newSet.delete(permission.id)
+                              setRolePermissions(newSet)
+                            }
+                          }}
                           disabled={role?.isSystem}
                         />
                         <div className="flex-1">

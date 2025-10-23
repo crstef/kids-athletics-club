@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.fixUserRoles = exports.fixAdminRole = exports.addGenderColumn = exports.addSampleData = exports.createAdminUser = exports.initializeData = void 0;
+exports.addModernDashboards = exports.fixUserRoles = exports.fixAdminRole = exports.addGenderColumn = exports.addSampleData = exports.createAdminUser = exports.initializeData = void 0;
 const database_1 = __importDefault(require("../config/database"));
 const crypto_1 = __importDefault(require("crypto"));
 const hashPassword = (password) => {
@@ -538,3 +538,83 @@ const fixUserRoles = async (req, res) => {
     }
 };
 exports.fixUserRoles = fixUserRoles;
+/**
+ * Add modern dashboards to the system
+ * GET /api/setup/add-modern-dashboards
+ */
+const addModernDashboards = async (_req, res) => {
+    const client = await database_1.default.connect();
+    try {
+        await client.query('BEGIN');
+        // Check if dashboards already exist
+        const existing = await client.query(`
+      SELECT name FROM dashboards 
+      WHERE name IN ('athlete-performance', 'coach-team', 'parent-progress')
+    `);
+        const existingNames = new Set(existing.rows.map(r => r.name));
+        const dashboards = [
+            {
+                name: 'athlete-performance',
+                displayName: 'Performanță Atlet',
+                componentName: 'AthletePerformanceDashboard',
+                icon: 'ChartLine',
+                description: 'Dashboard modern cu tracking performanță, recorduri personale, obiective și evenimente'
+            },
+            {
+                name: 'coach-team',
+                displayName: 'Echipă Antrenor',
+                componentName: 'CoachTeamDashboard',
+                icon: 'Users',
+                description: 'Overview echipă cu progres atleți, planuri antrenament, calendar evenimente'
+            },
+            {
+                name: 'parent-progress',
+                displayName: 'Progres Copil',
+                componentName: 'ParentProgressDashboard',
+                icon: 'UserCircle',
+                description: 'Urmărire progres copil, realizări, evenimente viitoare, comunicare antrenor'
+            }
+        ];
+        let addedCount = 0;
+        const addedDashboards = [];
+        for (const dashboard of dashboards) {
+            if (!existingNames.has(dashboard.name)) {
+                const result = await client.query(`
+          INSERT INTO dashboards (name, display_name, component_name, icon, is_active, is_system, created_at, updated_at)
+          VALUES ($1, $2, $3, $4, true, false, NOW(), NOW())
+          RETURNING id, name, display_name, component_name
+        `, [dashboard.name, dashboard.displayName, dashboard.componentName, dashboard.icon]);
+                addedCount++;
+                addedDashboards.push(result.rows[0]);
+            }
+        }
+        await client.query('COMMIT');
+        // Get all dashboards
+        const allDashboards = await client.query(`
+      SELECT d.*, COUNT(rd.role_id) as assigned_roles
+      FROM dashboards d
+      LEFT JOIN role_dashboards rd ON d.id = rd.dashboard_id
+      GROUP BY d.id
+      ORDER BY d.created_at DESC
+    `);
+        res.json({
+            success: true,
+            message: addedCount > 0
+                ? `Added ${addedCount} new dashboard(s)`
+                : 'All dashboards already exist',
+            addedCount,
+            addedDashboards,
+            totalDashboards: allDashboards.rows.length,
+            allDashboards: allDashboards.rows
+        });
+    }
+    catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Add modern dashboards error:', error);
+        res.status(500).json({ error: 'Failed to add modern dashboards' });
+    }
+    finally {
+        client.release();
+    }
+};
+exports.addModernDashboards = addModernDashboards;

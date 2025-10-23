@@ -8,11 +8,12 @@ const database_1 = __importDefault(require("../config/database"));
 const getAllPermissions = async (req, res) => {
     const client = await database_1.default.connect();
     try {
-        const result = await client.query('SELECT * FROM permissions ORDER BY name');
+        const result = await client.query('SELECT * FROM permissions ORDER BY category, name');
         res.json(result.rows.map(p => ({
             id: p.id,
             name: p.name,
             description: p.description,
+            category: p.category,
             isActive: p.is_active,
             createdBy: p.created_by,
             createdAt: p.created_at,

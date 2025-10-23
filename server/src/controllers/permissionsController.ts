@@ -5,11 +5,12 @@ import { AuthRequest } from '../middleware/auth';
 export const getAllPermissions = async (req: AuthRequest, res: Response) => {
   const client = await pool.connect();
   try {
-    const result = await client.query('SELECT * FROM permissions ORDER BY name');
+    const result = await client.query('SELECT * FROM permissions ORDER BY category, name');
     res.json(result.rows.map(p => ({
       id: p.id,
       name: p.name,
       description: p.description,
+      category: p.category,
       isActive: p.is_active,
       createdBy: p.created_by,
       createdAt: p.created_at,
