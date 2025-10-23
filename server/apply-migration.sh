@@ -48,17 +48,59 @@ fi
 
 # Apply migration
 echo -e "${GREEN}Applying migration...${NC}"
+echo ""
 
-# Export password for psql to use
+# Try multiple connection methods
+
+# Method 1: TCP with password
 export PGPASSWORD="$DB_PASSWORD"
-
-psql -h "$DB_HOST" -p "${DB_PORT:-5432}" -U "$DB_USER" -d "$DB_NAME" -f migrations/001_dynamic_roles_system.sql
-
-# Clear password from environment
+psql -h "$DB_HOST" -p "${DB_PORT:-5432}" -U "$DB_USER" -d "$DB_NAME" -f migrations/001_dynamic_roles_system.sql 2>/tmp/psql_error.log
+EXIT_CODE=$?
 unset PGPASSWORD
 
-if [ $? -eq 0 ]; then
-    echo ""
+# If Method 1 failed, try Method 2: Unix socket
+if [ $EXIT_CODE -ne 0 ]; then
+    echo -e "${YELLOW}TCP connection failed, trying Unix socket...${NC}"
+    export PGPASSWORD="$DB_PASSWORD"
+    psql -U "$DB_USER" -d "$DB_NAME" -f migrations/001_dynamic_roles_system.sql 2>>/tmp/psql_error.log
+    EXIT_CODE=$?
+    unset PGPASSWORD
+fi
+
+# If Method 2 failed, try Method 3: Node.js via application config
+if [ $EXIT_CODE -ne 0 ]; then
+    echo -e "${YELLOW}Socket connection failed, trying Node.js method...${NC}"
+    node -e "
+    const fs = require('fs');
+    const { Pool } = require('pg');
+    require('dotenv').config({ path: '.env.production' });
+    
+    const pool = new Pool({
+      host: process.env.DB_HOST,
+      port: process.env.DB_PORT || 5432,
+      database: process.env.DB_NAME,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+    });
+    
+    const sql = fs.readFileSync('migrations/001_dynamic_roles_system.sql', 'utf8');
+    
+    pool.query(sql)
+      .then(() => {
+        console.log('Migration executed successfully via Node.js!');
+        process.exit(0);
+      })
+      .catch((err) => {
+        console.error('Migration failed:', err.message);
+        process.exit(1);
+      })
+      .finally(() => pool.end());
+    "
+    EXIT_CODE=$?
+fi
+
+echo ""
+if [ $EXIT_CODE -eq 0 ]; then
     echo -e "${GREEN}========================================${NC}"
     echo -e "${GREEN}Migration completed successfully!${NC}"
     echo -e "${GREEN}========================================${NC}"
@@ -68,9 +110,34 @@ if [ $? -eq 0 ]; then
     echo "  2. Call /api/setup/initialize-data?reset_permissions=true"
     echo "  3. Test the new dynamic dashboard system"
 else
-    echo ""
     echo -e "${RED}========================================${NC}"
     echo -e "${RED}Migration failed!${NC}"
     echo -e "${RED}========================================${NC}"
+    echo ""
+    echo -e "${YELLOW}Error details:${NC}"
+    cat /tmp/psql_error.log 2>/dev/null
+    echo ""
+    echo -e "${YELLOW}Alternative: Use Node.js to apply migration:${NC}"
+    echo ""
+    echo "node -e \"
+const fs = require('fs');
+const { Pool } = require('pg');
+require('dotenv').config({ path: '.env.production' });
+
+const pool = new Pool({
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT || 5432,
+  database: process.env.DB_NAME,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+});
+
+const sql = fs.readFileSync('migrations/001_dynamic_roles_system.sql', 'utf8');
+
+pool.query(sql)
+  .then(() => console.log('Success!'))
+  .catch(err => console.error(err))
+  .finally(() => pool.end());
+\""
     exit 1
 fi
