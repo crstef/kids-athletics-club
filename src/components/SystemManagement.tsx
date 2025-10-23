@@ -53,28 +53,28 @@ export default function SystemManagement() {
         </p>
       </div>
 
-      <Tabs defaultValue="dashboards" className="w-full">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="dashboards" className="gap-2">
-            <Layout className="w-4 h-4" />
-            Dashboards
-          </TabsTrigger>
+      <Tabs defaultValue="roles" className="w-full">
+        <TabsList className="grid w-full max-w-2xl grid-cols-2">
           <TabsTrigger value="roles" className="gap-2">
             <Users className="w-4 h-4" />
-            Roluri
+            Roluri & Dashboards
+          </TabsTrigger>
+          <TabsTrigger value="dashboards" className="gap-2">
+            <Layout className="w-4 h-4" />
+            Dashboards Disponibile
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="dashboards" className="mt-6">
-          <DashboardManagement
+        <TabsContent value="roles" className="mt-6">
+          <RoleManagementEnhanced
+            roles={roles}
             dashboards={dashboards}
             onRefresh={fetchData}
           />
         </TabsContent>
 
-        <TabsContent value="roles" className="mt-6">
-          <RoleManagementEnhanced
-            roles={roles}
+        <TabsContent value="dashboards" className="mt-6">
+          <DashboardManagement
             dashboards={dashboards}
             onRefresh={fetchData}
           />

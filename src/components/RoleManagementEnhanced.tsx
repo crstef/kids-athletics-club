@@ -6,9 +6,10 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Pencil, Trash, Shield, Layout, Check } from '@phosphor-icons/react'
+import { Plus, Pencil, Trash, Shield, Layout, Check, LockKey } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { apiClient } from '@/lib/api-client'
+import RolePermissionsDialog from './RolePermissionsDialog'
 import type { Role, Dashboard } from '@/lib/types'
 
 interface RoleManagementEnhancedProps {
@@ -20,6 +21,7 @@ interface RoleManagementEnhancedProps {
 export default function RoleManagementEnhanced({ roles, dashboards, onRefresh }: RoleManagementEnhancedProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isDashboardDialogOpen, setIsDashboardDialogOpen] = useState(false)
+  const [isPermissionsDialogOpen, setIsPermissionsDialogOpen] = useState(false)
   const [editingRole, setEditingRole] = useState<Role | null>(null)
   const [selectedRole, setSelectedRole] = useState<Role | null>(null)
   const [roleDashboards, setRoleDashboards] = useState<Dashboard[]>([])
@@ -186,6 +188,17 @@ export default function RoleManagementEnhanced({ roles, dashboards, onRefresh }:
                 <Button
                   variant="outline"
                   size="sm"
+                  onClick={() => {
+                    setSelectedRole(role)
+                    setIsPermissionsDialogOpen(true)
+                  }}
+                >
+                  <LockKey className="w-3 h-3 mr-1" />
+                  Permisiuni
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => handleManageDashboards(role)}
                 >
                   <Layout className="w-3 h-3 mr-1" />
@@ -329,6 +342,16 @@ export default function RoleManagementEnhanced({ roles, dashboards, onRefresh }:
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Role Permissions Dialog */}
+      {selectedRole && (
+        <RolePermissionsDialog
+          role={selectedRole}
+          open={isPermissionsDialogOpen}
+          onOpenChange={setIsPermissionsDialogOpen}
+          onSave={onRefresh}
+        />
+      )}
     </div>
   )
 }
