@@ -1,6 +1,7 @@
 -- Add parent_id column to athletes and supporting constraints/indexes
 
-ALTER TABLE IF NOT EXISTS athletes
+-- Add column (compatible with older Postgres: do not use IF NOT EXISTS on ALTER TABLE itself)
+ALTER TABLE athletes
   ADD COLUMN IF NOT EXISTS parent_id UUID;
 
 -- Add FK constraint if not present
