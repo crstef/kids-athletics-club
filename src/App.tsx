@@ -9,10 +9,7 @@ import { useAthletes, useResults, useUsers, useAccessRequests, useMessages, useE
 import { hashPassword } from './lib/auth';
 import { DEFAULT_PERMISSIONS, DEFAULT_ROLES } from './lib/defaults'
 import type { Athlete, Result, AgeCategory, User, AccessRequest, Message, EventTypeCustom, Permission, UserPermission, Role, AgeCategoryCustom } from '@/lib/types'
-import SuperAdminLayout from './layouts/SuperAdminLayout';
-import CoachLayout from './layouts/CoachLayout';
-import ParentLayout from './layouts/ParentLayout';
-import AthleteLayout from './layouts/AthleteLayout';
+import { getDashboardComponent } from '@/lib/dashboardRegistry';
 
 
 // Definiție tab-uri dinamice bazate pe permisiuni
@@ -38,12 +35,7 @@ const TAB_CONFIGS: TabConfig[] = [
   { id: 'categories', label: 'Categorii', permission: 'age_categories.view' },
 ]
 
-const DASHBOARD_COMPONENTS: Record<string, React.ComponentType<any>> = {
-  'dashboard.view.superadmin': SuperAdminLayout,
-  'dashboard.view.coach': CoachLayout,
-  'dashboard.view.parent': ParentLayout,
-  'dashboard.view.athlete': AthleteLayout,
-};
+// Removed: DASHBOARD_COMPONENTS is now handled dynamically via user.dashboards
 
 function AppContent() {
   const { currentUser, setCurrentUser, hasPermission, logout, loading: authLoading } = useAuth()
@@ -789,10 +781,28 @@ function AppContent() {
   }
 
   const renderDashboard = () => {
-    const dashboardPermission = Object.keys(DASHBOARD_COMPONENTS).find(p => hasPermission(p));
-
-    if (dashboardPermission) {
-      const Component = DASHBOARD_COMPONENTS[dashboardPermission];
+    // Get user's dashboards from auth context
+    const userDashboards = currentUser?.dashboards || [];
+    
+    // Use default dashboard or first available
+    const dashboardToRender = userDashboards.find(d => d.isDefault) || userDashboards[0];
+    
+    if (dashboardToRender) {
+      const Component = getDashboardComponent(dashboardToRender.componentName);
+      
+      if (!Component) {
+        console.error(`Dashboard component not found: ${dashboardToRender.componentName}`);
+        return (
+          <div className="min-h-screen bg-background flex items-center justify-center">
+            <div className="text-center p-8">
+              <h2 className="text-2xl font-bold mb-2">Eroare Dashboard</h2>
+              <p className="text-muted-foreground">Componentă dashboard nu a fost găsită: {dashboardToRender.componentName}</p>
+              <Button onClick={logout} className="mt-4">Deconectare</Button>
+            </div>
+          </div>
+        );
+      }
+      
       const props = {
         currentUser,
         logout,

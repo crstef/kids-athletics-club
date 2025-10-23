@@ -255,6 +255,9 @@ export interface Dashboard {
   createdBy?: string
   createdAt: string
   updatedAt?: string
+  // Fields from role_dashboards junction when fetched with role
+  isDefault?: boolean
+  sortOrder?: number
 }
 
 export interface RoleDashboard {
