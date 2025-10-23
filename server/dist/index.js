@@ -36,6 +36,7 @@ const NODE_ENV = resolvedEnv;
 const IS_PRODUCTION = NODE_ENV === 'production';
 const distDir = path_1.default.join(__dirname, '../../dist');
 const rootDir = path_1.default.join(__dirname, '../..');
+const uploadsDir = path_1.default.join(__dirname, '../uploads');
 console.log('[server] boot', {
     isPassenger,
     passengerEnv,
@@ -74,6 +75,11 @@ const corsOptions = {
 app.use((0, cors_1.default)(corsOptions));
 app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ extended: true, limit: '10mb' }));
+// Static uploads (serve user-uploaded files)
+if (!fs_1.default.existsSync(uploadsDir)) {
+    fs_1.default.mkdirSync(uploadsDir, { recursive: true });
+}
+app.use('/uploads', express_1.default.static(uploadsDir));
 // Serve static assets when available (helps even if NODE_ENV e=development on hosting)
 if (fs_1.default.existsSync(distDir)) {
     app.use(express_1.default.static(distDir));

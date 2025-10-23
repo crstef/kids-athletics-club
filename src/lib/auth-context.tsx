@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { apiClient } from './api-client'
+import { DEFAULT_ROLES } from './defaults'
 import type { User } from './types'
 
 interface AuthContextType {
@@ -56,7 +57,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setCurrentUserState(null)
   }
 
-  const hasPermission = (permission: string) => (currentUser?.permissions || []).includes(permission)
+  const hasPermission = (permission: string) => {
+    if (!currentUser) return false
+    const userPerms = currentUser.permissions || []
+
+    // Superadmin or wildcard => allow all
+    if (currentUser.role === 'superadmin') return true
+    if (userPerms.includes('*')) return true
+
+    // Role-based defaults
+    const roleDefaults = DEFAULT_ROLES.find(r => r.name === currentUser.role)
+    const rolePerms = roleDefaults?.permissions || []
+
+    const effective = new Set<string>([
+      ...userPerms,
+      ...rolePerms as string[],
+      `dashboard.view.${currentUser.role}`,
+    ])
+
+    if (effective.has(permission)) return true
+
+    // Gracefully map .own/.all to base permission if defaults only declare the base
+    if (permission.endsWith('.own')) {
+      const base = permission.slice(0, -4)
+      if (effective.has(base)) return true
+    }
+    if (permission.endsWith('.all')) {
+      const base = permission.slice(0, -4)
+      if (effective.has(base)) return true
+    }
+
+    return false
+  }
 
   return (
     <AuthContext.Provider value={{ currentUser, setCurrentUser, hasPermission, logout, loading }}>

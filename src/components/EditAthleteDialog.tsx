@@ -6,15 +6,19 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { PencilSimple } from '@phosphor-icons/react'
 import type { Athlete, User, AgeCategory } from '@/lib/types'
+import { useAuth } from '@/lib/auth-context'
+import { PermissionGate } from './PermissionGate'
 
 interface EditAthleteDialogProps {
   athlete: Athlete
   parents: User[]
   coaches?: User[]
   onEdit: (id: string, data: Partial<Athlete>) => void
+  onUploadAvatar?: (id: string, file: File) => void
 }
 
-export function EditAthleteDialog({ athlete, parents, coaches, onEdit }: EditAthleteDialogProps) {
+export function EditAthleteDialog({ athlete, parents, coaches, onEdit, onUploadAvatar }: EditAthleteDialogProps) {
+  const { hasPermission } = useAuth()
   const [open, setOpen] = useState(false)
   const [firstName, setFirstName] = useState(athlete.firstName)
   const [lastName, setLastName] = useState(athlete.lastName)
@@ -66,7 +70,7 @@ export function EditAthleteDialog({ athlete, parents, coaches, onEdit }: EditAth
     reader.readAsDataURL(avatarFile)
   }, [avatarFile])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
     if (!firstName.trim() || !lastName.trim() || !dateOfBirth || !gender) {
@@ -82,8 +86,11 @@ export function EditAthleteDialog({ athlete, parents, coaches, onEdit }: EditAth
       gender,
       coachId: coachId || undefined,
       parentId: parentId || undefined
-      , avatar: avatarPreview || undefined
     })
+
+    if (avatarFile && onUploadAvatar && hasPermission('athletes.avatar.upload')) {
+      await onUploadAvatar(athlete.id, avatarFile)
+    }
 
     setOpen(false)
   }
@@ -111,6 +118,28 @@ export function EditAthleteDialog({ athlete, parents, coaches, onEdit }: EditAth
               required
             />
           </div>
+          <PermissionGate perm="athletes.avatar.upload">
+            <div className="space-y-2">
+              <Label htmlFor="edit-avatar">Poză (opțional)</Label>
+              <input
+                id="edit-avatar"
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const f = e.target.files?.[0]
+                  if (f) setAvatarFile(f)
+                }}
+              />
+              {avatarPreview && (
+                <div className="pt-2 flex items-center gap-2">
+                  <img src={avatarPreview} alt="preview" className="w-16 h-16 rounded-full object-cover" />
+                  <Button variant="outline" size="sm" onClick={() => { setAvatarFile(null); setAvatarPreview(null) }}>
+                    Șterge
+                  </Button>
+                </div>
+              )}
+            </div>
+          </PermissionGate>
           <div className="space-y-2">
             <Label htmlFor="edit-lastName">Nume</Label>
             <Input

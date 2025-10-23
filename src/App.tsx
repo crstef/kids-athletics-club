@@ -264,9 +264,12 @@ function AppContent() {
     return (users || []).filter(u => u.role === 'parent')
   }, [users])
 
-  const handleAddAthlete = async (athleteData: Omit<Athlete, 'id'>) => {
+  const handleAddAthlete = async (athleteData: Omit<Athlete, 'id' | 'avatar'>, file?: File | null) => {
     try {
-      await apiClient.createAthlete(athleteData)
+      const created: any = await apiClient.createAthlete(athleteData)
+      if (file && created?.id) {
+        await apiClient.uploadAthleteAvatar(created.id, file)
+      }
       await refetchAthletes()
       toast.success(`Atlet adăugat: ${athleteData.firstName} ${athleteData.lastName}`)
     } catch (error: any) {
@@ -318,6 +321,17 @@ function AppContent() {
     } catch (error: any) {
       toast.error(error.message || 'Eroare la actualizarea sportivului')
       console.error('Error updating athlete:', error)
+    }
+  }
+
+  const handleUploadAthleteAvatar = async (id: string, file: File) => {
+    try {
+      await apiClient.uploadAthleteAvatar(id, file)
+      await refetchAthletes()
+      toast.success('Fotografie actualizată cu succes!')
+    } catch (error: any) {
+      toast.error(error.message || 'Eroare la încărcarea fotografiei')
+      console.error('Error uploading avatar:', error)
     }
   }
 
@@ -878,6 +892,7 @@ function AppContent() {
         handleCloseAthleteDialog,
         handleAddAthlete,
         handleEditAthlete,
+  handleUploadAthleteAvatar,
         handleDeleteAthlete,
         handleAddResult,
         handleUpdateResult,

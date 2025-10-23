@@ -67,10 +67,12 @@ export const initializeData = async (req: Request, res: Response) => {
       ('age_categories.view', 'Poate vizualiza categorii de vârstă', NOW(), NOW()),
       ('age_categories.manage', 'Poate gestiona categorii de vârstă', NOW(), NOW()),
       ('probes.view', 'Poate vizualiza probe atletice', NOW(), NOW()),
-      ('probes.manage', 'Poate gestiona probe atletice', NOW(), NOW())
+      ('probes.manage', 'Poate gestiona probe atletice', NOW(), NOW()),
+      ('athletes.avatar.view', 'Poate vizualiza avatar atleți', NOW(), NOW()),
+      ('athletes.avatar.upload', 'Poate încărca avatar atleți', NOW(), NOW())
       ON CONFLICT (name) DO NOTHING
     `);
-    results.permissions = 31;
+    results.permissions = 33;
 
     // 3. Associate all permissions to superadmin role
     await client.query(`
@@ -91,6 +93,7 @@ export const initializeData = async (req: Request, res: Response) => {
       WHERE r.name = 'coach'
       AND p.name IN (
         'athletes.view', 'athletes.create', 'athletes.edit',
+        'athletes.avatar.view', 'athletes.avatar.upload',
         'results.view', 'results.create', 'results.edit',
         'events.view',
         'messages.view', 'messages.create',
@@ -108,6 +111,7 @@ export const initializeData = async (req: Request, res: Response) => {
       WHERE r.name = 'parent'
       AND p.name IN (
         'athletes.view',
+        'athletes.avatar.view',
         'results.view',
         'events.view',
         'messages.view', 'messages.create',
@@ -320,22 +324,22 @@ export const addSampleData = async (req: Request, res: Response) => {
     if (athletes.rows.length > 0) {
       // Insert sample results - various athletic events
       const resultsQuery = `
-        INSERT INTO results (athlete_id, event_type, value, unit, date, location, created_at) VALUES
-        ($1, '60m Sprint', 8.5, 'secunde', '2024-06-01', 'Stadion Național', NOW()),
-        ($2, '100m Sprint', 14.2, 'secunde', '2024-06-01', 'Stadion Național', NOW()),
-        ($3, '200m Sprint', 28.5, 'secunde', '2024-06-05', 'Stadion Național', NOW()),
-        ($4, '400m Alergare', 68.3, 'secunde', '2024-06-05', 'Stadion Național', NOW()),
-        ($5, 'Săritură în lungime', 4.2, 'metri', '2024-06-10', 'Arena Sportivă', NOW()),
-        ($6, 'Săritură în înălțime', 1.45, 'metri', '2024-06-10', 'Arena Sportivă', NOW()),
-        ($7, 'Aruncarea greutății', 9.5, 'metri', '2024-06-15', 'Stadion Tineretului', NOW()),
-        ($8, '800m Alergare', 2.35, 'minute', '2024-06-15', 'Stadion Tineretului', NOW()),
-        ($9, '60m Sprint', 9.2, 'secunde', '2024-06-20', 'Complexul Sportiv', NOW()),
-        ($10, '100m Sprint', 15.1, 'secunde', '2024-06-20', 'Complexul Sportiv', NOW()),
-        ($1, 'Săritură în lungime', 3.8, 'metri', '2024-06-25', 'Arena Sportivă', NOW()),
-        ($2, 'Săritură în înălțime', 1.35, 'metri', '2024-06-25', 'Arena Sportivă', NOW()),
-        ($3, '400m Alergare', 65.8, 'secunde', '2024-07-01', 'Stadion Național', NOW()),
-        ($4, '800m Alergare', 2.28, 'minute', '2024-07-01', 'Stadion Național', NOW()),
-        ($5, 'Aruncarea greutății', 10.2, 'metri', '2024-07-05', 'Stadion Tineretului', NOW())
+        INSERT INTO results (athlete_id, event_type, value, unit, date, created_at) VALUES
+        ($1, '60m', 8.5, 'seconds', '2024-06-01', NOW()),
+        ($2, '100m', 14.2, 'seconds', '2024-06-01', NOW()),
+        ($3, '200m', 28.5, 'seconds', '2024-06-05', NOW()),
+        ($4, '400m', 68.3, 'seconds', '2024-06-05', NOW()),
+        ($5, 'Long Jump', 4.2, 'meters', '2024-06-10', NOW()),
+        ($6, 'High Jump', 1.45, 'meters', '2024-06-10', NOW()),
+        ($7, 'Shot Put', 9.5, 'meters', '2024-06-15', NOW()),
+        ($8, '800m', 155.0, 'seconds', '2024-06-15', NOW()),
+        ($9, '60m', 9.2, 'seconds', '2024-06-20', NOW()),
+        ($10, '100m', 15.1, 'seconds', '2024-06-20', NOW()),
+        ($1, 'Long Jump', 3.8, 'meters', '2024-06-25', NOW()),
+        ($2, 'High Jump', 1.35, 'meters', '2024-06-25', NOW()),
+        ($3, '400m', 65.8, 'seconds', '2024-07-01', NOW()),
+        ($4, '800m', 148.0, 'seconds', '2024-07-01', NOW()),
+        ($5, 'Shot Put', 10.2, 'meters', '2024-07-05', NOW())
         ON CONFLICT DO NOTHING
       `;
       

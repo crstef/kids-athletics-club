@@ -60,11 +60,13 @@ interface SuperAdminLayoutProps {
   handleViewAthleteChart: (athlete: Athlete) => void;
   handleEditAthlete: (id: string, data: Partial<Athlete>) => Promise<void>;
   handleDeleteAthlete: (id: string) => void;
-  handleAddAthlete: (athleteData: Omit<Athlete, 'id'>) => Promise<void>;
+  handleUploadAthleteAvatar: (id: string, file: File) => void;
+  handleAddAthlete: (athleteData: Omit<Athlete, 'id' | 'avatar'>, file?: File | null) => Promise<void>;
   selectedAthlete: Athlete | null;
   results: Result[];
   handleCloseAthleteDialog: () => void;
   handleAddResult: (resultData: Omit<Result, 'id'>) => Promise<void>;
+  handleUpdateResult: (id: string, updates: Partial<Result>) => Promise<void>;
   handleDeleteResult: (id: string) => Promise<void>;
   selectedAthleteTab: 'results' | 'evolution';
   deleteAthleteId: string | null;
@@ -116,10 +118,12 @@ const SuperAdminLayout: React.FC<SuperAdminLayoutProps> = ({
   handleEditAthlete,
   handleDeleteAthlete,
   handleAddAthlete,
+  handleUploadAthleteAvatar,
   selectedAthlete,
   results,
   handleCloseAthleteDialog,
   handleAddResult,
+  handleUpdateResult,
   handleDeleteResult,
   selectedAthleteTab,
   deleteAthleteId,
@@ -309,7 +313,8 @@ const SuperAdminLayout: React.FC<SuperAdminLayoutProps> = ({
                     coaches={coaches}
                     onViewDetails={handleViewAthleteDetails}
                     onViewChart={handleViewAthleteChart}
-                    onEdit={handleEditAthlete}
+                      onEdit={handleEditAthlete}
+                      onUploadAvatar={handleUploadAthleteAvatar}
                     onDelete={handleDeleteAthlete}
                   />
                 ))}
@@ -324,7 +329,9 @@ const SuperAdminLayout: React.FC<SuperAdminLayoutProps> = ({
         results={results}
         onClose={handleCloseAthleteDialog}
         onAddResult={handleAddResult}
+        onUpdateResult={handleUpdateResult}
         onDeleteResult={handleDeleteResult}
+        onUploadAvatar={handleUploadAthleteAvatar}
         defaultTab={selectedAthleteTab}
       />
 

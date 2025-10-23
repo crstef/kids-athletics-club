@@ -37,9 +37,10 @@ interface CoachLayoutProps {
   onUpdateResult: (id: string, result: Partial<Result>) => void
   onDeleteResult: (id: string) => void
   // athlete handlers
-  onAddAthlete: (athlete: Omit<Athlete, 'id'>) => void
+  onAddAthlete: (athlete: Omit<Athlete, 'id' | 'avatar'>, file?: File | null) => void
   onUpdateAthlete: (id: string, athlete: Partial<Athlete>) => void
   onDeleteAthlete: (id: string) => void
+  onUploadAthleteAvatar: (id: string, file: File) => void
   // requests/messages
   onApproveRequest: (id: string) => void
   onRejectRequest: (id: string, reason?: string) => void
@@ -69,6 +70,7 @@ const CoachLayout = ({
   onAddAthlete,
   onUpdateAthlete,
   onDeleteAthlete,
+  onUploadAthleteAvatar,
   onApproveRequest,
   onRejectRequest,
   onUpdateAccessRequest,
@@ -271,6 +273,7 @@ const CoachLayout = ({
                       setSelectedAthleteTab('evolution');
                     }}
                     onEdit={(id, data) => onUpdateAthlete(id, data)}
+                    onUploadAvatar={onUploadAthleteAvatar}
                     onDelete={(id) => {
                       setDeleteAthleteId(id);
                       const a = myAthletes.find(x => x.id === id)
@@ -325,7 +328,9 @@ const CoachLayout = ({
         results={myResults}
         onClose={handleCloseAthleteDialog}
         onAddResult={onAddResult}
+        onUpdateResult={onUpdateResult}
         onDeleteResult={onDeleteResult}
+        onUploadAvatar={onUploadAthleteAvatar}
         defaultTab={selectedAthleteTab}
       />
 

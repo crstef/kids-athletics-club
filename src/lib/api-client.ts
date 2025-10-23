@@ -31,8 +31,9 @@ class ApiClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
+    const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
     const headers: HeadersInit = {
-      'Content-Type': 'application/json',
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...options.headers,
     };
 
@@ -123,6 +124,23 @@ class ApiClient {
 
   async deleteAthlete(id: string) {
     return this.request(`/athletes/${id}`, { method: 'DELETE' });
+  }
+
+  async uploadAthleteAvatar(id: string, file: File) {
+    const form = new FormData();
+    form.append('avatar', file);
+    const headers: HeadersInit = {};
+    if (this.token) headers['Authorization'] = `Bearer ${this.token}`;
+    const res = await fetch(`${API_BASE_URL}/athletes/${id}/avatar`, {
+      method: 'POST',
+      headers,
+      body: form,
+    });
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({}));
+      throw new Error(error.error || 'Upload failed');
+    }
+    return res.json();
   }
 
   // Results

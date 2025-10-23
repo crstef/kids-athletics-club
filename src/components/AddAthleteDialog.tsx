@@ -8,6 +8,8 @@ import { Plus } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { AGE_CATEGORIES } from '@/lib/constants'
 import type { Athlete, AgeCategory, Gender, User } from '@/lib/types'
+import { useAuth } from '@/lib/auth-context'
+import { PermissionGate } from './PermissionGate'
 
 // Funcție pentru calcularea vârstei din data nașterii
 function calculateAge(dateOfBirth: string): number {
@@ -33,11 +35,12 @@ function determineCategory(age: number): AgeCategory {
 }
 
 interface AddAthleteDialogProps {
-  onAdd: (athlete: Omit<Athlete, 'id'>) => void
+  onAdd: (athlete: Omit<Athlete, 'id' | 'avatar'>, file?: File | null) => void
   coaches?: User[]
 }
 
 export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps) {
+  const { hasPermission } = useAuth()
   const [open, setOpen] = useState(false)
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
@@ -90,10 +93,9 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
       dateOfBirth,
       category,
       gender,
-      avatar: avatarPreview || undefined,
       dateJoined: new Date().toISOString(),
       coachId: coachId || undefined
-    })
+    }, avatarFile)
 
     setFirstName('')
     setLastName('')
@@ -102,8 +104,8 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
     setCategory('U10')
     setGender('M')
     setCoachId('')
-    setAvatarFile(null)
-    setAvatarPreview(null)
+  setAvatarFile(null)
+  setAvatarPreview(null)
     setOpen(false)
   }
 
@@ -186,26 +188,28 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="avatar">Poza (opțional)</Label>
-            <input
-              id="avatar"
-              type="file"
-              accept="image/*"
-              onChange={(e) => {
-                const f = e.target.files && e.target.files[0]
-                if (f) setAvatarFile(f)
-              }}
-            />
-            {avatarPreview && (
-              <div className="pt-2 flex items-center gap-2">
-                <img src={avatarPreview} alt="preview" className="w-16 h-16 rounded-full object-cover" />
-                <Button variant="outline" size="sm" onClick={() => { setAvatarFile(null); setAvatarPreview(null) }}>
-                  Șterge
-                </Button>
-              </div>
-            )}
-          </div>
+          <PermissionGate perm="athletes.avatar.upload">
+            <div className="space-y-2">
+              <Label htmlFor="avatar">Poza (opțional)</Label>
+              <input
+                id="avatar"
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const f = e.target.files && e.target.files[0]
+                  if (f) setAvatarFile(f)
+                }}
+              />
+              {avatarPreview && (
+                <div className="pt-2 flex items-center gap-2">
+                  <img src={avatarPreview} alt="preview" className="w-16 h-16 rounded-full object-cover" />
+                  <Button variant="outline" size="sm" onClick={() => { setAvatarFile(null); setAvatarPreview(null) }}>
+                    Șterge
+                  </Button>
+                </div>
+              )}
+            </div>
+          </PermissionGate>
           {coaches.length > 0 && (
             <div className="space-y-2">
               <Label htmlFor="coach">Antrenor (opțional)</Label>

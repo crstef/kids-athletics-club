@@ -3,7 +3,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteAthlete = exports.updateAthlete = exports.createAthlete = exports.getAllAthletes = void 0;
+exports.uploadAthleteAvatar = exports.deleteAthlete = exports.updateAthlete = exports.createAthlete = exports.getAllAthletes = void 0;
+const fs_1 = __importDefault(require("fs"));
 const database_1 = __importDefault(require("../config/database"));
 const getAllAthletes = async (req, res) => {
     const client = await database_1.default.connect();
@@ -82,7 +83,7 @@ const updateAthlete = async (req, res) => {
     const client = await database_1.default.connect();
     try {
         const { id } = req.params;
-        const { firstName, lastName, age, category, gender, dateJoined, avatar, coachId } = req.body;
+        const { firstName, lastName, age, category, gender, dateOfBirth, dateJoined, avatar, coachId } = req.body;
         const athlete = await client.query('SELECT id FROM athletes WHERE id = $1', [id]);
         if (athlete.rows.length === 0) {
             return res.status(404).json({ error: 'Athlete not found' });
@@ -110,6 +111,10 @@ const updateAthlete = async (req, res) => {
             updates.push(`gender = $${paramCount++}`);
             values.push(gender);
         }
+        if (dateOfBirth !== undefined) {
+            updates.push(`date_of_birth = $${paramCount++}`);
+            values.push(dateOfBirth);
+        }
         if (dateJoined !== undefined) {
             updates.push(`date_joined = $${paramCount++}`);
             values.push(dateJoined);
@@ -127,7 +132,7 @@ const updateAthlete = async (req, res) => {
         }
         values.push(id);
         const result = await client.query(`UPDATE athletes SET ${updates.join(', ')} WHERE id = $${paramCount}
-       RETURNING id, first_name, last_name, age, category, gender, date_joined, avatar, coach_id, created_at`, values);
+       RETURNING id, first_name, last_name, age, category, gender, date_of_birth, date_joined, avatar, coach_id, created_at`, values);
         const updatedAthlete = result.rows[0];
         res.json({
             id: updatedAthlete.id,
@@ -136,6 +141,7 @@ const updateAthlete = async (req, res) => {
             age: updatedAthlete.age,
             category: updatedAthlete.category,
             gender: updatedAthlete.gender,
+            dateOfBirth: updatedAthlete.date_of_birth,
             dateJoined: updatedAthlete.date_joined,
             avatar: updatedAthlete.avatar,
             coachId: updatedAthlete.coach_id,
@@ -171,3 +177,46 @@ const deleteAthlete = async (req, res) => {
     }
 };
 exports.deleteAthlete = deleteAthlete;
+const uploadAthleteAvatar = async (req, res) => {
+    const client = await database_1.default.connect();
+    try {
+        const { id } = req.params;
+        const file = req.file;
+        if (!file) {
+            return res.status(400).json({ error: 'No file uploaded' });
+        }
+        const fileName = file.filename;
+        const publicUrl = `${req.protocol}://${req.get('host')}/uploads/athletes/${fileName}`;
+        const result = await client.query(`UPDATE athletes SET avatar = $1 WHERE id = $2 RETURNING id, first_name, last_name, age, category, gender, date_of_birth, date_joined, avatar, coach_id, created_at`, [publicUrl, id]);
+        if (result.rows.length === 0) {
+            // remove uploaded file if athlete not found
+            try {
+                fs_1.default.unlinkSync(file.path);
+            }
+            catch { }
+            return res.status(404).json({ error: 'Athlete not found' });
+        }
+        const a = result.rows[0];
+        res.json({
+            id: a.id,
+            firstName: a.first_name,
+            lastName: a.last_name,
+            age: a.age,
+            category: a.category,
+            gender: a.gender,
+            dateOfBirth: a.date_of_birth,
+            dateJoined: a.date_joined,
+            avatar: a.avatar,
+            coachId: a.coach_id,
+            createdAt: a.created_at,
+        });
+    }
+    catch (error) {
+        console.error('Upload avatar error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+    finally {
+        client.release();
+    }
+};
+exports.uploadAthleteAvatar = uploadAthleteAvatar;

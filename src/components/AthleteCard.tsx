@@ -15,12 +15,13 @@ interface AthleteCardProps {
   onViewDetails: (athlete: Athlete) => void
   onViewChart: (athlete: Athlete) => void
   onEdit?: (id: string, data: Partial<Athlete>) => void
+  onUploadAvatar?: (id: string, file: File) => void
   onDelete: (id: string) => void
   hideDelete?: boolean
   hideEdit?: boolean
 }
 
-export function AthleteCard({ athlete, resultsCount, parents, coaches, onViewDetails, onViewChart, onEdit, onDelete, hideDelete, hideEdit }: AthleteCardProps) {
+export function AthleteCard({ athlete, resultsCount, parents, coaches, onViewDetails, onViewChart, onEdit, onUploadAvatar, onDelete, hideDelete, hideEdit }: AthleteCardProps) {
   const avatarColor = getAvatarColor(athlete.id)
   
   return (
@@ -86,6 +87,7 @@ export function AthleteCard({ athlete, resultsCount, parents, coaches, onViewDet
                   parents={parents}
                   coaches={coaches}
                   onEdit={onEdit}
+                  onUploadAvatar={onUploadAvatar}
                 />
               </div>
             )}

@@ -1,23 +1,28 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { X } from '@phosphor-icons/react'
+import { EditResultDialog } from './EditResultDialog'
+import { useAuth } from '@/lib/auth-context'
 import { AddResultDialog } from './AddResultDialog'
 import { PerformanceChart } from './PerformanceChart'
 import { getInitials, getAvatarColor, formatResult, EVENT_UNITS } from '@/lib/constants'
 import type { Athlete, Result, EventType, PerformanceData } from '@/lib/types'
 import { useState, useMemo } from 'react'
+import { PermissionGate } from './PermissionGate'
 
 interface AthleteDetailsDialogProps {
   athlete: Athlete | null
   results: Result[]
   onClose: () => void
   onAddResult: (result: Omit<Result, 'id'>) => void
+  onUpdateResult: (id: string, updates: Partial<Result>) => void
   onDeleteResult: (id: string) => void
+  onUploadAvatar?: (athleteId: string, file: File) => void
   defaultTab?: 'results' | 'evolution'
 }
 
@@ -26,9 +31,13 @@ export function AthleteDetailsDialog({
   results, 
   onClose, 
   onAddResult,
+  onUpdateResult,
   onDeleteResult,
+  onUploadAvatar,
   defaultTab = 'results'
 }: AthleteDetailsDialogProps) {
+  const { hasPermission } = useAuth()
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [selectedEvent, setSelectedEvent] = useState<EventType | 'all'>('all')
 
   const athleteResults = useMemo(() => {
@@ -62,7 +71,10 @@ export function AthleteDetailsDialog({
         <DialogHeader>
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3 sm:gap-4">
-              <Avatar className="h-12 w-12 sm:h-16 sm:w-16">
+              <Avatar className="h-12 w-12 sm:h-16 sm:w-16 overflow-hidden">
+                {athlete.avatar && (
+                  <AvatarImage src={athlete.avatar} alt={`${athlete.firstName} ${athlete.lastName}`} />
+                )}
                 <AvatarFallback className={`${avatarColor} text-white font-semibold text-lg sm:text-xl`}>
                   {getInitials(athlete.firstName, athlete.lastName)}
                 </AvatarFallback>
@@ -77,6 +89,33 @@ export function AthleteDetailsDialog({
                 </div>
               </div>
             </div>
+            {onUploadAvatar && (
+              <PermissionGate perm="athletes.avatar.upload">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0]
+                      if (f) setAvatarFile(f)
+                    }}
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={!avatarFile}
+                    onClick={() => {
+                      if (avatarFile) {
+                        onUploadAvatar(athlete.id, avatarFile)
+                        setAvatarFile(null)
+                      }
+                    }}
+                  >
+                    Încarcă poză
+                  </Button>
+                </div>
+              </PermissionGate>
+            )}
           </div>
         </DialogHeader>
 
@@ -89,11 +128,13 @@ export function AthleteDetailsDialog({
           <TabsContent value="results" className="space-y-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
               <h3 className="text-base sm:text-lg font-semibold">Istoric Rezultate</h3>
-              <AddResultDialog
-                athleteId={athlete.id}
-                athleteName={`${athlete.firstName} ${athlete.lastName}`}
-                onAdd={onAddResult}
-              />
+              <PermissionGate perm="results.create">
+                <AddResultDialog
+                  athleteId={athlete.id}
+                  athleteName={`${athlete.firstName} ${athlete.lastName}`}
+                  onAdd={onAddResult}
+                />
+              </PermissionGate>
             </div>
 
             {athleteResults.length === 0 ? (
@@ -109,7 +150,7 @@ export function AthleteDetailsDialog({
                       <TableHead className="text-xs sm:text-sm">Rezultat</TableHead>
                       <TableHead className="text-xs sm:text-sm whitespace-nowrap">Data</TableHead>
                       <TableHead className="hidden md:table-cell text-xs sm:text-sm">Notițe</TableHead>
-                      <TableHead className="w-[40px] sm:w-[50px]"></TableHead>
+                      <TableHead className="w-[72px] sm:w-[90px]"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -121,15 +162,24 @@ export function AthleteDetailsDialog({
                         <TableCell className="hidden md:table-cell text-muted-foreground text-xs sm:text-sm">
                           {result.notes || '-'}
                         </TableCell>
-                        <TableCell>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => onDeleteResult(result.id)}
-                            className="text-destructive hover:text-destructive h-8 w-8 p-0"
-                          >
-                            <X size={14} className="sm:w-4 sm:h-4" />
-                          </Button>
+                        <TableCell className="flex gap-1">
+                          <PermissionGate perm="results.edit">
+                            <EditResultDialog
+                              result={result}
+                              athleteName={`${athlete.firstName} ${athlete.lastName}`}
+                              onUpdate={onUpdateResult}
+                            />
+                          </PermissionGate>
+                          <PermissionGate perm="results.delete">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => onDeleteResult(result.id)}
+                              className="text-destructive hover:text-destructive h-8 w-8 p-0"
+                            >
+                              <X size={14} className="sm:w-4 sm:h-4" />
+                            </Button>
+                          </PermissionGate>
                         </TableCell>
                       </TableRow>
                     ))}

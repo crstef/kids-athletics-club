@@ -55,6 +55,8 @@ export type PermissionName =
   | 'athletes.view'
   | 'athletes.edit'
   | 'athletes.delete'
+  | 'athletes.avatar.view'
+  | 'athletes.avatar.upload'
   | 'results.create'
   | 'results.view'
   | 'results.edit'

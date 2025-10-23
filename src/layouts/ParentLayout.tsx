@@ -21,7 +21,9 @@ interface ParentLayoutProps {
   selectedAthlete: Athlete | null;
   handleCloseAthleteDialog: () => void;
   handleAddResult: (resultData: Omit<Result, 'id'>) => Promise<void>;
+  handleUpdateResult: (id: string, updates: Partial<Result>) => Promise<void>;
   handleDeleteResult: (id: string) => Promise<void>;
+  handleUploadAthleteAvatar: (id: string, file: File) => Promise<void>;
   selectedAthleteTab: 'results' | 'evolution';
 }
 
@@ -40,7 +42,9 @@ const ParentLayout: React.FC<ParentLayoutProps> = ({
   selectedAthlete,
   handleCloseAthleteDialog,
   handleAddResult,
+  handleUpdateResult,
   handleDeleteResult,
+  handleUploadAthleteAvatar,
   selectedAthleteTab,
 }) => {
   return (
@@ -98,7 +102,9 @@ const ParentLayout: React.FC<ParentLayoutProps> = ({
         results={results}
         onClose={handleCloseAthleteDialog}
         onAddResult={handleAddResult}
+        onUpdateResult={handleUpdateResult}
         onDeleteResult={handleDeleteResult}
+        onUploadAvatar={handleUploadAthleteAvatar}
         defaultTab={selectedAthleteTab}
       />
     </div>
