@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { MagnifyingGlass, SortAscending, Trophy, SignOut, UserCircle, Envelope, ChatCircleDots, ShieldCheck, Target, Users } from '@phosphor-icons/react'
-import { AuthProvider, useAuth } from '@/lib/auth-context'
+import { AuthProvider, useAuth } from './lib/auth-context'
 import { AuthDialog } from '@/components/AuthDialog'
 import { AddAthleteDialog } from '@/components/AddAthleteDialog'
 import { EditAthleteDialog } from '@/components/EditAthleteDialog'
@@ -32,36 +32,47 @@ import { RoleManagement } from '@/components/RoleManagement'
 import { AgeCategoryManagement } from '@/components/AgeCategoryManagement'
 import { apiClient } from '@/lib/api-client'
 import { useAthletes, useResults, useUsers, useAccessRequests, useMessages, useEvents, usePermissions, useUserPermissions, useApprovalRequests, useRoles, useAgeCategories } from '@/hooks/use-api'
-import { hashPassword } from '@/lib/crypto'
-import { DEFAULT_PERMISSIONS, DEFAULT_ROLES } from '@/lib/permissions'
+import { hashPassword } from './lib/auth';
+import { DEFAULT_PERMISSIONS, DEFAULT_ROLES } from './lib/defaults'
 import type { Athlete, Result, AgeCategory, User, Coach, AccessRequest, Message, EventTypeCustom, Permission, UserPermission, AccountApprovalRequest, Role, AgeCategoryCustom } from '@/lib/types'
+import SuperAdminLayout from './layouts/SuperAdminLayout';
+import CoachLayout from './layouts/CoachLayout';
+import ParentLayout from './layouts/ParentLayout';
+import AthleteLayout from './layouts/AthleteLayout';
+
 
 // Definiție tab-uri dinamice bazate pe permisiuni
 interface TabConfig {
   id: string
   label: string
   icon?: any
-  permission?: string
-  roles?: string[] // roluri care pot vedea tab-ul fără verificare de permisiune
+  permission: string // Am eliminat 'roles' și am făcut 'permission' obligatoriu
   showBadge?: (count: number) => boolean
 }
 
 const TAB_CONFIGS: TabConfig[] = [
-  { id: 'dashboard', label: 'Dashboard', roles: ['superadmin', 'coach', 'parent'] },
+  { id: 'dashboard', label: 'Dashboard', permission: 'dashboard.view' },
   { id: 'athletes', label: 'Atleți', permission: 'athletes.view' },
   { id: 'events', label: 'Probe', permission: 'events.view' },
   { id: 'results', label: 'Rezultate', permission: 'results.view' },
-  { id: 'coaches', label: 'Antrenori', permission: 'users.view', roles: ['superadmin'] },
-  { id: 'requests', label: 'Cereri', icon: Envelope, permission: 'approval_requests.view' },
+  { id: 'coaches', label: 'Antrenori', permission: 'coaches.view' },
+  { id: 'requests', label: 'Cereri', icon: Envelope, permission: 'requests.view' },
   { id: 'messages', label: 'Mesaje', icon: ChatCircleDots, permission: 'messages.view' },
-  { id: 'users', label: 'Utilizatori', permission: 'users.view', roles: ['superadmin'] },
-  { id: 'roles', label: 'Roluri', permission: 'roles.view', roles: ['superadmin'] },
-  { id: 'permissions', label: 'Permisiuni', permission: 'permissions.view', roles: ['superadmin'] },
-  { id: 'categories', label: 'Categorii', permission: 'age_categories.view', roles: ['superadmin'] },
+  { id: 'users', label: 'Utilizatori', permission: 'users.view' },
+  { id: 'roles', label: 'Roluri', permission: 'roles.view' },
+  { id: 'permissions', label: 'Permisiuni', permission: 'permissions.view' },
+  { id: 'categories', label: 'Categorii', permission: 'age_categories.view' },
 ]
 
+const DASHBOARD_COMPONENTS: Record<string, React.ComponentType<any>> = {
+  'dashboard.view.superadmin': SuperAdminLayout,
+  'dashboard.view.coach': CoachLayout,
+  'dashboard.view.parent': ParentLayout,
+  'dashboard.view.athlete': AthleteLayout,
+};
+
 function AppContent() {
-  const { currentUser, setCurrentUser, isCoach, isParent, isSuperAdmin, isAthlete, hasPermission, logout, loading: authLoading } = useAuth()
+  const { currentUser, setCurrentUser, hasPermission, logout, loading: authLoading } = useAuth()
   const [athletes, setAthletes, athletesLoading, athletesError, refetchAthletes] = useAthletes()
   const [results, setResults, resultsLoading, resultsError, refetchResults] = useResults()
   const [users, setUsers, usersLoading, usersError, refetchUsers] = useUsers()
@@ -87,41 +98,21 @@ function AppContent() {
   // Fetch data whenever the user is loaded or changes
   useEffect(() => {
     if (currentUser && !authLoading) {
-      // Always refetch core data to ensure freshness after refresh
-      refetchAthletes()
-      refetchResults()
-      refetchAgeCategories()
-      refetchProbes()
-
-      // Fetch role-specific data
-      if (isSuperAdmin) {
-        refetchUsers()
-        refetchPermissions()
-        refetchRoles()
-        refetchUserPermissions()
+      // Refetch data based on permissions
+      if (hasPermission('athletes.view')) refetchAthletes()
+      if (hasPermission('results.view')) refetchResults()
+      if (hasPermission('age_categories.view')) refetchAgeCategories()
+      if (hasPermission('events.view')) refetchProbes()
+      if (hasPermission('users.view')) refetchUsers()
+      if (hasPermission('roles.view')) refetchRoles()
+      if (hasPermission('permissions.view')) refetchPermissions()
+      if (hasPermission('user_permissions.view')) refetchUserPermissions()
+      if (hasPermission('requests.view')) {
+        refetchAccessRequests()
         refetchApprovalRequests()
       }
-      
-      if (isCoach) {
-        refetchAccessRequests()
-      }
     }
-  }, [
-    currentUser, 
-    authLoading, 
-    isSuperAdmin, 
-    isCoach,
-    refetchAthletes, 
-    refetchResults, 
-    refetchUsers, 
-    refetchPermissions, 
-    refetchRoles, 
-    refetchUserPermissions, 
-    refetchAgeCategories,
-    refetchProbes,
-    refetchAccessRequests,
-    refetchApprovalRequests
-  ])
+  }, [currentUser, authLoading, hasPermission, refetchAthletes, refetchResults, refetchAgeCategories, refetchProbes, refetchUsers, refetchRoles, refetchPermissions, refetchUserPermissions, refetchAccessRequests, refetchApprovalRequests])
 
   useEffect(() => {
     if (activeTab === 'antrenori' && accessRequests.length === 0 && currentUser) {
@@ -183,8 +174,10 @@ function AppContent() {
       const existingPerms = permissions || []
       if (existingPerms.length === 0) {
         const defaultPerms: Permission[] = DEFAULT_PERMISSIONS.map((perm, index) => ({
-          ...perm,
           id: `perm-${Date.now()}-${index}`,
+          name: perm as any,
+          description: '',
+          isActive: true,
           createdAt: new Date().toISOString(),
           createdBy: 'system'
         }))
@@ -307,7 +300,7 @@ function AppContent() {
         requestDate: new Date().toISOString()
       }
       setApprovalRequests((current) => [...(current || []), approvalRequest])
-      toast.success('Antrenor adăugat! Contul așteaptă aprobare.')
+      toast.success('Antrenor adăugat! Contul așteaptă aprobată.')
     } else {
       toast.success('Antrenor adăugat cu succes!')
     }
@@ -354,6 +347,17 @@ function AppContent() {
     } catch (error: any) {
       toast.error(error.message || 'Eroare la adăugarea rezultatului')
       console.error('Error creating result:', error)
+    }
+  }
+
+  const handleUpdateResult = async (id: string, resultData: Partial<Result>) => {
+    try {
+      await apiClient.updateResult(id, resultData)
+      await refetchResults()
+      toast.success('Rezultat actualizat cu succes!')
+    } catch (error: any) {
+      toast.error(error.message || 'Eroare la actualizarea rezultatului')
+      console.error('Error updating result:', error)
     }
   }
 
@@ -443,21 +447,13 @@ function AppContent() {
     }
   }
 
-  const handleAddPermission = (permData: Omit<Permission, 'id' | 'createdAt' | 'createdBy'>) => {
-    setPermissions((current) => [
-      ...(current || []),
-      {
-        ...permData,
-        id: `perm-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        createdAt: new Date().toISOString(),
-        createdBy: currentUser?.id || 'system'
-      }
-    ])
+  const handleAddPermission = (newPermission: Omit<Permission, 'id'>) => {
+    setPermissions(prev => [...prev, { ...newPermission, id: `perm_${Date.now()}` }])
   }
 
-  const handleUpdatePermission = (id: string, updates: Partial<Permission>) => {
+  const handleUpdatePermission = (id: string, updatedPermission: Partial<Permission>) => {
     setPermissions((current) =>
-      (current || []).map(p => p.id === id ? { ...p, ...updates } : p)
+      (current || []).map(p => p.id === id ? { ...p, ...updatedPermission } : p)
     )
   }
 
@@ -719,13 +715,28 @@ function AppContent() {
   }
 
   const myAthletes = useMemo(() => {
-    if (!currentUser) return athletes || []
-    if (isSuperAdmin) return athletes || []
-    if (isCoach) {
-      return (athletes || []).filter(a => a.coachId === currentUser.id)
+    if (!currentUser || !athletes) return []
+    // Utilizatorii cu permisiunea 'athletes.view.all' văd toți atleții
+    if (hasPermission('athletes.view.all')) {
+      return athletes
     }
-    return athletes || []
-  }, [athletes, currentUser, isCoach, isSuperAdmin])
+    // Utilizatorii cu permisiunea 'athletes.view.own' văd doar atleții lor
+    if (hasPermission('athletes.view.own')) {
+      // Aici, rolul este un detaliu tehnic pentru a ști cum să filtrezi
+      if (currentUser.role === 'coach') {
+        return athletes.filter(a => a.coachId === currentUser.id)
+      }
+      if (currentUser.role === 'parent') {
+        return athletes.filter(a => a.parentId === currentUser.id)
+      }
+    }
+    return []
+  }, [athletes, currentUser, hasPermission])
+
+  const myResults = useMemo(() => {
+    const athleteIds = new Set(myAthletes.map(a => a.id))
+    return (results || []).filter(r => athleteIds.has(r.athleteId))
+  }, [myAthletes, results])
 
   const filteredAndSortedAthletes = useMemo(() => {
     let filtered = myAthletes
@@ -775,53 +786,29 @@ function AppContent() {
 
   const pendingRequestsCount = useMemo(() => {
     if (!currentUser) return 0
-    if (isCoach) {
+    if (currentUser.role === 'coach') {
       const coachApprovals = (approvalRequests || []).filter(r => r.coachId === currentUser.id && r.status === 'pending').length
       const coachAccessRequests = (accessRequests || []).filter(r => r.coachId === currentUser.id && r.status === 'pending').length
       return coachApprovals + coachAccessRequests
     }
-    if (isSuperAdmin) {
+    if (currentUser.role === 'superadmin') {
       return (approvalRequests || []).filter(r => r.status === 'pending').length
     }
     return 0
-  }, [accessRequests, approvalRequests, currentUser, isCoach, isSuperAdmin])
+  }, [accessRequests, approvalRequests, currentUser])
 
   // Determină ce tab-uri să fie vizibile pentru utilizatorul curent
   const visibleTabs = useMemo(() => {
     if (!currentUser) return []
-    
-    console.log('🔍 Debug Tabs:', {
-      role: currentUser.role,
-      permissions: currentUser.permissions,
-      availableTabs: TAB_CONFIGS.map(t => t.id)
-    })
-    
-    const tabs = TAB_CONFIGS.filter(tab => {
-      // Dacă tab-ul are roluri specificate și utilizatorul are unul din ele
-      if (tab.roles && tab.roles.includes(currentUser.role)) {
-        console.log(`✅ Tab ${tab.id} visible by role`)
-        return true
-      }
-      // Altfel verifică permisiunea
-      if (tab.permission) {
-        const hasPerm = hasPermission(tab.permission)
-        console.log(`${hasPerm ? '✅' : '❌'} Tab ${tab.id} permission check: ${tab.permission} = ${hasPerm}`)
-        return hasPerm
-      }
-      // Dacă nu are nici rol, nici permisiune specificată, nu se afișează
-      return false
-    })
-    
-    console.log('📋 Visible tabs:', tabs.map(t => t.id))
-    return tabs
+    return TAB_CONFIGS.filter(tab => hasPermission(tab.permission))
   }, [currentUser, hasPermission])
 
   const selectedParent = parents.find(p => p.id === selectedParentId)
 
   const currentAthlete = useMemo(() => {
-    if (!isAthlete || !currentUser) return null
+    if (!currentUser || currentUser.role !== 'athlete') return null
     return (athletes || []).find(a => a.id === (currentUser as any).athleteId) || null
-  }, [isAthlete, currentUser, athletes])
+  }, [currentUser, athletes])
 
   const handleViewAthleteDetails = (athlete: Athlete) => {
     setSelectedAthlete(athlete)
@@ -838,6 +825,103 @@ function AppContent() {
     setSelectedAthleteTab('results')
   }
 
+  const renderDashboard = () => {
+    const dashboardPermission = Object.keys(DASHBOARD_COMPONENTS).find(p => hasPermission(p));
+
+    if (dashboardPermission) {
+      const Component = DASHBOARD_COMPONENTS[dashboardPermission];
+      const props = {
+        currentUser,
+        logout,
+        visibleTabs,
+        pendingRequestsCount,
+        unreadMessagesCount,
+        superAdminActiveTab,
+        setSuperAdminActiveTab,
+        activeTab,
+        setActiveTab,
+        users: users || [],
+        athletes: athletes || [],
+        probes: probes || [],
+        permissions: permissions || [],
+        roles: roles || [],
+        ageCategories: ageCategories || [],
+        results: results || [],
+        accessRequests: accessRequests || [],
+        messages: messages || [],
+        userPermissions: userPermissions || [],
+        approvalRequests: approvalRequests || [],
+        myAthletes,
+        myResults,
+        coaches,
+        parents,
+        filteredAndSortedAthletes,
+        getAthleteResultsCount,
+        searchQuery,
+        setSearchQuery,
+        categoryFilter,
+        setCategoryFilter,
+        sortBy,
+        setSortBy,
+        selectedAthlete,
+        setSelectedAthlete,
+        selectedAthleteTab,
+        setSelectedAthleteTab,
+        deleteAthleteId,
+        setDeleteAthleteId,
+        deleteAthleteName,
+        athleteResultsCount,
+        confirmDeleteAthlete,
+        currentAthlete,
+        handleViewAthleteDetails,
+        handleViewAthleteChart,
+        handleCloseAthleteDialog,
+        handleAddAthlete,
+        handleEditAthlete,
+        handleDeleteAthlete,
+        handleAddResult,
+        handleUpdateResult,
+        handleDeleteResult,
+        handleCreateAccessRequest,
+        handleUpdateAccessRequest,
+        handleSendMessage,
+        handleMarkAsRead,
+        handleAddProbe,
+        handleEditProbe,
+        handleDeleteProbe,
+        handleAddPermission,
+        handleUpdatePermission,
+        handleDeletePermission,
+        handleGrantUserPermission,
+        handleRevokeUserPermission,
+        handleAddRole,
+        handleUpdateRole,
+        handleDeleteRole,
+        handleAddAgeCategory,
+        handleUpdateAgeCategory,
+        handleDeleteAgeCategory,
+        handleApproveAccount,
+        handleRejectAccount,
+        handleDeleteApprovalRequest,
+        handleAddUser,
+        handleUpdateUser,
+        handleDeleteUser,
+        onNavigateToTab: setSuperAdminActiveTab,
+      };
+      return <Component {...props} />;
+    }
+
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center p-8">
+          <h2 className="text-2xl font-bold mb-2">Acces restricționat</h2>
+          <p className="text-muted-foreground">Nu aveți permisiunile necesare pentru a vizualiza un dashboard.</p>
+          <Button onClick={logout} className="mt-4">Deconectare</Button>
+        </div>
+      </div>
+    );
+  };
+
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-linear-to-br from-primary/5 via-background to-accent/5 flex items-center justify-center p-4">
@@ -849,11 +933,11 @@ function AppContent() {
           </div>
           <div className="space-y-2 sm:space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <h1 className="text-3xl sm:text-5xl font-bold bg-linear-to-r from-primary to-accent bg-clip-text text-transparent" style={{ fontFamily: 'Outfit', letterSpacing: '-0.02em' }}>
-              Club Atletism
+              Club Atletism Sibiu
             </h1>
             <p className="text-base sm:text-lg text-muted-foreground">Management Atleți Juniori</p>
             <p className="text-xs sm:text-sm text-muted-foreground/80 max-w-sm mx-auto">
-              Sistem profesional pentru monitorizarea progresului sportivilor
+              Sistem pentru managementul progresului sportivilor
             </p>
           </div>
           <Button 
@@ -877,754 +961,7 @@ function AppContent() {
     )
   }
 
-  if (isParent) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Toaster position="top-right" richColors />
-        
-        <header className="border-b bg-linear-to-r from-card via-card/80 to-card backdrop-blur-md sticky top-0 z-10 shadow-sm">
-          <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="p-1.5 sm:p-2 bg-linear-to-br from-accent/10 to-accent/5 rounded-xl">
-                  <Trophy size={20} weight="fill" className="sm:w-7 sm:h-7 text-accent" />
-                </div>
-                <div>
-                  <h1 className="text-lg sm:text-2xl font-bold" style={{ fontFamily: 'Outfit', letterSpacing: '-0.02em' }}>
-                    Club Atletism
-                  </h1>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1 sm:gap-1.5">
-                    <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-accent animate-pulse" />
-                    Panou Părinte
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-secondary/10 rounded-full">
-                  <div className="w-2 h-2 rounded-full bg-secondary" />
-                  <span className="text-sm font-medium">{currentUser.firstName} {currentUser.lastName}</span>
-                </div>
-                <Button variant="outline" size="sm" onClick={logout} className="gap-1.5 sm:gap-2 h-8 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm">
-                  <SignOut size={14} className="sm:w-4 sm:h-4" />
-                  <span className="hidden sm:inline">Deconectare</span>
-                </Button>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
-          <ParentDashboard
-            parentId={currentUser.id}
-            athletes={athletes || []}
-            results={results || []}
-            accessRequests={accessRequests || []}
-            coaches={coaches}
-            messages={messages || []}
-            onCreateRequest={handleCreateAccessRequest}
-            onSendMessage={handleSendMessage}
-            onMarkAsRead={handleMarkAsRead}
-            onViewAthleteDetails={setSelectedAthlete}
-          />
-        </main>
-
-        <AthleteDetailsDialog
-          athlete={selectedAthlete}
-          results={results || []}
-          onClose={handleCloseAthleteDialog}
-          onAddResult={handleAddResult}
-          onDeleteResult={handleDeleteResult}
-          defaultTab={selectedAthleteTab}
-        />
-      </div>
-    )
-  }
-
-  if (isSuperAdmin) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Toaster position="top-right" richColors />
-        
-        <header className="border-b bg-linear-to-r from-primary/10 via-primary/5 to-accent/10 backdrop-blur-md sticky top-0 z-10 shadow-sm">
-          <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="p-1.5 sm:p-2 bg-linear-to-br from-primary/20 to-primary/10 rounded-xl">
-                  <ShieldCheck size={20} weight="fill" className="sm:w-7 sm:h-7 text-primary" />
-                </div>
-                <div>
-                  <h1 className="text-lg sm:text-2xl font-bold" style={{ fontFamily: 'Outfit', letterSpacing: '-0.02em' }}>
-                    Club Atletism
-                  </h1>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1 sm:gap-1.5">
-                    <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-primary animate-pulse" />
-                    Panou SuperAdmin
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-full">
-                  <ShieldCheck size={16} weight="fill" className="text-primary" />
-                  <span className="text-sm font-medium">{currentUser.firstName} {currentUser.lastName}</span>
-                </div>
-                <Button variant="outline" size="sm" onClick={logout} className="gap-1.5 sm:gap-2 h-8 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm">
-                  <SignOut size={14} className="sm:w-4 sm:h-4" />
-                  <span className="hidden sm:inline">Deconectare</span>
-                </Button>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
-          <Tabs value={superAdminActiveTab} onValueChange={setSuperAdminActiveTab} className="space-y-4 sm:space-y-6">
-            <div className="overflow-x-auto -mx-3 sm:-mx-4 px-3 sm:px-4 pb-2">
-              <TabsList className="inline-flex w-auto min-w-full bg-muted/50 p-1.5 rounded-xl">
-                {visibleTabs.map(tab => {
-                  const Icon = tab.icon
-                  const showBadge = tab.id === 'requests' && pendingRequestsCount > 0
-                  const showMessagesBadge = tab.id === 'messages' && unreadMessagesCount > 0
-                  const showApprovalsBadge = tab.id === 'approvals' && pendingRequestsCount > 0
-                  
-                  return (
-                    <TabsTrigger 
-                      key={tab.id} 
-                      value={tab.id} 
-                      className="gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap text-xs sm:text-sm"
-                    >
-                      {Icon && <Icon size={14} className="sm:w-4 sm:h-4" />}
-                      <span className={Icon ? "hidden sm:inline" : ""}>{tab.label}</span>
-                      {showBadge && (
-                        <Badge variant="destructive" className="ml-1 h-4 w-4 sm:h-5 sm:w-5 rounded-full p-0 flex items-center justify-center text-[10px] sm:text-xs animate-pulse">
-                          {pendingRequestsCount}
-                        </Badge>
-                      )}
-                      {showMessagesBadge && (
-                        <Badge variant="destructive" className="ml-1 h-4 w-4 sm:h-5 sm:w-5 rounded-full p-0 flex items-center justify-center text-[10px] sm:text-xs animate-pulse">
-                          {unreadMessagesCount}
-                        </Badge>
-                      )}
-                      {showApprovalsBadge && (
-                        <Badge variant="destructive" className="ml-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs animate-pulse">
-                          {pendingRequestsCount}
-                        </Badge>
-                      )}
-                    </TabsTrigger>
-                  )
-                })}
-              </TabsList>
-            </div>
-
-            <TabsContent value="dashboard">
-              <SuperAdminDashboard
-                users={users || []}
-                athletes={athletes || []}
-                events={probes || []}
-                permissions={permissions || []}
-                onNavigateToTab={setSuperAdminActiveTab}
-                onViewAthleteDetails={(athlete) => {
-                  handleViewAthleteDetails(athlete)
-                  setSuperAdminActiveTab('athletes')
-                }}
-              />
-            </TabsContent>
-
-            <TabsContent value="users">
-              <UserManagement
-                users={users || []}
-                roles={roles || []}
-                currentUserId={currentUser.id}
-                onAddUser={handleAddUser}
-                onUpdateUser={handleUpdateUser}
-                onDeleteUser={handleDeleteUser}
-              />
-            </TabsContent>
-
-            <TabsContent value="roles">
-              <RoleManagement
-                roles={roles || []}
-                permissions={permissions || []}
-                currentUserId={currentUser.id}
-                onAddRole={handleAddRole}
-                onUpdateRole={handleUpdateRole}
-                onDeleteRole={handleDeleteRole}
-              />
-            </TabsContent>
-
-            <TabsContent value="permissions">
-              <PermissionsSystem
-                permissions={permissions || []}
-                currentUserId={currentUser.id}
-                onAddPermission={handleAddPermission}
-                onUpdatePermission={handleUpdatePermission}
-                onDeletePermission={handleDeletePermission}
-              />
-            </TabsContent>
-
-            <TabsContent value="categories">
-              <AgeCategoryManagement
-                ageCategories={ageCategories || []}
-                currentUserId={currentUser.id}
-                onAddCategory={handleAddAgeCategory}
-                onUpdateCategory={handleUpdateAgeCategory}
-                onDeleteCategory={handleDeleteAgeCategory}
-              />
-            </TabsContent>
-
-            <TabsContent value="events">
-              <ProbeManagement
-                events={probes || []}
-                onAddEvent={handleAddProbe}
-                onDeleteEvent={handleDeleteProbe}
-              />
-            </TabsContent>
-
-            <TabsContent value="athletes" className="space-y-6">
-              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="relative flex-1">
-                  <MagnifyingGlass 
-                    size={20} 
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" 
-                  />
-                  <Input
-                    placeholder="Caută atlet..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-                <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v as AgeCategory | 'all')}>
-                  <SelectTrigger className="w-full sm:w-[180px]">
-                    <SelectValue placeholder="Categorie" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Toate categoriile</SelectItem>
-                    <SelectItem value="U10">U10</SelectItem>
-                    <SelectItem value="U12">U12</SelectItem>
-                    <SelectItem value="U14">U14</SelectItem>
-                    <SelectItem value="U16">U16</SelectItem>
-                    <SelectItem value="U18">U18</SelectItem>
-                  </SelectContent>
-                </Select>
-                <AddAthleteDialog onAdd={handleAddAthlete} coaches={coaches} />
-              </div>
-
-              {filteredAndSortedAthletes.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  {searchQuery || categoryFilter !== 'all'
-                    ? 'Niciun atlet găsit cu filtrele curente'
-                    : 'Niciun atlet adăugat încă'}
-                </div>
-              ) : (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {filteredAndSortedAthletes.map((athlete) => (
-                    <AthleteCard
-                      key={athlete.id}
-                      athlete={athlete}
-                      resultsCount={getAthleteResultsCount(athlete.id)}
-                      parents={parents}
-                      coaches={coaches}
-                      onViewDetails={handleViewAthleteDetails}
-                      onViewChart={handleViewAthleteChart}
-                      onEdit={handleEditAthlete}
-                      onDelete={handleDeleteAthlete}
-                    />
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
-        </main>
-
-        <AthleteDetailsDialog
-          athlete={selectedAthlete}
-          results={results || []}
-          onClose={handleCloseAthleteDialog}
-          onAddResult={handleAddResult}
-          onDeleteResult={handleDeleteResult}
-          defaultTab={selectedAthleteTab}
-        />
-
-        <AlertDialog open={!!deleteAthleteId} onOpenChange={() => setDeleteAthleteId(null)}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Confirmare ștergere</AlertDialogTitle>
-              <AlertDialogDescription>
-                Ești sigur că vrei să ștergi atleta/atletul <strong>{deleteAthleteName}</strong>?
-                {athleteResultsCount > 0 && (
-                  <span className="block mt-2 text-destructive">
-                    Atenție: Se vor șterge și {athleteResultsCount} rezultat(e) asociat(e).
-                  </span>
-                )}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Anulează</AlertDialogCancel>
-              <AlertDialogAction onClick={confirmDeleteAthlete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                Șterge
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </div>
-    )
-  }
-
-  if (isAthlete) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Toaster position="top-right" richColors />
-        
-        <header className="border-b bg-linear-to-r from-card via-card/80 to-card backdrop-blur-md sticky top-0 z-10 shadow-sm">
-          <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="p-1.5 sm:p-2 bg-linear-to-br from-accent/10 to-accent/5 rounded-xl">
-                  <Trophy size={20} weight="fill" className="sm:w-7 sm:h-7 text-accent" />
-                </div>
-                <div>
-                  <h1 className="text-lg sm:text-2xl font-bold" style={{ fontFamily: 'Outfit', letterSpacing: '-0.02em' }}>
-                    Club Atletism
-                  </h1>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1 sm:gap-1.5">
-                    <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-accent animate-pulse" />
-                    Panou Atlet
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-accent/10 rounded-full">
-                  <Trophy size={16} weight="fill" className="text-accent" />
-                  <span className="text-sm font-medium">{currentUser.firstName} {currentUser.lastName}</span>
-                </div>
-                <Button variant="outline" size="sm" onClick={logout} className="gap-1.5 sm:gap-2 h-8 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm">
-                  <SignOut size={14} className="sm:w-4 sm:h-4" />
-                  <span className="hidden sm:inline">Deconectare</span>
-                </Button>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
-          <AthleteDashboard
-            athlete={currentAthlete}
-            results={results || []}
-            coaches={coaches}
-          />
-        </main>
-      </div>
-    )
-  }
-
-  return (
-    <div className="min-h-screen bg-background">
-      <Toaster position="top-right" richColors />
-      
-        <header className="border-b bg-linear-to-r from-card via-card/80 to-card backdrop-blur-md sticky top-0 z-10 shadow-sm">
-          <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="p-1.5 sm:p-2 bg-linear-to-br from-secondary/10 to-secondary/5 rounded-xl">
-                  <Trophy size={20} weight="fill" className="sm:w-7 sm:h-7 text-secondary" />
-                </div>
-                <div>
-                  <h1 className="text-lg sm:text-2xl font-bold" style={{ fontFamily: 'Outfit', letterSpacing: '-0.02em' }}>
-                    Club Atletism
-                  </h1>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1 sm:gap-1.5">
-                    <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-secondary animate-pulse" />
-                    {isCoach ? 'Panou Antrenor' : 'Management Atleți Juniori'}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-secondary/10 rounded-full">
-                  <div className="w-2 h-2 rounded-full bg-secondary" />
-                  <div className="flex flex-col items-end">
-                    <span className="text-sm font-medium leading-none">{currentUser.firstName} {currentUser.lastName}</span>
-                    <span className="text-xs text-muted-foreground leading-none mt-0.5">
-                      {isCoach ? 'Antrenor' : 'Administrator'}
-                    </span>
-                  </div>
-                </div>
-                <Button variant="outline" size="sm" onClick={logout} className="gap-1.5 sm:gap-2 h-8 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm">
-                  <SignOut size={14} className="sm:w-4 sm:h-4" />
-                  <span className="hidden sm:inline">Deconectare</span>
-                </Button>
-              </div>
-            </div>
-          </div>
-        </header>
-
-      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
-          <div className="overflow-x-auto -mx-3 sm:-mx-4 px-3 sm:px-4 pb-2">
-            <TabsList className="inline-flex w-auto min-w-full bg-muted/50 p-1.5 rounded-xl">
-              {visibleTabs.map(tab => {
-                const Icon = tab.icon
-                const showBadge = tab.id === 'requests' && pendingRequestsCount > 0
-                const showMessagesBadge = tab.id === 'messages' && unreadMessagesCount > 0
-                
-                return (
-                  <TabsTrigger 
-                    key={tab.id} 
-                    value={tab.id} 
-                    className="gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm whitespace-nowrap text-xs sm:text-sm"
-                  >
-                    {Icon && <Icon size={14} className="sm:w-4 sm:h-4" />}
-                    <span className={Icon ? "hidden sm:inline" : ""}>{tab.label}</span>
-                    {showBadge && (
-                      <Badge variant="destructive" className="ml-1 h-4 w-4 sm:h-5 sm:w-5 rounded-full p-0 flex items-center justify-center text-[10px] sm:text-xs animate-pulse">
-                        {pendingRequestsCount}
-                      </Badge>
-                    )}
-                    {showMessagesBadge && (
-                      <Badge variant="destructive" className="ml-1 h-4 w-4 sm:h-5 sm:w-5 rounded-full p-0 flex items-center justify-center text-[10px] sm:text-xs animate-pulse">
-                        {unreadMessagesCount}
-                      </Badge>
-                    )}
-                  </TabsTrigger>
-                )
-              })}
-            </TabsList>
-          </div>
-
-          <TabsContent value="dashboard" className="space-y-6">
-            {isCoach ? (
-              <CoachDashboard
-                coachId={currentUser.id}
-                athletes={athletes || []}
-                results={results || []}
-                users={users || []}
-                approvalRequests={approvalRequests || []}
-                onApproveAccount={handleApproveAccount}
-                onRejectAccount={handleRejectAccount}
-              />
-            ) : (
-              <>
-                <DashboardStats 
-                  athletes={myAthletes} 
-                  results={results || []} 
-                  onNavigateToAthletes={() => setActiveTab('athletes')}
-                  onViewAthleteDetails={setSelectedAthlete}
-                />
-
-                {myAthletes.length === 0 ? (
-                  <div className="text-center py-16 space-y-6">
-                    <div className="relative inline-block">
-                      <div className="absolute inset-0 bg-linear-to-r from-accent/20 to-primary/20 blur-3xl" />
-                      <Trophy size={80} weight="duotone" className="text-muted-foreground/50 mx-auto relative animate-in zoom-in duration-500" />
-                    </div>
-                    <div className="space-y-3">
-                      <h3 className="text-2xl font-semibold" style={{ fontFamily: 'Outfit' }}>Bine ai venit!</h3>
-                      <p className="text-muted-foreground max-w-md mx-auto">
-                        Începe prin a adăuga primul atlet în baza de date pentru a urmări progresul și rezultatele acestuia
-                      </p>
-                    </div>
-                    <AddAthleteDialog onAdd={handleAddAthlete} coaches={coaches} />
-                  </div>
-                ) : (
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {myAthletes.slice(0, 6).map((athlete) => (
-                      <AthleteCard
-                        key={athlete.id}
-                        athlete={athlete}
-                        resultsCount={getAthleteResultsCount(athlete.id)}
-                        parents={parents}
-                        coaches={coaches}
-                        onViewDetails={handleViewAthleteDetails}
-                        onViewChart={handleViewAthleteChart}
-                        onEdit={handleEditAthlete}
-                        onDelete={handleDeleteAthlete}
-                      />
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-          </TabsContent>
-
-          <TabsContent value="athletes" className="space-y-6">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="relative flex-1">
-                <MagnifyingGlass 
-                  size={20} 
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" 
-                />
-                <Input
-                  placeholder="Caută atlet..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v as AgeCategory | 'all')}>
-                <SelectTrigger className="w-full sm:w-[180px]">
-                  <SelectValue placeholder="Categorie" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Toate categoriile</SelectItem>
-                  <SelectItem value="U10">U10</SelectItem>
-                  <SelectItem value="U12">U12</SelectItem>
-                  <SelectItem value="U14">U14</SelectItem>
-                  <SelectItem value="U16">U16</SelectItem>
-                  <SelectItem value="U18">U18</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={sortBy} onValueChange={(v) => setSortBy(v as 'name' | 'age' | 'results')}>
-                <SelectTrigger className="w-full sm:w-[180px]">
-                  <SortAscending size={16} className="mr-2" />
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="name">Sortează după nume</SelectItem>
-                  <SelectItem value="age">Sortează după vârstă</SelectItem>
-                  <SelectItem value="results">Sortează după rezultate</SelectItem>
-                </SelectContent>
-              </Select>
-              <AddAthleteDialog onAdd={handleAddAthlete} coaches={coaches} />
-            </div>
-
-            {filteredAndSortedAthletes.length === 0 ? (
-              <div className="text-center py-16 border border-dashed rounded-lg">
-                <div className="space-y-4">
-                  <div className="relative inline-block">
-                    <div className="absolute inset-0 bg-linear-to-r from-muted/20 to-muted/10 blur-2xl" />
-                    <Trophy size={64} weight="duotone" className="text-muted-foreground/40 mx-auto relative" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-lg mb-1">Niciun atlet găsit</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {searchQuery || categoryFilter !== 'all'
-                        ? 'Încearcă să ajustezi filtrele pentru a vedea rezultate'
-                        : 'Adaugă primul atlet pentru a începe'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {filteredAndSortedAthletes.map((athlete) => (
-                  <AthleteCard
-                    key={athlete.id}
-                    athlete={athlete}
-                    resultsCount={getAthleteResultsCount(athlete.id)}
-                    parents={parents}
-                    coaches={coaches}
-                    onViewDetails={handleViewAthleteDetails}
-                    onViewChart={handleViewAthleteChart}
-                    onEdit={handleEditAthlete}
-                    onDelete={handleDeleteAthlete}
-                  />
-                ))}
-              </div>
-            )}
-          </TabsContent>
-
-          {!isCoach && (
-            <TabsContent value="coaches" className="space-y-6">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h3 className="text-lg font-semibold">Antrenori</h3>
-                  <p className="text-sm text-muted-foreground">Membrii echipei de coaching</p>
-                </div>
-                <AddCoachDialog onAdd={handleAddCoach} />
-              </div>
-              {coaches.length === 0 ? (
-                <div className="text-center py-16 border border-dashed rounded-lg">
-                  <div className="space-y-4">
-                    <div className="relative inline-block">
-                      <div className="absolute inset-0 bg-linear-to-r from-secondary/20 to-secondary/10 blur-2xl" />
-                      <Users size={64} weight="duotone" className="text-muted-foreground/40 mx-auto relative" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-lg mb-1">Niciun antrenor</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Adaugă primul antrenor pentru a începe managementul echipei
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {coaches.map((coach) => {
-                    const coachAthletes = (athletes || []).filter(a => a.coachId === coach.id)
-                    return (
-                      <Card key={coach.id} className="p-6 space-y-3 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-secondary/50">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-12 w-12 ring-2 ring-background">
-                              <AvatarFallback className="bg-linear-to-br from-secondary to-secondary/70 text-white font-semibold">
-                                {coach.firstName[0]}{coach.lastName[0]}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <div className="font-semibold text-base">
-                                {coach.firstName} {coach.lastName}
-                              </div>
-                              <div className="text-xs text-muted-foreground">{coach.email}</div>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="pt-2 border-t flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">Atleți:</span>
-                          <Badge variant="outline" className="font-semibold">{coachAthletes.length}</Badge>
-                        </div>
-                      </Card>
-                    )
-                  })}
-                </div>
-              )}
-            </TabsContent>
-          )}
-
-          <TabsContent value="requests">
-            <div className="space-y-6">
-              {isCoach && (
-                <CoachApprovalRequests
-                  coachId={currentUser.id}
-                  athletes={athletes || []}
-                  users={users || []}
-                  approvalRequests={approvalRequests || []}
-                  onApproveAccount={handleApproveAccount}
-                  onRejectAccount={handleRejectAccount}
-                />
-              )}
-              <CoachAccessRequests
-                coachId={currentUser.id}
-                athletes={athletes || []}
-                parents={parents}
-                accessRequests={accessRequests || []}
-                onUpdateRequest={handleUpdateAccessRequest}
-              />
-            </div>
-          </TabsContent>
-
-          {isCoach && (
-            <TabsContent value="messages">
-              <div className="grid gap-4 lg:grid-cols-3">
-                <div className="lg:col-span-1 space-y-2">
-                  <h3 className="font-semibold mb-4">Părinți</h3>
-                  {parents.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground text-sm">
-                      Nu există părinți înregistrați
-                    </div>
-                  ) : (
-                    parents.map((parent) => {
-                      const hasApprovedAccess = (accessRequests || []).some(
-                        r => r.parentId === parent.id && r.coachId === currentUser.id && r.status === 'approved'
-                      )
-                      
-                      if (!hasApprovedAccess) return null
-
-                      const unread = (messages || []).filter(
-                        m => m.fromUserId === parent.id && m.toUserId === currentUser.id && !m.read
-                      ).length
-
-                      return (
-                        <Button
-                          key={parent.id}
-                          variant={selectedParentId === parent.id ? 'default' : 'outline'}
-                          className="w-full justify-between"
-                          onClick={() => setSelectedParentId(parent.id)}
-                        >
-                          <span className="truncate">
-                            {parent.firstName} {parent.lastName}
-                          </span>
-                          {unread > 0 && (
-                            <Badge variant="destructive" className="ml-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
-                              {unread}
-                            </Badge>
-                          )}
-                        </Button>
-                      )
-                    })
-                  )}
-                </div>
-
-                <div className="lg:col-span-2">
-                  <MessagingPanel
-                    currentUserId={currentUser.id}
-                    otherUserId={selectedParentId}
-                    otherUser={selectedParent}
-                    messages={messages || []}
-                    onSendMessage={handleSendMessage}
-                    onMarkAsRead={handleMarkAsRead}
-                  />
-                </div>
-              </div>
-            </TabsContent>
-          )}
-
-          <TabsContent value="events">
-            <ProbeManagement
-              events={probes || []}
-              onAddEvent={handleAddProbe}
-              onDeleteEvent={handleDeleteProbe}
-            />
-          </TabsContent>
-
-          <TabsContent value="results">
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-semibold">Rezultate</h3>
-                <p className="text-sm text-muted-foreground">Gestionarea rezultatelor atleților</p>
-              </div>
-              {/* Aici poate fi adăugat un component dedicat pentru gestionarea rezultatelor */}
-              <div className="text-center py-8 text-muted-foreground">
-                Funcționalitate în dezvoltare
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
-
-        {isCoach && pendingRequestsCount > 0 && activeTab !== 'requests' && (
-          <Button
-            size="lg"
-            className="fixed bottom-6 right-6 h-14 rounded-full shadow-2xl animate-pulse hover:animate-none transition-all hover:scale-105 z-50"
-            onClick={() => setActiveTab('requests')}
-          >
-            <Badge variant="secondary" className="h-6 w-6 rounded-full p-0 flex items-center justify-center mr-2">
-              {pendingRequestsCount}
-            </Badge>
-            <span className="font-semibold">Cereri Aprobare</span>
-          </Button>
-        )}
-      </main>
-
-      <AthleteDetailsDialog
-        athlete={selectedAthlete}
-        results={results || []}
-        onClose={handleCloseAthleteDialog}
-        onAddResult={handleAddResult}
-        onDeleteResult={handleDeleteResult}
-        defaultTab={selectedAthleteTab}
-      />
-
-      <AlertDialog open={!!deleteAthleteId} onOpenChange={() => setDeleteAthleteId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmare ștergere</AlertDialogTitle>
-            <AlertDialogDescription>
-              Ești sigur că vrei să ștergi atleta/atletul <strong>{deleteAthleteName}</strong>?
-              {athleteResultsCount > 0 && (
-                <span className="block mt-2 text-destructive">
-                  Atenție: Se vor șterge și {athleteResultsCount} rezultat(e) asociat(e).
-                </span>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Anulează</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeleteAthlete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Șterge
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
-  )
+  return renderDashboard();
 }
 
 function App() {

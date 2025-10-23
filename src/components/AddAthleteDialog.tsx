@@ -46,6 +46,8 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
   const [category, setCategory] = useState<AgeCategory>('U10')
   const [gender, setGender] = useState<Gender>('M')
   const [coachId, setCoachId] = useState<string>('')
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
 
   // Calculează automat vârsta și categoria când se schimbă data nașterii
   useEffect(() => {
@@ -55,6 +57,18 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
       setCategory(determineCategory(calculatedAge))
     }
   }, [dateOfBirth])
+
+  useEffect(() => {
+    if (!avatarFile) {
+      setAvatarPreview(null)
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => {
+      setAvatarPreview(reader.result as string)
+    }
+    reader.readAsDataURL(avatarFile)
+  }, [avatarFile])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -76,6 +90,7 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
       dateOfBirth,
       category,
       gender,
+      avatar: avatarPreview || undefined,
       dateJoined: new Date().toISOString(),
       coachId: coachId || undefined
     })
@@ -87,6 +102,8 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
     setCategory('U10')
     setGender('M')
     setCoachId('')
+    setAvatarFile(null)
+    setAvatarPreview(null)
     setOpen(false)
   }
 
@@ -167,6 +184,27 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
                 <SelectItem value="F">Feminin</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="avatar">Poza (opțional)</Label>
+            <input
+              id="avatar"
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const f = e.target.files && e.target.files[0]
+                if (f) setAvatarFile(f)
+              }}
+            />
+            {avatarPreview && (
+              <div className="pt-2 flex items-center gap-2">
+                <img src={avatarPreview} alt="preview" className="w-16 h-16 rounded-full object-cover" />
+                <Button variant="outline" size="sm" onClick={() => { setAvatarFile(null); setAvatarPreview(null) }}>
+                  Șterge
+                </Button>
+              </div>
+            )}
           </div>
           {coaches.length > 0 && (
             <div className="space-y-2">

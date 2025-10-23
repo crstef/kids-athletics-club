@@ -1,51 +1,69 @@
-import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useState, useMemo } from 'react'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Button } from './ui/button'
 import { CaretLeft, CaretRight, CalendarBlank } from '@phosphor-icons/react'
-import { useMemo } from 'react'
+import { Period } from '@/lib/types'
 
-export type Period = '7days' | '4weeks' | '6months' | '1year' | 'all'
+export function getFilteredResults<T extends { date: string }>(
+  data: T[],
+  period: Period,
+  dateRange: { start: Date; end: Date }
+): T[] {
+  if (period === 'all') {
+    return data;
+  }
+  return data.filter(item => {
+    const itemDate = new Date(item.date);
+    return itemDate >= dateRange.start && itemDate <= dateRange.end;
+  });
+}
 
 interface PeriodFilterProps {
-  value: Period
-  onChange: (period: Period) => void
-  className?: string
-  dateRange?: { start: Date; end: Date }
-  onDateRangeChange?: (range: { start: Date; end: Date }) => void
-  hasData?: boolean
+  period: Period
+  setPeriod: (period: Period) => void
+  dateRange: { start: Date; end: Date }
+  setDateRange: (range: { start: Date; end: Date }) => void
   firstDataDate?: Date
+  className?: string
 }
 
 export function PeriodFilter({ 
-  value, 
-  onChange, 
-  className = '',
+  period, 
+  setPeriod,
   dateRange,
-  onDateRangeChange,
-  hasData = true,
-  firstDataDate
+  setDateRange,
+  firstDataDate,
+  className = '',
 }: PeriodFilterProps) {
   const periods: Array<{ value: Period; label: string }> = [
     { value: '7days', label: '7 Zile' },
     { value: '4weeks', label: '4 Săptămâni' },
     { value: '6months', label: '6 Luni' },
-    { value: '1year', label: '1 An' }
+    { value: '1year', label: '1 An' },
+    { value: 'all', label: 'Tot' }
   ]
 
-  const canNavigate = dateRange && onDateRangeChange && value !== 'all' && hasData
+  const canNavigate = period !== 'all' && firstDataDate
 
   const formatDateRange = () => {
     if (!dateRange) return ''
-    const start = dateRange.start.toLocaleDateString('ro-RO', { day: 'numeric', month: 'short', year: 'numeric' })
+    const start = dateRange.start.toLocaleDateString('ro-RO', { day: 'numeric', month: 'short' })
     const end = dateRange.end.toLocaleDateString('ro-RO', { day: 'numeric', month: 'short', year: 'numeric' })
     return `${start} - ${end}`
   }
 
   const handlePrevious = () => {
-    if (!dateRange || !onDateRangeChange || !firstDataDate) return
+    if (!dateRange || !firstDataDate) return
     
     const newStart = new Date(dateRange.start)
     
-    switch (value) {
+    switch (period) {
       case '7days':
         newStart.setDate(newStart.getDate() - 7)
         break
@@ -59,14 +77,13 @@ export function PeriodFilter({
         newStart.setFullYear(newStart.getFullYear() - 1)
         break
     }
-    
+
     if (newStart < firstDataDate) {
       newStart.setTime(firstDataDate.getTime())
     }
-    
+
     const newEnd = new Date(newStart)
-    
-    switch (value) {
+    switch (period) {
       case '7days':
         newEnd.setDate(newEnd.getDate() + 6)
         break
@@ -75,35 +92,27 @@ export function PeriodFilter({
         break
       case '6months':
         newEnd.setMonth(newEnd.getMonth() + 6)
+        newEnd.setDate(newEnd.getDate() - 1)
         break
       case '1year':
         newEnd.setFullYear(newEnd.getFullYear() + 1)
+        newEnd.setDate(newEnd.getDate() - 1)
         break
     }
     
-    newEnd.setHours(23, 59, 59, 999)
-    
-    const today = new Date()
-    today.setHours(23, 59, 59, 999)
-    
-    if (newEnd > today) {
-      newEnd.setTime(today.getTime())
-    }
-    
-    onDateRangeChange({ start: newStart, end: newEnd })
+    setDateRange({ start: newStart, end: newEnd > new Date() ? new Date() : newEnd })
   }
 
   const handleNext = () => {
-    if (!dateRange || !onDateRangeChange || !firstDataDate) return
-    
+    if (!dateRange) return
+
     const newStart = new Date(dateRange.start)
-    
-    switch (value) {
+    switch (period) {
       case '7days':
         newStart.setDate(newStart.getDate() + 7)
         break
       case '4weeks':
-        newStart.setDate(newStart.getDate() + 28)
+        newStart.setDate(newStart.getDate() - 28)
         break
       case '6months':
         newStart.setMonth(newStart.getMonth() + 6)
@@ -112,10 +121,11 @@ export function PeriodFilter({
         newStart.setFullYear(newStart.getFullYear() + 1)
         break
     }
-    
+
+    if (newStart > new Date()) return
+
     const newEnd = new Date(newStart)
-    
-    switch (value) {
+    switch (period) {
       case '7days':
         newEnd.setDate(newEnd.getDate() + 6)
         break
@@ -124,212 +134,84 @@ export function PeriodFilter({
         break
       case '6months':
         newEnd.setMonth(newEnd.getMonth() + 6)
+        newEnd.setDate(newEnd.getDate() - 1)
         break
       case '1year':
         newEnd.setFullYear(newEnd.getFullYear() + 1)
+        newEnd.setDate(newEnd.getDate() - 1)
         break
     }
-    
-    newEnd.setHours(23, 59, 59, 999)
-    
-    const today = new Date()
-    today.setHours(23, 59, 59, 999)
-    
-    if (newEnd > today) {
-      newEnd.setTime(today.getTime())
-    }
-    
-    onDateRangeChange({ start: newStart, end: newEnd })
+
+    setDateRange({ start: newStart, end: newEnd > new Date() ? new Date() : newEnd })
   }
 
-  const canGoPrevious = useMemo(() => {
-    if (!canNavigate || !firstDataDate || !dateRange) return false
-    const minDate = new Date(firstDataDate)
-    minDate.setHours(0, 0, 0, 0)
-    
-    const testStart = new Date(dateRange.start)
-    
-    switch (value) {
-      case '7days':
-        testStart.setDate(testStart.getDate() - 7)
-        break
-      case '4weeks':
-        testStart.setDate(testStart.getDate() - 28)
-        break
-      case '6months':
-        testStart.setMonth(testStart.getMonth() - 6)
-        break
-      case '1year':
-        testStart.setFullYear(testStart.getFullYear() - 1)
-        break
-    }
-    
-    return testStart >= minDate
-  }, [canNavigate, firstDataDate, dateRange, value])
-
-  const canGoNext = useMemo(() => {
-    if (!canNavigate || !dateRange) return false
-    
-    const testStart = new Date(dateRange.start)
-    
-    switch (value) {
-      case '7days':
-        testStart.setDate(testStart.getDate() + 7)
-        break
-      case '4weeks':
-        testStart.setDate(testStart.getDate() + 28)
-        break
-      case '6months':
-        testStart.setMonth(testStart.getMonth() + 6)
-        break
-      case '1year':
-        testStart.setFullYear(testStart.getFullYear() + 1)
-        break
-    }
-    
-    const testEnd = new Date(testStart)
-    
-    switch (value) {
-      case '7days':
-        testEnd.setDate(testEnd.getDate() + 6)
-        break
-      case '4weeks':
-        testEnd.setDate(testEnd.getDate() + 27)
-        break
-      case '6months':
-        testEnd.setMonth(testEnd.getMonth() + 6)
-        break
-      case '1year':
-        testEnd.setFullYear(testEnd.getFullYear() + 1)
-        break
-    }
-    
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    
-    return testStart < today
-  }, [canNavigate, dateRange, value])
+  const isNextDisabled = useMemo(() => {
+    if (!dateRange) return true
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const endDate = new Date(dateRange.end);
+    endDate.setHours(0, 0, 0, 0);
+    return endDate >= today;
+  }, [dateRange])
 
   return (
-    <div className={`flex flex-col gap-3 ${className}`}>
+    <div className={`flex items-center gap-2 ${className}`}>
+      <Select value={period} onValueChange={(p) => setPeriod(p as Period)}>
+        <SelectTrigger className="w-[140px]">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {periods.map(p => (
+            <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      
       {canNavigate && (
-        <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handlePrevious}
-            disabled={!canGoPrevious}
-            className="h-8 px-2"
-          >
+        <div className="flex items-center gap-1 rounded-md border bg-background text-sm font-medium">
+          <Button variant="ghost" size="icon" onClick={handlePrevious} className="h-9 w-9">
             <CaretLeft size={16} />
           </Button>
-          <div className="flex-1 flex items-center justify-center gap-2 px-3 py-1.5 border rounded-md bg-muted/30 text-xs sm:text-sm font-medium">
-            <CalendarBlank size={16} className="text-muted-foreground" />
-            <span className="whitespace-nowrap">{formatDateRange()}</span>
+          <div className="px-2 text-center w-48 flex items-center justify-center gap-1.5">
+            <CalendarBlank size={15} className="text-muted-foreground" />
+            {formatDateRange()}
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleNext}
-            disabled={!canGoNext}
-            className="h-8 px-2"
-          >
+          <Button variant="ghost" size="icon" onClick={handleNext} disabled={isNextDisabled} className="h-9 w-9">
             <CaretRight size={16} />
           </Button>
         </div>
       )}
-      
-      <div className="flex flex-wrap gap-1.5 sm:gap-2">
-        {periods.map((period) => (
-          <Button
-            key={period.value}
-            size="sm"
-            variant={value === period.value ? 'default' : 'outline'}
-            onClick={() => onChange(period.value)}
-            className="text-xs sm:text-sm px-2 sm:px-3 h-7 sm:h-8"
-          >
-            {period.label}
-          </Button>
-        ))}
-      </div>
     </div>
   )
 }
 
-export function getFilteredResults<T extends { date: string }>(
-  results: T[],
-  period: Period,
-  dateRange?: { start: Date; end: Date }
-): T[] {
-  if (!dateRange) return results
-
-  return results.filter(result => {
-    const resultDate = new Date(result.date)
-    return resultDate >= dateRange.start && resultDate <= dateRange.end
-  })
+export function getFirstDataDate<T extends { date: string }>(data: T[]): Date | undefined {
+  if (data.length === 0) return undefined
+  const sortedData = [...data].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  return new Date(sortedData[0].date);
 }
 
-export function getInitialDateRange(results: Array<{ date: string }>, period: Period): { start: Date; end: Date } {
-  if (results.length === 0) {
-    const today = new Date()
-    today.setHours(23, 59, 59, 999)
-    const start = new Date(today)
-    
-    switch (period) {
-      case '7days':
-        start.setDate(start.getDate() - 6)
-        break
-      case '4weeks':
-        start.setDate(start.getDate() - 27)
-        break
-      case '6months':
-        start.setMonth(start.getMonth() - 6)
-        break
-      case '1year':
-        start.setFullYear(start.getFullYear() - 1)
-        break
-    }
-    
-    start.setHours(0, 0, 0, 0)
-    return { start, end: today }
-  }
+export function getInitialDateRange<T extends { date: string }>(data: T[], period: Period): { start: Date; end: Date } {
+  const now = new Date()
+  let start = new Date()
 
-  const firstDate = new Date(Math.min(...results.map(r => new Date(r.date).getTime())))
-  firstDate.setHours(0, 0, 0, 0)
-  
-  const today = new Date()
-  today.setHours(23, 59, 59, 999)
-  
-  const start = new Date(firstDate)
-  const end = new Date(start)
-  
   switch (period) {
     case '7days':
-      end.setDate(end.getDate() + 6)
+      start.setDate(now.getDate() - 6)
       break
     case '4weeks':
-      end.setDate(end.getDate() + 27)
+      start.setDate(now.getDate() - 27)
       break
     case '6months':
-      end.setMonth(end.getMonth() + 6)
+      start.setMonth(now.getMonth() - 6)
       break
     case '1year':
-      end.setFullYear(end.getFullYear() + 1)
+      start.setFullYear(now.getFullYear() - 1)
+      break
+    case 'all':
+      start = getFirstDataDate(data) || new Date()
       break
   }
   
-  end.setHours(23, 59, 59, 999)
-  
-  if (end > today) {
-    end.setTime(today.getTime())
-  }
-  
-  return { start, end }
-}
-
-export function getFirstDataDate(results: Array<{ date: string }>): Date | undefined {
-  if (results.length === 0) return undefined
-  const firstDate = new Date(Math.min(...results.map(r => new Date(r.date).getTime())))
-  firstDate.setHours(0, 0, 0, 0)
-  return firstDate
+  return { start, end: now }
 }

@@ -22,6 +22,8 @@ export function EditAthleteDialog({ athlete, parents, coaches, onEdit }: EditAth
   const [gender, setGender] = useState<'M' | 'F'>(athlete.gender)
   const [coachId, setCoachId] = useState(athlete.coachId || '')
   const [parentId, setParentId] = useState(athlete.parentId || '')
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(athlete.avatar || null)
 
   // Calculate age and category from date of birth
   const calculatedAge = useMemo(() => {
@@ -53,8 +55,16 @@ export function EditAthleteDialog({ athlete, parents, coaches, onEdit }: EditAth
       setGender(athlete.gender)
       setCoachId(athlete.coachId || '')
       setParentId(athlete.parentId || '')
+      setAvatarPreview(athlete.avatar || null)
     }
   }, [open, athlete])
+
+  useEffect(() => {
+    if (!avatarFile) return
+    const reader = new FileReader()
+    reader.onload = () => setAvatarPreview(reader.result as string)
+    reader.readAsDataURL(avatarFile)
+  }, [avatarFile])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -72,6 +82,7 @@ export function EditAthleteDialog({ athlete, parents, coaches, onEdit }: EditAth
       gender,
       coachId: coachId || undefined,
       parentId: parentId || undefined
+      , avatar: avatarPreview || undefined
     })
 
     setOpen(false)

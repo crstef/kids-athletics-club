@@ -10,13 +10,15 @@ import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Plus, PencilSimple, Trash, Target } from '@phosphor-icons/react'
 import { toast } from 'sonner'
-import type { CoachProbe } from '@/lib/types'
+import { EventTypeCustom } from '../lib/types'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table'
 
 interface ProbeManagementProps {
-  probes: CoachProbe[]
+  probes: EventTypeCustom[]
   currentUserId: string
-  onAddProbe: (probe: Omit<CoachProbe, 'id' | 'createdAt' | 'createdBy'>) => void
-  onUpdateProbe: (probeId: string, updates: Partial<CoachProbe>) => void
+  onAddProbe: (probe: Omit<EventTypeCustom, 'id' | 'createdAt' | 'createdBy'>) => void
+  onUpdateProbe: (probeId: string, updates: Partial<EventTypeCustom>) => void
   onDeleteProbe: (probeId: string) => void
 }
 
@@ -30,82 +32,53 @@ export function ProbeManagement({
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [selectedProbe, setSelectedProbe] = useState<CoachProbe | null>(null)
+  const [selectedProbe, setSelectedProbe] = useState<EventTypeCustom | null>(null)
   
   const [newProbeName, setNewProbeName] = useState('')
   const [newProbeDescription, setNewProbeDescription] = useState('')
-  const [newProbeActive, setNewProbeActive] = useState(true)
+  const [newProbeUnit, setNewProbeUnit] = useState<'seconds' | 'meters' | 'points'>('points')
+  const [newProbeCategory, setNewProbeCategory] = useState<'running' | 'jumping' | 'throwing' | 'other'>('other');
 
-  const handleAddProbe = (e: React.FormEvent) => {
-    e.preventDefault()
-    
+
+  const handleAdd = () => {
     if (!newProbeName.trim()) {
-      toast.error('Introdu numele probei')
+      toast.error('Numele probei nu poate fi gol.')
       return
     }
-
-    const existingProbe = probes.find(p => p.name.toLowerCase() === newProbeName.trim().toLowerCase())
-    if (existingProbe) {
-      toast.error('O probă cu acest nume există deja')
-      return
-    }
-
     onAddProbe({
       name: newProbeName.trim(),
       description: newProbeDescription.trim() || undefined,
-      isActive: newProbeActive
+      unit: newProbeUnit,
+      category: newProbeCategory
     })
-
-    setNewProbeName('')
-    setNewProbeDescription('')
-    setNewProbeActive(true)
     setAddDialogOpen(false)
-    toast.success('Probă adăugată cu succes!')
   }
 
-  const handleEditProbe = (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (!selectedProbe) return
-
-    if (!newProbeName.trim()) {
-      toast.error('Introdu numele probei')
+  const handleEdit = () => {
+    if (!selectedProbe || !newProbeName.trim()) {
+      toast.error('Numele probei nu poate fi gol.')
       return
     }
-
-    const existingProbe = probes.find(
-      p => p.id !== selectedProbe.id && p.name.toLowerCase() === newProbeName.trim().toLowerCase()
-    )
-    if (existingProbe) {
-      toast.error('O probă cu acest nume există deja')
-      return
-    }
-
     onUpdateProbe(selectedProbe.id, {
       name: newProbeName.trim(),
       description: newProbeDescription.trim() || undefined,
-      isActive: newProbeActive,
-      updatedAt: new Date().toISOString(),
-      updatedBy: currentUserId
+      unit: newProbeUnit,
+      category: newProbeCategory
     })
-
-    setSelectedProbe(null)
-    setNewProbeName('')
-    setNewProbeDescription('')
-    setNewProbeActive(true)
     setEditDialogOpen(false)
-    toast.success('Probă actualizată cu succes!')
+    setSelectedProbe(null)
   }
 
-  const openEditDialog = (probe: CoachProbe) => {
+  const openEditDialog = (probe: EventTypeCustom) => {
     setSelectedProbe(probe)
     setNewProbeName(probe.name)
     setNewProbeDescription(probe.description || '')
-    setNewProbeActive(probe.isActive)
+    setNewProbeUnit(probe.unit)
+    setNewProbeCategory(probe.category)
     setEditDialogOpen(true)
   }
 
-  const openDeleteDialog = (probe: CoachProbe) => {
+  const openDeleteDialog = (probe: EventTypeCustom) => {
     setSelectedProbe(probe)
     setDeleteDialogOpen(true)
   }
@@ -136,44 +109,49 @@ export function ProbeManagement({
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Adaugă Probă Nouă</DialogTitle>
-              <DialogDescription>Creează o probă nouă pentru specializarea antrenorilor</DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleAddProbe} className="space-y-4 pt-4">
-              <div className="space-y-2">
-                <Label htmlFor="probe-name">Nume Probă</Label>
-                <Input
-                  id="probe-name"
-                  value={newProbeName}
-                  onChange={(e) => setNewProbeName(e.target.value)}
-                  placeholder="ex: Sprint, Sărituri, Alergări Lungi"
-                  required
-                />
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="name" className="text-right">
+                  Nume
+                </Label>
+                <Input id="name" value={newProbeName} onChange={(e) => setNewProbeName(e.target.value)} className="col-span-3" />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="probe-description">Descriere (opțional)</Label>
-                <Textarea
-                  id="probe-description"
-                  value={newProbeDescription}
-                  onChange={(e) => setNewProbeDescription(e.target.value)}
-                  placeholder="Descrierea probei..."
-                  rows={3}
-                />
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="unit" className="text-right">
+                  Unitate
+                </Label>
+                <Select value={newProbeUnit} onValueChange={(value) => setNewProbeUnit(value as 'seconds' | 'meters' | 'points')}>
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Selectează unitatea" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="seconds">Secunde</SelectItem>
+                    <SelectItem value="meters">Metri</SelectItem>
+                    <SelectItem value="points">Puncte</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="probe-active">Activă</Label>
-                <Switch
-                  id="probe-active"
-                  checked={newProbeActive}
-                  onCheckedChange={setNewProbeActive}
-                />
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="category" className="text-right">
+                  Categorie
+                </Label>
+                <Select value={newProbeCategory} onValueChange={(value) => setNewProbeCategory(value as 'running' | 'jumping' | 'throwing' | 'other')}>
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Selectează categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="running">Alergare</SelectItem>
+                    <SelectItem value="jumping">Sărituri</SelectItem>
+                    <SelectItem value="throwing">Aruncări</SelectItem>
+                    <SelectItem value="other">Altele</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setAddDialogOpen(false)}>
-                  Anulează
-                </Button>
-                <Button type="submit">Salvează</Button>
-              </DialogFooter>
-            </form>
+            </div>
+            <DialogFooter>
+              <Button onClick={handleAdd}>Adaugă</Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
@@ -188,90 +166,82 @@ export function ProbeManagement({
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {probes.map((probe) => (
-            <Card key={probe.id}>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="flex items-center gap-2">
-                      {probe.name}
-                      {!probe.isActive && (
-                        <Badge variant="secondary" className="text-xs">Inactivă</Badge>
-                      )}
-                    </CardTitle>
-                    {probe.description && (
-                      <CardDescription className="mt-2">{probe.description}</CardDescription>
-                    )}
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableCell>Nume</TableCell>
+              <TableCell>Unitate</TableCell>
+              <TableCell>Acțiuni</TableCell>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {probes.map((probe) => (
+              <TableRow key={probe.id}>
+                <TableCell>{probe.name}</TableCell>
+                <TableCell>{probe.unit}</TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={() => openEditDialog(probe)}>
+                      <PencilSimple size={16} />
+                    </Button>
+                    <Button variant="destructive" size="sm" onClick={() => openDeleteDialog(probe)}>
+                      <Trash size={16} />
+                    </Button>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => openEditDialog(probe)}
-                    className="flex-1"
-                  >
-                    <PencilSimple size={16} className="mr-2" />
-                    Editează
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => openDeleteDialog(probe)}
-                    className="text-destructive hover:text-destructive"
-                  >
-                    <Trash size={16} />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       )}
 
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Editează Proba</DialogTitle>
-            <DialogDescription>Modifică detaliile probei</DialogDescription>
+            <DialogTitle>Editează Probă</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleEditProbe} className="space-y-4 pt-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-probe-name">Nume Probă</Label>
-              <Input
-                id="edit-probe-name"
-                value={newProbeName}
-                onChange={(e) => setNewProbeName(e.target.value)}
-                required
-              />
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="name-edit" className="text-right">
+                Nume
+              </Label>
+              <Input id="name-edit" value={newProbeName} onChange={(e) => setNewProbeName(e.target.value)} className="col-span-3" />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-probe-description">Descriere (opțional)</Label>
-              <Textarea
-                id="edit-probe-description"
-                value={newProbeDescription}
-                onChange={(e) => setNewProbeDescription(e.target.value)}
-                rows={3}
-              />
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="unit-edit" className="text-right">
+                Unitate
+              </Label>
+              <Select value={newProbeUnit} onValueChange={(value) => setNewProbeUnit(value as 'seconds' | 'meters' | 'points')}>
+                <SelectTrigger className="col-span-3">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="seconds">Secunde</SelectItem>
+                  <SelectItem value="meters">Metri</SelectItem>
+                  <SelectItem value="points">Puncte</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="edit-probe-active">Activă</Label>
-              <Switch
-                id="edit-probe-active"
-                checked={newProbeActive}
-                onCheckedChange={setNewProbeActive}
-              />
+             <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="category-edit" className="text-right">
+                Categorie
+              </Label>
+              <Select value={newProbeCategory} onValueChange={(value) => setNewProbeCategory(value as 'running' | 'jumping' | 'throwing' | 'other')}>
+                <SelectTrigger className="col-span-3">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="running">Alergare</SelectItem>
+                  <SelectItem value="jumping">Sărituri</SelectItem>
+                  <SelectItem value="throwing">Aruncări</SelectItem>
+                  <SelectItem value="other">Altele</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>
-                Anulează
-              </Button>
-              <Button type="submit">Salvează</Button>
-            </DialogFooter>
-          </form>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleEdit}>Salvează</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

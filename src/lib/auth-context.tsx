@@ -5,11 +5,6 @@ import type { User } from './types'
 interface AuthContextType {
   currentUser: User | null
   setCurrentUser: (user: User | null) => void
-  isCoach: boolean
-  isParent: boolean
-  isSuperAdmin: boolean
-  isAthlete: boolean
-  permissions: string[]
   hasPermission: (permission: string) => boolean
   logout: () => void
   loading: boolean
@@ -61,16 +56,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setCurrentUserState(null)
   }
 
-  const isCoach = currentUser?.role === 'coach'
-  const isParent = currentUser?.role === 'parent'
-  const isSuperAdmin = currentUser?.role === 'superadmin'
-  const isAthlete = currentUser?.role === 'athlete'
-  
-  const permissions = currentUser?.permissions || []
-  const hasPermission = (permission: string) => permissions.includes(permission)
+  const hasPermission = (permission: string) => (currentUser?.permissions || []).includes(permission)
 
   return (
-    <AuthContext.Provider value={{ currentUser, setCurrentUser, isCoach, isParent, isSuperAdmin, isAthlete, permissions, hasPermission, logout, loading }}>
+    <AuthContext.Provider value={{ currentUser, setCurrentUser, hasPermission, logout, loading }}>
       {children}
     </AuthContext.Provider>
   )

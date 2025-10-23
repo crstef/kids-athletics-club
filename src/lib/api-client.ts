@@ -137,6 +137,13 @@ class ApiClient {
     });
   }
 
+  async updateResult(id: string, data: any) {
+    return this.request(`/results/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
   async deleteResult(id: string) {
     return this.request(`/results/${id}`, { method: 'DELETE' });
   }

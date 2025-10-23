@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { ChartLine, Trash, Trophy, PencilSimple } from '@phosphor-icons/react'
 import { EditAthleteDialog } from './EditAthleteDialog'
@@ -29,10 +29,14 @@ export function AthleteCard({ athlete, resultsCount, parents, coaches, onViewDet
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <div className="relative">
-              <Avatar className="h-12 w-12 ring-2 ring-background group-hover:ring-primary/20 transition-all">
-                <AvatarFallback className={`${avatarColor} text-white font-semibold`}>
-                  {getInitials(athlete.firstName, athlete.lastName)}
-                </AvatarFallback>
+              <Avatar className="h-12 w-12 ring-2 ring-background group-hover:ring-primary/20 transition-all overflow-hidden">
+                {athlete.avatar ? (
+                  <AvatarImage src={athlete.avatar} alt={`${athlete.firstName} ${athlete.lastName}`} />
+                ) : (
+                  <AvatarFallback className={`${avatarColor} text-white font-semibold`}>
+                    {getInitials(athlete.firstName, athlete.lastName)}
+                  </AvatarFallback>
+                )}
               </Avatar>
               {resultsCount > 0 && (
                 <div className="absolute -bottom-1 -right-1 bg-accent text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center ring-2 ring-background">

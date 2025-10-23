@@ -1,3 +1,5 @@
+export type Period = '7days' | '4weeks' | '6months' | '1year' | 'all'
+
 export type AgeCategory = 'U10' | 'U12' | 'U14' | 'U16' | 'U18'
 
 export type Gender = 'M' | 'F'

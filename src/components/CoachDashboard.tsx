@@ -7,545 +7,314 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
-import { 
-  Users, 
-  Trophy, 
-  TrendUp, 
-  ListNumbers, 
-  ChartLine, 
-  Calendar, 
-  Target,
-  Medal,
-  Lightning,
-  ArrowsOutCardinal,
+import {
+  ChartLine,
+  Users,
+  Trophy,
+  ShieldCheck,
   X,
-  Plus,
   Gear
 } from '@phosphor-icons/react'
-import { CoachApprovalRequests } from './CoachApprovalRequests'
+import { formatResult } from '@/lib/utils'
 import { PerformanceChart } from './PerformanceChart'
-import { PeriodFilter, getFilteredResults, getInitialDateRange, getFirstDataDate, type Period } from './PeriodFilter'
-import type { Athlete, Result, User, AccountApprovalRequest } from '@/lib/types'
+import { PeriodFilter, getFilteredResults, getInitialDateRange, getFirstDataDate } from './PeriodFilter'
+import { Period, Athlete, Result, AccountApprovalRequest } from '@/lib/types'
 
-type WidgetType = 
-  | 'stats-total'
-  | 'stats-active'
-  | 'stats-results'
-  | 'stats-events'
-  | 'recent-improvements'
-  | 'category-breakdown'
-  | 'upcoming-events'
-  | 'top-performers'
-  | 'performance-chart'
-  | 'approvals'
+type WidgetSize = 'small' | 'medium' | 'large';
 
 interface Widget {
-  id: string
-  type: WidgetType
-  title: string
-  size: 'small' | 'medium' | 'large' | 'xlarge'
-  enabled: boolean
+  id: string;
+  title: string;
+  size: WidgetSize;
+  component: React.ReactNode;
+  enabled: boolean;
 }
 
 interface CoachDashboardProps {
-  coachId: string
-  athletes: Athlete[]
-  results: Result[]
-  users: User[]
-  approvalRequests: AccountApprovalRequest[]
-  onApproveAccount: (requestId: string) => void
-  onRejectAccount: (requestId: string, reason?: string) => void
+  myAthletes: Athlete[];
+  myResults: Result[];
+  approvalRequests: AccountApprovalRequest[];
+  onAddResult: (result: Omit<Result, 'id'>) => void;
+  onUpdateResult: (resultId: string, updates: Partial<Result>) => void;
+  onDeleteResult: (resultId: string) => void;
+  onApproveRequest: (requestId: string) => void;
+  onRejectRequest: (requestId: string, reason?: string) => void;
 }
 
+const sizeClasses: Record<WidgetSize, string> = {
+  small: 'col-span-1',
+  medium: 'col-span-1 md:col-span-2',
+  large: 'col-span-1 md:col-span-2 lg:col-span-3 xl:col-span-4',
+};
+
 export function CoachDashboard({
-  coachId,
-  athletes,
-  results,
-  users,
+  myAthletes,
+  myResults,
   approvalRequests,
-  onApproveAccount,
-  onRejectAccount
 }: CoachDashboardProps) {
-  const [widgets, setWidgets] = useLocalStorage<Widget[]>('coach-dashboard-widgets', [
-    { id: 'w1', type: 'stats-total', title: 'Total Atleți', size: 'small', enabled: true },
-    { id: 'w2', type: 'stats-active', title: 'Atleți Activi', size: 'small', enabled: true },
-    { id: 'w3', type: 'stats-results', title: 'Total Rezultate', size: 'small', enabled: true },
-    { id: 'w4', type: 'stats-events', title: 'Probe Active', size: 'small', enabled: true },
-    { id: 'w5', type: 'approvals', title: 'Cereri de Aprobare', size: 'large', enabled: true },
-    { id: 'w6', type: 'performance-chart', title: 'Evoluție Performanțe', size: 'xlarge', enabled: true },
-    { id: 'w7', type: 'top-performers', title: 'Top Performeri', size: 'medium', enabled: true },
-    { id: 'w8', type: 'category-breakdown', title: 'Distribuție Categorii', size: 'medium', enabled: true },
-    { id: 'w9', type: 'recent-improvements', title: 'Îmbunătățiri Recente', size: 'medium', enabled: false }
-  ])
-  const [customizeOpen, setCustomizeOpen] = useState(false)
-  const [period, setPeriod] = useState<Period>('7days')
-  const [selectedYear, setSelectedYear] = useState<number | 'all'>('all')
-
-  const myAthletes = useMemo(() => {
-    return athletes.filter(a => a.coachId === coachId)
-  }, [athletes, coachId])
-
-  const myResults = useMemo(() => {
-    const athleteIds = new Set(myAthletes.map(a => a.id))
-    return results.filter(r => athleteIds.has(r.athleteId))
-  }, [myAthletes, results])
-
-  const [dateRange, setDateRange] = useState<{ start: Date; end: Date }>(() => 
+  const [period, setPeriod] = useState<Period>('7days');
+  const [dateRange, setDateRange] = useState<{ start: Date; end: Date }>(() =>
     getInitialDateRange(myResults, '7days')
-  )
-
-  const firstDataDate = useMemo(() => getFirstDataDate(myResults), [myResults])
+  );
+  const [customizeOpen, setCustomizeOpen] = useState(false);
 
   useEffect(() => {
-    setDateRange(getInitialDateRange(myResults, period))
-  }, [period, myResults])
+    setDateRange(getInitialDateRange(myResults, period));
+  }, [period, myResults]);
 
-  const filteredMyResults = useMemo(() => {
-    return getFilteredResults(myResults, period, dateRange)
-  }, [myResults, period, dateRange])
+  const filteredResults = useMemo(() => {
+    return getFilteredResults(myResults, period, dateRange);
+  }, [myResults, period, dateRange]);
 
-  const stats = useMemo(() => {
-    const totalAthletes = myAthletes.length
-    const activeAthletes = myAthletes.filter(a => 
-      filteredMyResults.some(r => r.athleteId === a.id)
-    ).length
-    const totalResults = filteredMyResults.length
-    const activeEvents = new Set(filteredMyResults.map(r => r.eventType)).size
+  const firstDataDate = useMemo(() => getFirstDataDate(myResults), [myResults]);
 
-    return {
-      totalAthletes,
-      activeAthletes,
-      totalResults,
-      activeEvents
-    }
-  }, [myAthletes, filteredMyResults])
+  const initialWidgets: Widget[] = [
+    {
+      id: 'athletes',
+      title: 'Sportivi Activi',
+      size: 'small',
+      enabled: true,
+      component: (
+        <CardContent>
+          <div className="text-2xl font-bold">{myAthletes.length}</div>
+        </CardContent>
+      ),
+    },
+    {
+      id: 'results',
+      title: 'Rezultate Înregistrate',
+      size: 'small',
+      enabled: true,
+      component: (
+        <CardContent>
+          <div className="text-2xl font-bold">{myResults.length}</div>
+        </CardContent>
+      ),
+    },
+    {
+      id: 'approvals',
+      title: 'Cereri de Aprobat',
+      size: 'small',
+      enabled: true,
+      component: (
+        <CardContent>
+          <div className="text-2xl font-bold">{approvalRequests.length}</div>
+        </CardContent>
+      ),
+    },
+    {
+      id: 'performance-chart',
+      title: 'Evoluție Performanțe',
+      size: 'large',
+      enabled: true,
+      component: <PerformanceChartWrapper myAthletes={myAthletes} myResults={myResults} />,
+    },
+    {
+      id: 'recent-results',
+      title: 'Rezultate Recente',
+      size: 'medium',
+      enabled: true,
+      component: (
+        <CardContent>
+          <PeriodFilter
+            period={period}
+            setPeriod={setPeriod}
+            dateRange={dateRange}
+            setDateRange={setDateRange}
+            firstDataDate={firstDataDate}
+          />
+          <ul className="space-y-2 mt-4">
+            {filteredResults.slice(0, 5).map(result => {
+              const athlete = myAthletes.find(a => a.id === result.athleteId);
+              return (
+                <li key={result.id} className="text-sm">
+                  <strong>{athlete?.firstName} {athlete?.lastName}</strong>: {result.eventType} - {formatResult(result.value, result.unit)}
+                </li>
+              );
+            })}
+          </ul>
+        </CardContent>
+      ),
+    },
+    {
+      id: 'pending-requests',
+      title: 'Cereri în Așteptare',
+      size: 'medium',
+      enabled: true,
+      component: (
+        <CardContent>
+          <ul className="space-y-2">
+            {approvalRequests.map(request => (
+              <li key={request.id} className="text-sm">
+                Cerere de la {request.childName || 'utilizator nou'}
+              </li>
+            ))}
+          </ul>
+        </CardContent>
+      ),
+    },
+  ];
 
-  const categoryBreakdown = useMemo(() => {
-    const breakdown = myAthletes.reduce((acc, athlete) => {
-      acc[athlete.category] = (acc[athlete.category] || 0) + 1
-      return acc
-    }, {} as Record<string, number>)
-    return Object.entries(breakdown).map(([category, count]) => ({ category, count }))
-  }, [myAthletes])
+  const [widgets, setWidgets] = useState(initialWidgets);
 
-  const topPerformers = useMemo(() => {
-    const athleteResultCounts = myAthletes.map(athlete => ({
-      athlete,
-      resultCount: filteredMyResults.filter(r => r.athleteId === athlete.id).length,
-      recentResults: filteredMyResults
-        .filter(r => r.athleteId === athlete.id)
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-        .slice(0, 3)
-    }))
-    
-    return athleteResultCounts
-      .sort((a, b) => b.resultCount - a.resultCount)
-      .slice(0, 5)
-  }, [myAthletes, filteredMyResults])
+  const toggleWidget = (id: string) => {
+    setWidgets(prev => prev.map(w => w.id === id ? { ...w, enabled: !w.enabled } : w));
+  };
 
-  const recentImprovements = useMemo(() => {
-    const improvements: Array<{
-      athlete: Athlete
-      event: string
-      oldValue: number
-      newValue: number
-      improvement: number
-      date: string
-    }> = []
+  const changeWidgetSize = (id: string, size: WidgetSize) => {
+    setWidgets(prev => prev.map(w => w.id === id ? { ...w, size } : w));
+  };
 
-    myAthletes.forEach(athlete => {
-      const athleteResults = filteredMyResults
-        .filter(r => r.athleteId === athlete.id)
-        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+  const moveWidget = (id: string, direction: 'up' | 'down') => {
+    const index = widgets.findIndex(w => w.id === id);
+    if (index === -1) return;
 
-      const eventGroups = athleteResults.reduce((acc, result) => {
-        if (!acc[result.eventType]) acc[result.eventType] = []
-        acc[result.eventType].push(result)
-        return acc
-      }, {} as Record<string, typeof athleteResults>)
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= widgets.length) return;
 
-      Object.entries(eventGroups).forEach(([event, results]) => {
-        if (results.length >= 2) {
-          const latest = results[results.length - 1]
-          const previous = results[results.length - 2]
-          
-          const improvement = latest.unit === 'seconds'
-            ? previous.value - latest.value
-            : latest.value - previous.value
-
-          if (improvement > 0) {
-            improvements.push({
-              athlete,
-              event,
-              oldValue: previous.value,
-              newValue: latest.value,
-              improvement,
-              date: latest.date
-            })
-          }
-        }
-      })
-    })
-
-    return improvements
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, 5)
-  }, [myAthletes, filteredMyResults])
-
-  const toggleWidget = (widgetId: string) => {
-    setWidgets((current) => 
-      (current || []).map(w => w.id === widgetId ? { ...w, enabled: !w.enabled } : w)
-    )
-  }
-
-  const changeWidgetSize = (widgetId: string, size: Widget['size']) => {
-    setWidgets((current) => 
-      (current || []).map(w => w.id === widgetId ? { ...w, size } : w)
-    )
-  }
-
-  const moveWidget = (widgetId: string, direction: 'up' | 'down') => {
-    setWidgets((current) => {
-      const widgets = current || []
-      const index = widgets.findIndex(w => w.id === widgetId)
-      if (index === -1) return widgets
-      
-      const newWidgets = [...widgets]
-      if (direction === 'up' && index > 0) {
-        [newWidgets[index], newWidgets[index - 1]] = [newWidgets[index - 1], newWidgets[index]]
-      } else if (direction === 'down' && index < newWidgets.length - 1) {
-        [newWidgets[index], newWidgets[index + 1]] = [newWidgets[index + 1], newWidgets[index]]
-      }
-      return newWidgets
-    })
-  }
+    const newWidgets = [...widgets];
+    const [movedWidget] = newWidgets.splice(index, 1);
+    newWidgets.splice(newIndex, 0, movedWidget);
+    setWidgets(newWidgets);
+  };
 
   const renderWidget = (widget: Widget) => {
-    if (!widget.enabled) return null
+    if (!widget.enabled) return null;
 
-    const sizeClasses = {
-      small: 'col-span-1',
-      medium: 'col-span-1 lg:col-span-2',
-      large: 'col-span-1 lg:col-span-3',
-      xlarge: 'col-span-1 lg:col-span-4'
-    }
+    const iconMap: { [key: string]: React.ElementType } = {
+      athletes: Users,
+      results: Trophy,
+      approvals: ShieldCheck,
+      'performance-chart': ChartLine,
+    };
+    const Icon = iconMap[widget.id];
 
-    switch (widget.type) {
-      case 'stats-total':
-        return (
-          <Card key={widget.id} className={`${sizeClasses[widget.size]} hover:shadow-lg transition-all`}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Atleți
-              </CardTitle>
-              <Users size={20} className="text-primary" weight="fill" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold" style={{ fontFamily: 'Outfit' }}>
-                {stats.totalAthletes}
-              </div>
-            </CardContent>
-          </Card>
-        )
-
-      case 'stats-active':
-        return (
-          <Card key={widget.id} className={`${sizeClasses[widget.size]} hover:shadow-lg transition-all`}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Atleți Activi
-              </CardTitle>
-              <TrendUp size={20} className="text-secondary" weight="fill" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold" style={{ fontFamily: 'Outfit' }}>
-                {stats.activeAthletes}
-              </div>
-              {stats.totalAthletes > 0 && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  {((stats.activeAthletes / stats.totalAthletes) * 100).toFixed(0)}% din total
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        )
-
-      case 'stats-results':
-        return (
-          <Card key={widget.id} className={`${sizeClasses[widget.size]} hover:shadow-lg transition-all`}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Rezultate
-              </CardTitle>
-              <ListNumbers size={20} className="text-accent" weight="fill" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold" style={{ fontFamily: 'Outfit' }}>
-                {stats.totalResults}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {stats.totalAthletes > 0 ? (stats.totalResults / stats.totalAthletes).toFixed(1) : 0} / atlet
-              </p>
-            </CardContent>
-          </Card>
-        )
-
-      case 'stats-events':
-        return (
-          <Card key={widget.id} className={`${sizeClasses[widget.size]} hover:shadow-lg transition-all`}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Probe Active
-              </CardTitle>
-              <Trophy size={20} className="text-purple-500" weight="fill" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold" style={{ fontFamily: 'Outfit' }}>
-                {stats.activeEvents}
-              </div>
-            </CardContent>
-          </Card>
-        )
-
-      case 'approvals':
-        return (
-          <div key={widget.id} className={sizeClasses[widget.size]}>
-            <CoachApprovalRequests
-              coachId={coachId}
-              users={users}
-              athletes={athletes}
-              approvalRequests={approvalRequests}
-              onApproveAccount={onApproveAccount}
-              onRejectAccount={onRejectAccount}
-            />
-          </div>
-        )
-
-      case 'performance-chart':
-        if (myAthletes.length === 0 || myResults.length === 0) return null
-        const firstAthlete = myAthletes[0]
-        const athleteResults = myResults.filter(r => r.athleteId === firstAthlete.id)
-        if (athleteResults.length === 0) return null
-        
-        const firstEvent = athleteResults[0].eventType
-        const eventResults = athleteResults
-          .filter(r => r.eventType === firstEvent)
-          .map(r => ({ date: r.date, value: r.value }))
-        
-        return (
-          <Card key={widget.id} className={sizeClasses[widget.size]}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ChartLine size={24} weight="fill" className="text-primary" />
-                Evoluție Performanțe
-              </CardTitle>
-              <CardDescription>
-                {firstAthlete.firstName} {firstAthlete.lastName} - {firstEvent}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <PerformanceChart
-                data={eventResults}
-                eventType={firstEvent}
-                unit={athleteResults[0].unit}
-              />
-            </CardContent>
-          </Card>
-        )
-
-      case 'top-performers':
-        return (
-          <Card key={widget.id} className={sizeClasses[widget.size]}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Medal size={24} weight="fill" className="text-accent" />
-                Top Performeri
-              </CardTitle>
-              <CardDescription>
-                Atleți cu cele mai multe rezultate
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {topPerformers.map((item, index) => (
-                  <div key={item.athlete.id} className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-bold">
-                      {index + 1}
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-medium">
-                        {item.athlete.firstName} {item.athlete.lastName}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {item.resultCount} rezultate
-                      </div>
-                    </div>
-                    <Badge variant="secondary">{item.athlete.category}</Badge>
-                  </div>
-                ))}
-                {topPerformers.length === 0 && (
-                  <div className="text-center py-4 text-muted-foreground text-sm">
-                    Niciun rezultat înregistrat încă
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )
-
-      case 'category-breakdown':
-        return (
-          <Card key={widget.id} className={sizeClasses[widget.size]}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Target size={24} weight="fill" className="text-secondary" />
-                Distribuție Categorii
-              </CardTitle>
-              <CardDescription>
-                Număr de atleți pe categorii de vârstă
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {categoryBreakdown.map(({ category, count }) => (
-                  <div key={category} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <Badge variant="outline" className="text-lg px-3 py-1">
-                        {category}
-                      </Badge>
-                      <span className="font-medium">{count} atleți</span>
-                    </div>
-                    <div className="w-24 bg-muted rounded-full h-2 overflow-hidden">
-                      <div 
-                        className="bg-primary h-full transition-all"
-                        style={{ width: `${(count / stats.totalAthletes) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-                {categoryBreakdown.length === 0 && (
-                  <div className="text-center py-4 text-muted-foreground text-sm">
-                    Niciun atlet înregistrat
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )
-
-      case 'recent-improvements':
-        return (
-          <Card key={widget.id} className={sizeClasses[widget.size]}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Lightning size={24} weight="fill" className="text-accent" />
-                Îmbunătățiri Recente
-              </CardTitle>
-              <CardDescription>
-                Progresul remarcat al atletilor
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {recentImprovements.map((item, index) => (
-                  <div key={index} className="p-3 border rounded-lg bg-accent/5 border-accent/20">
-                    <div className="font-medium mb-1">
-                      {item.athlete.firstName} {item.athlete.lastName}
-                    </div>
-                    <div className="text-sm text-muted-foreground mb-2">
-                      {item.event}
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="text-muted-foreground">{item.oldValue}</span>
-                      <span>→</span>
-                      <span className="font-bold text-accent">{item.newValue}</span>
-                      <Badge variant="default" className="ml-auto">
-                        +{item.improvement.toFixed(2)}
-                      </Badge>
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      {new Date(item.date).toLocaleDateString('ro-RO')}
-                    </div>
-                  </div>
-                ))}
-                {recentImprovements.length === 0 && (
-                  <div className="text-center py-4 text-muted-foreground text-sm">
-                    Nu există îmbunătățiri recente
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )
-
-      default:
-        return null
-    }
-  }
+    return (
+      <Card key={widget.id} className={sizeClasses[widget.size]}>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">{widget.title}</CardTitle>
+          {Icon && <Icon size={20} className="text-muted-foreground" />}
+        </CardHeader>
+        {widget.component}
+      </Card>
+    );
+  };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
-        <div>
-          <h2 className="text-2xl font-bold" style={{ fontFamily: 'Outfit' }}>
-            Dashboard Personalizat
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Monitorizează performanța atletilor tăi
-          </p>
-        </div>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
-          <Button variant="outline" onClick={() => setCustomizeOpen(true)} className="w-full sm:w-auto">
-            <Gear size={16} className="mr-2" />
-            Personalizează
-          </Button>
-        </div>
+    <>
+      <div className="flex justify-end mb-4">
+        <Button variant="outline" onClick={() => setCustomizeOpen(true)}>
+          <Gear size={16} className="mr-2" />
+          Personalizează Dashboard
+        </Button>
       </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 auto-rows-auto">
-        {(widgets || []).map(renderWidget)}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {widgets.map(renderWidget)}
       </div>
-
       <Dialog open={customizeOpen} onOpenChange={setCustomizeOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Personalizează Dashboard</DialogTitle>
             <DialogDescription>
-              Activează sau dezactivează widget-urile și ajustează dimensiunile
+              Activează, dezactivează și rearanjează widget-urile.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            {(widgets || []).map((widget) => (
-              <div key={widget.id} className="flex items-center gap-4 p-4 border rounded-lg">
-                <Checkbox
-                  id={`widget-${widget.id}`}
-                  checked={widget.enabled}
-                  onCheckedChange={() => toggleWidget(widget.id)}
-                />
-                <Label htmlFor={`widget-${widget.id}`} className="flex-1 cursor-pointer">
-                  <div className="font-medium">{widget.title}</div>
-                  <div className="text-sm text-muted-foreground">{widget.type}</div>
-                </Label>
-                <Select
-                  value={widget.size}
-                  onValueChange={(value) => changeWidgetSize(widget.id, value as Widget['size'])}
-                  disabled={!widget.enabled}
-                >
-                  <SelectTrigger className="w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="small">Mic</SelectItem>
-                    <SelectItem value="medium">Mediu</SelectItem>
-                    <SelectItem value="large">Mare</SelectItem>
-                    <SelectItem value="xlarge">Foarte Mare</SelectItem>
-                  </SelectContent>
-                </Select>
+            {widgets.map((widget, index) => (
+              <div key={widget.id} className="flex items-center justify-between p-2 border rounded-lg">
+                <div className="flex items-center gap-4">
+                  <Checkbox
+                    id={`widget-${widget.id}`}
+                    checked={widget.enabled}
+                    onCheckedChange={() => toggleWidget(widget.id)}
+                  />
+                  <Label htmlFor={`widget-${widget.id}`} className="text-base font-medium">
+                    {widget.title}
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Select value={widget.size} onValueChange={(size) => changeWidgetSize(widget.id, size as Widget['size'])}>
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="small">Mic</SelectItem>
+                      <SelectItem value="medium">Mediu</SelectItem>
+                      <SelectItem value="large">Mare</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button variant="ghost" size="icon" onClick={() => moveWidget(widget.id, 'up')} disabled={index === 0}>
+                    ▲
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => moveWidget(widget.id, 'down')} disabled={index === widgets.length - 1}>
+                    ▼
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
+  );
+}
+
+
+const PerformanceChartWrapper = ({ myAthletes, myResults }: { myAthletes: Athlete[], myResults: Result[] }) => {
+  if (myAthletes.length === 0 || myResults.length === 0) return (
+    <CardContent><p>Nu sunt suficiente date pentru a afișa graficul.</p></CardContent>
+  );
+
+  const eventTypes = [...new Set(myResults.map(r => r.eventType))];
+  const [selectedEvent, setSelectedEvent] = useState<string | null>(eventTypes[0] || null);
+
+  if (!selectedEvent) return (
+    <CardContent><p>Selectează o probă pentru a vedea graficul.</p></CardContent>
+  );
+
+  const athleteOptions = myAthletes.map(a => ({ value: a.id, label: `${a.firstName} ${a.lastName}` }));
+  const [selectedAthleteId, setSelectedAthleteId] = useState<string | null>(myAthletes[0]?.id || null);
+
+  const chartData = useMemo(() => {
+    if (!selectedAthleteId || !selectedEvent) return [];
+    return myResults
+      .filter(r => r.athleteId === selectedAthleteId && r.eventType === selectedEvent)
+      .map(r => ({ date: r.date, value: r.value }));
+  }, [myResults, selectedAthleteId, selectedEvent]);
+
+  const unit = useMemo(() => {
+    return myResults.find(r => r.eventType === selectedEvent)?.unit || 'points';
+  }, [myResults, selectedEvent]);
+
+  return (
+    <>
+      <CardHeader className="pt-0">
+        <div className="flex gap-2 pt-2">
+          <Select value={selectedAthleteId || ''} onValueChange={(val) => setSelectedAthleteId(val)}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Selectează Atlet" />
+            </SelectTrigger>
+            <SelectContent>
+              {athleteOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={selectedEvent} onValueChange={(val) => setSelectedEvent(val)}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Selectează Probă" />
+            </SelectTrigger>
+            <SelectContent>
+              {eventTypes.map(event => <SelectItem key={event} value={event}>{event}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <PerformanceChart
+          data={chartData}
+          eventType={selectedEvent}
+          unit={unit}
+        />
+      </CardContent>
+    </>
   )
 }
