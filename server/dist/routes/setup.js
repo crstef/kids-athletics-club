@@ -82,10 +82,15 @@ const initializeData = async (req, res) => {
       ('probes.view', 'Poate vizualiza probe atletice', NOW(), NOW()),
       ('probes.manage', 'Poate gestiona probe atletice', NOW(), NOW()),
       ('athletes.avatar.view', 'Poate vizualiza avatar atleți', NOW(), NOW()),
-      ('athletes.avatar.upload', 'Poate încărca avatar atleți', NOW(), NOW())
+      ('athletes.avatar.upload', 'Poate încărca avatar atleți', NOW(), NOW()),
+      ('dashboards.view', 'Poate vizualiza dashboards', NOW(), NOW()),
+      ('dashboards.create', 'Poate crea dashboards noi', NOW(), NOW()),
+      ('dashboards.edit', 'Poate edita dashboards', NOW(), NOW()),
+      ('dashboards.delete', 'Poate șterge dashboards', NOW(), NOW()),
+      ('dashboards.assign', 'Poate atribui dashboards la roluri', NOW(), NOW())
       ON CONFLICT (name) DO NOTHING
     `);
-        results.permissions = 38;
+        results.permissions = 43;
         // 3. Associate all permissions to superadmin role
         const superadminPerms = await client.query(`
       INSERT INTO role_permissions (role_id, permission_id, granted_at)

@@ -114,6 +114,8 @@ export interface User {
   approvedBy?: string
   approvedAt?: string
   permissions?: string[]
+  dashboards?: Dashboard[]
+  defaultDashboardId?: string
 }
 
 export interface SuperAdmin extends User {
@@ -241,6 +243,28 @@ export interface AccountApprovalRequest {
   approvalNotes?: string
 }
 
+export interface Dashboard {
+  id: string
+  name: string
+  displayName: string
+  description?: string
+  componentName: string
+  icon?: string
+  isActive: boolean
+  isSystem: boolean
+  createdBy?: string
+  createdAt: string
+  updatedAt?: string
+}
+
+export interface RoleDashboard {
+  roleId: string
+  dashboardId: string
+  isDefault: boolean
+  sortOrder: number
+  createdAt: string
+}
+
 export interface Role {
   id: string
   name: string
@@ -249,6 +273,8 @@ export interface Role {
   isSystem: boolean
   isActive: boolean
   permissions: PermissionName[]
+  defaultDashboardId?: string
+  dashboards?: Dashboard[]
   createdAt: string
   createdBy: string
   updatedAt?: string

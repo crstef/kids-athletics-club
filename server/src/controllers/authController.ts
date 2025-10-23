@@ -136,6 +136,34 @@ export const login = async (req: Request, res: Response) => {
       WHERE up.user_id = $1
     `, [user.id]);
 
+    // Get dashboards assigned to this role
+    let dashboards: any[] = [];
+    let defaultDashboardId: string | null = null;
+    if (user.role_id) {
+      const dashboardsResult = await client.query(`
+        SELECT 
+          d.id, d.name, d.display_name, d.component_name, d.icon,
+          rd.is_default, rd.sort_order
+        FROM role_dashboards rd
+        JOIN dashboards d ON d.id = rd.dashboard_id
+        WHERE rd.role_id = $1 AND d.is_active = true
+        ORDER BY rd.sort_order, d.name
+      `, [user.role_id]);
+      
+      dashboards = dashboardsResult.rows.map(d => ({
+        id: d.id,
+        name: d.name,
+        displayName: d.display_name,
+        componentName: d.component_name,
+        icon: d.icon,
+        isDefault: d.is_default,
+        sortOrder: d.sort_order
+      }));
+      
+      const defaultDashboard = dashboards.find(d => d.isDefault);
+      defaultDashboardId = defaultDashboard?.id || dashboards[0]?.id || null;
+    }
+
     // Combine permissions (remove duplicates)
     const allPermissions = [
       ...rolePermissions.rows.map(r => r.name),
@@ -189,7 +217,9 @@ export const login = async (req: Request, res: Response) => {
         needsApproval: user.needs_approval,
         probeId: user.probe_id,
         athleteId: user.athlete_id,
-        permissions
+        permissions,
+        dashboards,
+        defaultDashboardId
       }
     });
   } catch (error) {
