@@ -20,6 +20,8 @@ import { User, AgeCategoryCustom, Result, Athlete, AccessRequest, Message, Accou
 interface CoachLayoutProps {
   currentUser: User
   logout: () => void
+  activeTab: string
+  setActiveTab: (tab: string) => void
   // data
   myAthletes: Athlete[]
   myResults: Result[]
@@ -53,6 +55,8 @@ interface CoachLayoutProps {
 const CoachLayout = ({
   currentUser,
   logout,
+  activeTab,
+  setActiveTab,
   myAthletes,
   myResults,
   approvalRequests,
@@ -78,7 +82,6 @@ const CoachLayout = ({
   onSendMessage,
   onMarkAsRead,
 }: CoachLayoutProps) => {
-  const [activeTab, setActiveTab] = useState('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<'all' | string>('all');
   const [genderFilter, setGenderFilter] = useState<'all' | 'M' | 'F'>('all');

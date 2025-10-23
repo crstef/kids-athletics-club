@@ -29,12 +29,10 @@ const TAB_CONFIGS: TabConfig[] = [
   { id: 'athletes', label: 'Atleți', permission: 'athletes.view' },
   { id: 'events', label: 'Probe', permission: 'events.view' },
   { id: 'results', label: 'Rezultate', permission: 'results.view' },
-  // Coaches UI is backed by Users API; gate it with users.view to match server
-  { id: 'coaches', label: 'Antrenori', permission: 'users.view' },
   // Requests tab: show if user can view access requests; approval requests are handled in-panel
   { id: 'requests', label: 'Cereri', icon: Envelope, permission: 'access_requests.view' },
   { id: 'messages', label: 'Mesaje', icon: ChatCircleDots, permission: 'messages.view' },
-  { id: 'users', label: 'Utilizatori', permission: 'users.view' },
+  { id: 'users', label: 'Utilizatori', permission: 'users.edit' },
   { id: 'roles', label: 'Roluri', permission: 'roles.view' },
   { id: 'permissions', label: 'Permisiuni', permission: 'permissions.view' },
   { id: 'categories', label: 'Categorii', permission: 'age_categories.view' },
