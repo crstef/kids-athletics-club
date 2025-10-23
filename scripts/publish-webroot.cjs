@@ -40,7 +40,13 @@ const rootFiles = fs.readdirSync(repoRoot);
 const hashedPatterns = [
   /^index-[A-Za-z0-9._-]+\.js$/,
   /^index-[A-Za-z0-9._-]+\.css$/,
-  /^(react|ui|chart|icons|utils)-vendors-[A-Za-z0-9._-]+\.js$/
+  // vendor chunk names
+  /^react-vendors-[A-Za-z0-9._-]+\.js$/,
+  /^ui-vendors-[A-Za-z0-9._-]+\.js$/,
+  /^chart-vendors-[A-Za-z0-9._-]+\.js$/,
+  // plain chunk names emitted by rollupOptions.manualChunks
+  /^icons-[A-Za-z0-9._-]+\.js$/,
+  /^utils-[A-Za-z0-9._-]+\.js$/
 ];
 
 function isHashedAsset(name) {
@@ -56,9 +62,9 @@ for (const name of rootFiles) {
   }
 }
 
-// 2) Copy new built files from dist to root (only a minimal set)
+// 2) Copy new built files from dist to root (only hashed assets, NOT index.html)
 const distFiles = fs.readdirSync(distDir);
-const toCopy = distFiles.filter((name) => name === 'index.html' || isHashedAsset(name));
+const toCopy = distFiles.filter((name) => isHashedAsset(name));
 
 for (const name of toCopy) {
   fs.copyFileSync(path.join(distDir, name), path.join(repoRoot, name));
