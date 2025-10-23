@@ -12,7 +12,7 @@ export const getAllAthletes = async (req: AuthRequest, res: Response) => {
     const userId = req.user?.userId;
 
     let query = `
-      SELECT id, first_name, last_name, age, category, date_joined, avatar, coach_id, created_at
+      SELECT id, first_name, last_name, age, category, gender, date_of_birth, date_joined, avatar, coach_id, parent_id, created_at
       FROM athletes
     `;
     let params: any[] = [];
@@ -34,9 +34,11 @@ export const getAllAthletes = async (req: AuthRequest, res: Response) => {
       age: athlete.age,
       category: athlete.category,
       gender: athlete.gender,
+      dateOfBirth: athlete.date_of_birth,
       dateJoined: athlete.date_joined,
       avatar: athlete.avatar,
       coachId: athlete.coach_id,
+      parentId: athlete.parent_id,
       createdAt: athlete.created_at
     }));
 

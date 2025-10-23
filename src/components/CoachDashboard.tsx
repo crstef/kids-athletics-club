@@ -157,6 +157,11 @@ export function CoachDashboard({
 
   const [widgets, setWidgets] = useState(initialWidgets);
 
+  // Keep widget metrics in sync with latest props
+  useEffect(() => {
+    setWidgets(initialWidgets);
+  }, [myAthletes.length, myResults.length, approvalRequests.length]);
+
   const toggleWidget = (id: string) => {
     setWidgets(prev => prev.map(w => w.id === id ? { ...w, enabled: !w.enabled } : w));
   };

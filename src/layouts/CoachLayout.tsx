@@ -236,6 +236,16 @@ const CoachLayout = ({
                   {ageCategories.map(cat => <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>)}
                 </SelectContent>
               </Select>
+              <Select value={genderFilter} onValueChange={(v) => setGenderFilter(v as 'all' | 'M' | 'F')}>
+                <SelectTrigger className="w-full sm:w-[160px]">
+                  <SelectValue placeholder="Gen" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toate genurile</SelectItem>
+                  <SelectItem value="M">Masculin</SelectItem>
+                  <SelectItem value="F">Feminin</SelectItem>
+                </SelectContent>
+              </Select>
               <Select value={sortBy} onValueChange={(v) => setSortBy(v as 'name' | 'age' | 'results')}>
                 <SelectTrigger className="w-full sm:w-[180px]">
                   <SortAscending size={16} className="mr-2" />
