@@ -100,7 +100,7 @@ app.get('/api/setup/add-sample-data', setup_1.addSampleData);
 app.get('/api/setup/fix-admin-role', setup_1.fixAdminRole);
 app.get('/api/setup/add-gender-column', setup_1.addGenderColumn);
 app.get('/api/setup/fix-user-roles', setup_1.fixUserRoles);
-app.get('/api/setup/add-modern-dashboards', setup_1.addModernDashboards);
+app.post('/api/setup/add-modern-dashboards', setup_1.addModernDashboards);
 // Health check
 app.get('/health', (req, res) => {
     res.json({
