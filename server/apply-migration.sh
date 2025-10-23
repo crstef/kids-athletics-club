@@ -49,7 +49,13 @@ fi
 # Apply migration
 echo -e "${GREEN}Applying migration...${NC}"
 
-PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p ${DB_PORT:-5432} -U $DB_USER -d $DB_NAME -f server/migrations/001_dynamic_roles_system.sql
+# Export password for psql to use
+export PGPASSWORD="$DB_PASSWORD"
+
+psql -h "$DB_HOST" -p "${DB_PORT:-5432}" -U "$DB_USER" -d "$DB_NAME" -f migrations/001_dynamic_roles_system.sql
+
+# Clear password from environment
+unset PGPASSWORD
 
 if [ $? -eq 0 ]; then
     echo ""
