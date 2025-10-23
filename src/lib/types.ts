@@ -48,7 +48,9 @@ export type ResourceType =
   | 'roles'
   | 'messages'
   | 'access_requests'
-  | 'approvals'
+  | 'approval_requests'
+  | 'age_categories'
+  | 'user_permissions'
 
 export type PermissionName = 
   | 'athletes.create'
@@ -89,10 +91,14 @@ export type PermissionName =
   | 'access_requests.view'
   | 'access_requests.edit'
   | 'access_requests.delete'
-  | 'approvals.create'
-  | 'approvals.view'
-  | 'approvals.edit'
-  | 'approvals.delete'
+  | 'approval_requests.view'
+  | 'approval_requests.approve'
+  | 'age_categories.view'
+  | 'user_permissions.view'
+  | 'dashboard.view.superadmin'
+  | 'dashboard.view.coach'
+  | 'dashboard.view.parent'
+  | 'dashboard.view.athlete'
 
 export interface User {
   id: string

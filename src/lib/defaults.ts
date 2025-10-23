@@ -10,6 +10,7 @@ export const DEFAULT_PERMISSIONS: PermissionName[] = [
   'messages.view',
   'access_requests.create',
   'access_requests.view',
+    'approval_requests.view',
 ];
 
 export const DEFAULT_ROLES: Omit<Role, 'id' | 'createdAt' | 'createdBy' | 'updatedAt' | 'updatedBy'>[] = [
@@ -34,7 +35,6 @@ export const DEFAULT_ROLES: Omit<Role, 'id' | 'createdAt' | 'createdBy' | 'updat
             'events.view',
             'messages.create', 'messages.view',
             'access_requests.view', 'access_requests.edit',
-            'approvals.view', 'approvals.edit',
             'dashboard.view.coach',
         ],
     },

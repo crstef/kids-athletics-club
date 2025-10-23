@@ -46,10 +46,10 @@ export const DEFAULT_PERMISSIONS: Omit<Permission, 'id' | 'createdAt' | 'created
   { name: 'access_requests.edit', description: 'Aprobare/respingere cereri de acces', isActive: true },
   { name: 'access_requests.delete', description: 'Ștergere cereri de acces', isActive: true },
   
-  { name: 'approvals.create', description: 'Creare cereri de aprobare', isActive: true },
-  { name: 'approvals.view', description: 'Vizualizare cereri de aprobare', isActive: true },
-  { name: 'approvals.edit', description: 'Aprobare/respingere conturi', isActive: true },
-  { name: 'approvals.delete', description: 'Ștergere cereri de aprobare', isActive: true },
+  { name: 'approval_requests.view', description: 'Vizualizare cereri de aprobare', isActive: true },
+  { name: 'approval_requests.approve', description: 'Aprobare/respingere conturi', isActive: true },
+  { name: 'athletes.avatar.view', description: 'Vizualizare avatar sportivi', isActive: true },
+  { name: 'athletes.avatar.upload', description: 'Încărcare avatar sportivi', isActive: true },
 ]
 
 export const DEFAULT_ROLES: Omit<Role, 'id' | 'createdAt' | 'createdBy'>[] = [
@@ -67,9 +67,10 @@ export const DEFAULT_ROLES: Omit<Role, 'id' | 'createdAt' | 'createdBy'>[] = [
       'users.create', 'users.view', 'users.edit', 'users.delete',
       'permissions.create', 'permissions.view', 'permissions.edit', 'permissions.delete',
       'roles.create', 'roles.view', 'roles.edit', 'roles.delete',
-      'messages.create', 'messages.view', 'messages.edit', 'messages.delete',
-      'access_requests.create', 'access_requests.view', 'access_requests.edit', 'access_requests.delete',
-      'approvals.create', 'approvals.view', 'approvals.edit', 'approvals.delete',
+  'messages.create', 'messages.view', 'messages.edit', 'messages.delete',
+  'access_requests.create', 'access_requests.view', 'access_requests.edit', 'access_requests.delete',
+  'approval_requests.view', 'approval_requests.approve',
+  'athletes.avatar.view', 'athletes.avatar.upload',
     ]
   },
   {
@@ -83,7 +84,7 @@ export const DEFAULT_ROLES: Omit<Role, 'id' | 'createdAt' | 'createdBy'>[] = [
       'results.create', 'results.view', 'results.edit',
       'events.view',
       'messages.create', 'messages.view',
-      'access_requests.view', 'access_requests.edit',
+  'access_requests.view', 'access_requests.edit',
     ]
   },
   {
@@ -97,7 +98,7 @@ export const DEFAULT_ROLES: Omit<Role, 'id' | 'createdAt' | 'createdBy'>[] = [
       'results.view',
       'events.view',
       'messages.create', 'messages.view',
-      'access_requests.create', 'access_requests.view',
+  'access_requests.create', 'access_requests.view',
     ]
   },
   {
@@ -163,6 +164,7 @@ export function getDefaultPermissionsForRole(role: User['role']): PermissionName
     case 'superadmin':
       return [
         'athletes.create', 'athletes.view', 'athletes.edit', 'athletes.delete',
+        'athletes.avatar.view', 'athletes.avatar.upload',
         'results.create', 'results.view', 'results.edit', 'results.delete',
         'events.create', 'events.view', 'events.edit', 'events.delete',
         'coaches.create', 'coaches.view', 'coaches.edit', 'coaches.delete',
@@ -171,26 +173,33 @@ export function getDefaultPermissionsForRole(role: User['role']): PermissionName
         'roles.create', 'roles.view', 'roles.edit', 'roles.delete',
         'messages.create', 'messages.view', 'messages.edit', 'messages.delete',
         'access_requests.create', 'access_requests.view', 'access_requests.edit', 'access_requests.delete',
-        'approvals.create', 'approvals.view', 'approvals.edit', 'approvals.delete',
+        'approval_requests.view', 'approval_requests.approve',
+        'age_categories.view',
+        'user_permissions.view',
+        'dashboard.view.superadmin',
       ]
     case 'coach':
       return [
         'athletes.create', 'athletes.view', 'athletes.edit',
+        'athletes.avatar.view', 'athletes.avatar.upload',
         'results.create', 'results.view', 'results.edit',
         'events.view',
         'messages.create', 'messages.view',
         'access_requests.view', 'access_requests.edit',
+        'dashboard.view.coach',
       ]
     case 'parent':
       return [
         'athletes.view',
+        'athletes.avatar.view',
         'results.view',
         'events.view',
         'messages.create', 'messages.view',
         'access_requests.create', 'access_requests.view',
+        'dashboard.view.parent',
       ]
     case 'athlete':
-      return ['results.view', 'events.view']
+      return ['athletes.view', 'results.view', 'events.view', 'messages.view', 'dashboard.view.athlete']
     default:
       return []
   }

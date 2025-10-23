@@ -26,6 +26,8 @@ const PERMISSION_NAMES: { value: PermissionName; label: string }[] = [
   { value: 'athletes.view', label: 'Vizualizare Atleți' },
   { value: 'athletes.edit', label: 'Editare Atleți' },
   { value: 'athletes.delete', label: 'Ștergere Atleți' },
+  { value: 'athletes.avatar.view', label: 'Vizualizare Avatar Atleți' },
+  { value: 'athletes.avatar.upload', label: 'Încărcare Avatar Atleți' },
   { value: 'results.create', label: 'Creare Rezultate' },
   { value: 'results.view', label: 'Vizualizare Rezultate' },
   { value: 'results.edit', label: 'Editare Rezultate' },
@@ -58,10 +60,9 @@ const PERMISSION_NAMES: { value: PermissionName; label: string }[] = [
   { value: 'access_requests.view', label: 'Vizualizare Cereri Acces' },
   { value: 'access_requests.edit', label: 'Aprobare Cereri Acces' },
   { value: 'access_requests.delete', label: 'Ștergere Cereri Acces' },
-  { value: 'approvals.create', label: 'Creare Cereri Aprobare' },
-  { value: 'approvals.view', label: 'Vizualizare Cereri Aprobare' },
-  { value: 'approvals.edit', label: 'Aprobare Conturi' },
-  { value: 'approvals.delete', label: 'Ștergere Cereri Aprobare' }
+  { value: 'approval_requests.view', label: 'Vizualizare Cereri Aprobare' },
+  { value: 'approval_requests.approve', label: 'Aprobare/Respingere Conturi' },
+  { value: 'age_categories.view', label: 'Vizualizare Categorii Vârstă' },
 ]
 
 export function PermissionsSystem({

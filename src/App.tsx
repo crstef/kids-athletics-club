@@ -51,12 +51,14 @@ interface TabConfig {
 }
 
 const TAB_CONFIGS: TabConfig[] = [
-  { id: 'dashboard', label: 'Dashboard', permission: 'dashboard.view' },
+  { id: 'dashboard', label: 'Dashboard', permission: 'dashboard.view' }, // special-cased below
   { id: 'athletes', label: 'Atleți', permission: 'athletes.view' },
   { id: 'events', label: 'Probe', permission: 'events.view' },
   { id: 'results', label: 'Rezultate', permission: 'results.view' },
-  { id: 'coaches', label: 'Antrenori', permission: 'coaches.view' },
-  { id: 'requests', label: 'Cereri', icon: Envelope, permission: 'requests.view' },
+  // Coaches UI is backed by Users API; gate it with users.view to match server
+  { id: 'coaches', label: 'Antrenori', permission: 'users.view' },
+  // Requests tab: show if user can view access requests; approval requests are handled in-panel
+  { id: 'requests', label: 'Cereri', icon: Envelope, permission: 'access_requests.view' },
   { id: 'messages', label: 'Mesaje', icon: ChatCircleDots, permission: 'messages.view' },
   { id: 'users', label: 'Utilizatori', permission: 'users.view' },
   { id: 'roles', label: 'Roluri', permission: 'roles.view' },
@@ -107,10 +109,10 @@ function AppContent() {
       if (hasPermission('roles.view')) refetchRoles()
       if (hasPermission('permissions.view')) refetchPermissions()
       if (hasPermission('user_permissions.view')) refetchUserPermissions()
-      if (hasPermission('requests.view')) {
-        refetchAccessRequests()
-        refetchApprovalRequests()
-      }
+      // Access requests
+      if (hasPermission('access_requests.view')) refetchAccessRequests()
+      // Approval requests (SuperAdmin typically)
+      if (hasPermission('approval_requests.view')) refetchApprovalRequests()
     }
   }, [currentUser, authLoading, hasPermission, refetchAthletes, refetchResults, refetchAgeCategories, refetchProbes, refetchUsers, refetchRoles, refetchPermissions, refetchUserPermissions, refetchAccessRequests, refetchApprovalRequests])
 
@@ -730,18 +732,20 @@ function AppContent() {
 
   const myAthletes = useMemo(() => {
     if (!currentUser || !athletes) return []
-    // Utilizatorii cu permisiunea 'athletes.view.all' văd toți atleții
-    if (hasPermission('athletes.view.all')) {
+    // SuperAdmin vede toți atleții
+    if (currentUser.role === 'superadmin') {
       return athletes
     }
-    // Utilizatorii cu permisiunea 'athletes.view.own' văd doar atleții lor
-    if (hasPermission('athletes.view.own')) {
-      // Aici, rolul este un detaliu tehnic pentru a ști cum să filtrezi
+    // Pentru ceilalți, dacă au permisiunea de a vedea atleți, afișăm doar cei aferenți
+    if (hasPermission('athletes.view')) {
       if (currentUser.role === 'coach') {
         return athletes.filter(a => a.coachId === currentUser.id)
       }
       if (currentUser.role === 'parent') {
         return athletes.filter(a => a.parentId === currentUser.id)
+      }
+      if (currentUser.role === 'athlete') {
+        return athletes.filter(a => a.id === (currentUser as any).athleteId)
       }
     }
     return []
@@ -814,7 +818,10 @@ function AppContent() {
   // Determină ce tab-uri să fie vizibile pentru utilizatorul curent
   const visibleTabs = useMemo(() => {
     if (!currentUser) return []
-    return TAB_CONFIGS.filter(tab => hasPermission(tab.permission))
+    return TAB_CONFIGS.filter(tab => {
+      if (tab.id === 'dashboard') return true // always show dashboard tab for logged-in users
+      return hasPermission(tab.permission)
+    })
   }, [currentUser, hasPermission])
 
   const selectedParent = parents.find(p => p.id === selectedParentId)
