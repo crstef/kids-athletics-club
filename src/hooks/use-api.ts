@@ -79,7 +79,7 @@ export function useApi<T>(
     } finally {
       setLoading(false);
     }
-  }, [key, initialValue, onError]);
+  }, [key, onError]);
 
   useEffect(() => {
     // Only fetch if autoFetch is true, auth is not loading, user is logged in, and we haven't fetched yet
