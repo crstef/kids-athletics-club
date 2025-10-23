@@ -10,7 +10,8 @@
     "db:init": "psql -U $DB_USER -d $DB_NAME -f ../schema.sql",
     "db:backup": "bash ./scripts/backup-db.sh",
     "db:reset": "bash ./scripts/reset-db.sh",
-    "db:check": "node ./scripts/db-check.mjs"
+    "db:check": "node ./scripts/db-check.mjs",
+    "db:migrate:all": "node ./run-migrations.mjs"
   },
   "keywords": [],
   "author": "",
