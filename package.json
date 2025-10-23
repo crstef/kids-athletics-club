@@ -9,6 +9,7 @@
                     "build:all": "npm run -s build && cd server && npm run -s build",
                     "check:all": "npm run -s build:all && npm test",
                 "deploy:static": "npm run -s build && node scripts/deploy-static.cjs",
+                "postbuild": "node scripts/publish-webroot.cjs",
         "lint": "eslint .",
         "optimize": "vite optimize",
         "preview": "vite preview",
