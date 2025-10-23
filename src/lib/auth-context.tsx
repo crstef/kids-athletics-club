@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { apiClient } from './api-client'
 import { DEFAULT_ROLES } from './defaults'
 import type { User } from './types'
@@ -57,7 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setCurrentUserState(null)
   }
 
-  const hasPermission = (permission: string) => {
+  const hasPermission = useCallback((permission: string) => {
     if (!currentUser) return false
     const userPerms = currentUser.permissions || []
 
@@ -71,7 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const effective = new Set<string>([
       ...userPerms,
-      ...rolePerms as string[],
+      ...(rolePerms as string[]),
       `dashboard.view.${currentUser.role}`,
     ])
 
@@ -88,7 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     return false
-  }
+  }, [currentUser])
 
   return (
     <AuthContext.Provider value={{ currentUser, setCurrentUser, hasPermission, logout, loading }}>
