@@ -12,9 +12,11 @@ const hashPassword = (password) => {
 /**
  * Initialize database with roles, permissions, age categories, and probes
  * GET /api/setup/initialize-data
+ * Optional query param: ?reset_permissions=true to delete and recreate role permissions
  */
 const initializeData = async (req, res) => {
     const client = await database_1.default.connect();
+    const resetPermissions = req.query.reset_permissions === 'true';
     try {
         const results = {
             roles: 0,
@@ -24,6 +26,12 @@ const initializeData = async (req, res) => {
             ageCategories: 0,
             probes: 0
         };
+        // If reset_permissions is true, delete existing role permissions
+        if (resetPermissions) {
+            await client.query(`DELETE FROM role_permissions WHERE role_id IN (
+        SELECT id FROM roles WHERE name IN ('superadmin', 'coach', 'parent', 'athlete')
+      )`);
+        }
         // 1. Insert Roles
         await client.query(`
       INSERT INTO roles (name, display_name, description, is_system, created_at, updated_at) VALUES
@@ -79,16 +87,17 @@ const initializeData = async (req, res) => {
     `);
         results.permissions = 38;
         // 3. Associate all permissions to superadmin role
-        await client.query(`
+        const superadminPerms = await client.query(`
       INSERT INTO role_permissions (role_id, permission_id, granted_at)
       SELECT r.id, p.id, NOW()
       FROM roles r
       CROSS JOIN permissions p
       WHERE r.name = 'superadmin'
       ON CONFLICT DO NOTHING
+      RETURNING *
     `);
         // 4. Associate permissions to other roles
-        await client.query(`
+        const coachPerms = await client.query(`
       INSERT INTO role_permissions (role_id, permission_id, granted_at)
       SELECT r.id, p.id, NOW()
       FROM roles r
@@ -107,8 +116,9 @@ const initializeData = async (req, res) => {
         'age_categories.view', 'age_categories.manage'
       )
       ON CONFLICT DO NOTHING
+      RETURNING *
     `);
-        await client.query(`
+        const parentPerms = await client.query(`
       INSERT INTO role_permissions (role_id, permission_id, granted_at)
       SELECT r.id, p.id, NOW()
       FROM roles r
@@ -124,8 +134,9 @@ const initializeData = async (req, res) => {
         'access_requests.view'
       )
       ON CONFLICT DO NOTHING
+      RETURNING *
     `);
-        await client.query(`
+        const athletePerms = await client.query(`
       INSERT INTO role_permissions (role_id, permission_id, granted_at)
       SELECT r.id, p.id, NOW()
       FROM roles r
@@ -138,7 +149,13 @@ const initializeData = async (req, res) => {
         'messages.view'
       )
       ON CONFLICT DO NOTHING
+      RETURNING *
     `);
+        results.rolePermissions =
+            (superadminPerms.rowCount || 0) +
+                (coachPerms.rowCount || 0) +
+                (parentPerms.rowCount || 0) +
+                (athletePerms.rowCount || 0);
         // 5. Grant all permissions to admin user
         const userPerms = await client.query(`
       INSERT INTO user_permissions (user_id, permission_id, granted_by, granted_at, created_at, updated_at)
