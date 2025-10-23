@@ -37,6 +37,11 @@ const initializeData = async (req, res) => {
         // 2. Insert Permissions
         await client.query(`
       INSERT INTO permissions (name, description, created_at, updated_at) VALUES
+      ('dashboard.view', 'Poate vizualiza dashboard', NOW(), NOW()),
+      ('dashboard.view.superadmin', 'Poate vizualiza dashboard superadmin', NOW(), NOW()),
+      ('dashboard.view.coach', 'Poate vizualiza dashboard antrenor', NOW(), NOW()),
+      ('dashboard.view.parent', 'Poate vizualiza dashboard părinte', NOW(), NOW()),
+      ('dashboard.view.athlete', 'Poate vizualiza dashboard atlet', NOW(), NOW()),
       ('users.view', 'Poate vizualiza utilizatori', NOW(), NOW()),
       ('users.create', 'Poate crea utilizatori noi', NOW(), NOW()),
       ('users.edit', 'Poate edita utilizatori existenți', NOW(), NOW()),
@@ -72,7 +77,7 @@ const initializeData = async (req, res) => {
       ('athletes.avatar.upload', 'Poate încărca avatar atleți', NOW(), NOW())
       ON CONFLICT (name) DO NOTHING
     `);
-        results.permissions = 33;
+        results.permissions = 38;
         // 3. Associate all permissions to superadmin role
         await client.query(`
       INSERT INTO role_permissions (role_id, permission_id, granted_at)
@@ -90,6 +95,7 @@ const initializeData = async (req, res) => {
       CROSS JOIN permissions p
       WHERE r.name = 'coach'
       AND p.name IN (
+        'dashboard.view', 'dashboard.view.coach',
         'users.view',
         'athletes.view', 'athletes.create', 'athletes.edit', 'athletes.delete',
         'athletes.avatar.view', 'athletes.avatar.upload',
@@ -109,6 +115,7 @@ const initializeData = async (req, res) => {
       CROSS JOIN permissions p
       WHERE r.name = 'parent'
       AND p.name IN (
+        'dashboard.view', 'dashboard.view.parent',
         'athletes.view',
         'athletes.avatar.view',
         'results.view',
@@ -125,6 +132,7 @@ const initializeData = async (req, res) => {
       CROSS JOIN permissions p
       WHERE r.name = 'athlete'
       AND p.name IN (
+        'dashboard.view', 'dashboard.view.athlete',
         'results.view',
         'events.view',
         'messages.view'
