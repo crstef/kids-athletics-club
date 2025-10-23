@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { Plus } from '@phosphor-icons/react'
 import type { Result, EventTypeCustom } from '@/lib/types'
-import { useApi } from '@/hooks/use-api'
+import { useEvents } from '@/hooks/use-api'
 
 interface AddResultDialogProps {
   athleteId: string
@@ -23,18 +23,14 @@ export function AddResultDialog({ athleteId, athleteName, onAdd }: AddResultDial
   const [notes, setNotes] = useState('')
   const [unit, setUnit] = useState<'seconds' | 'meters' | 'points'>('seconds')
 
-  const [probes, setProbes, loading, error, refetchProbes] = useApi<EventTypeCustom[]>('/api/events', [], { autoFetch: true })
-
-  // Store refetch function in ref to avoid infinite loops
-  const refetchRef = useRef(refetchProbes)
-  refetchRef.current = refetchProbes
+  const [probes, , loading, , refetchProbes] = useEvents()
 
   // Refetch probes when dialog opens
   useEffect(() => {
     if (open) {
-      refetchRef.current()
+      refetchProbes()
     }
-  }, [open])
+  }, [open, refetchProbes])
 
   // Set default event when probes load
   useEffect(() => {

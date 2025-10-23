@@ -83,45 +83,45 @@ function AppContent() {
   const [selectedParentId, setSelectedParentId] = useState<string>('')
   const [activeTab, setActiveTab] = useState('dashboard')
   const [superAdminActiveTab, setSuperAdminActiveTab] = useState('dashboard')
-  const [dataFetched, setDataFetched] = useState(false)
 
-  // Lazy loading: fetch data sequentially with delays to avoid ERR_INSUFFICIENT_RESOURCES
+  // Fetch data whenever the user is loaded or changes
   useEffect(() => {
-    if (currentUser && !authLoading && !dataFetched) {
-      setDataFetched(true)
-      
-      // Load core dashboard data first - immediate
-      if (athletes.length === 0) refetchAthletes()
-      
-      setTimeout(() => {
-        if (results.length === 0) refetchResults()
-      }, 200)
-      
-      // Load essential data for super admin after login - staggered loading
+    if (currentUser && !authLoading) {
+      // Always refetch core data to ensure freshness after refresh
+      refetchAthletes()
+      refetchResults()
+      refetchAgeCategories()
+      refetchProbes()
+
+      // Fetch role-specific data
       if (isSuperAdmin) {
-        setTimeout(() => {
-          if (users.length === 0) refetchUsers()
-        }, 500)
-        setTimeout(() => {
-          if (permissions.length === 0) refetchPermissions()
-        }, 1000)
-        setTimeout(() => {
-          if (roles.length === 0) refetchRoles()
-        }, 1500)
-        setTimeout(() => {
-          if (userPermissions.length === 0) refetchUserPermissions()
-        }, 2000)
-        setTimeout(() => {
-          if (ageCategories.length === 0) refetchAgeCategories()
-        }, 2500)
-      } else {
-        // For non-admin users, load categories with delay
-        setTimeout(() => {
-          if (ageCategories.length === 0) refetchAgeCategories()
-        }, 400)
+        refetchUsers()
+        refetchPermissions()
+        refetchRoles()
+        refetchUserPermissions()
+        refetchApprovalRequests()
+      }
+      
+      if (isCoach) {
+        refetchAccessRequests()
       }
     }
-  }, [currentUser, authLoading, isSuperAdmin, dataFetched])
+  }, [
+    currentUser, 
+    authLoading, 
+    isSuperAdmin, 
+    isCoach,
+    refetchAthletes, 
+    refetchResults, 
+    refetchUsers, 
+    refetchPermissions, 
+    refetchRoles, 
+    refetchUserPermissions, 
+    refetchAgeCategories,
+    refetchProbes,
+    refetchAccessRequests,
+    refetchApprovalRequests
+  ])
 
   useEffect(() => {
     if (activeTab === 'antrenori' && accessRequests.length === 0 && currentUser) {
