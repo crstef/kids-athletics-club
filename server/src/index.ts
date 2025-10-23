@@ -146,7 +146,34 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     return res.status(404).json({ error: 'API endpoint not found' });
   }
 
-  res.sendFile(path.join(__dirname, '../../dist/index.html'));
+  const indexHtmlPath = path.join(distDir, 'index.html');
+  if (fs.existsSync(indexHtmlPath)) {
+    return res.sendFile(indexHtmlPath);
+  }
+
+  // Frontend bundle not present on this server. Avoid throwing and provide guidance.
+  res.status(200).send(`<!doctype html>
+  <html>
+    <head>
+      <meta charset="utf-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <title>Kids Athletics Club</title>
+      <style>
+        body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:#0b0b0b; color:#e8e8e8; display:flex; align-items:center; justify-content:center; min-height:100vh; }
+        .box { max-width: 720px; padding: 24px; border: 1px solid #2a2a2a; border-radius: 12px; background: #121212; }
+        h1 { margin: 0 0 8px; font-size: 24px; }
+        p { margin: 8px 0; color:#bdbdbd; }
+        code { background:#1b1b1b; padding:2px 6px; border-radius:6px; }
+      </style>
+    </head>
+    <body>
+      <div class="box">
+        <h1>Frontend bundle not found</h1>
+        <p>The backend is running, but the frontend build (dist/index.html) is not present on this server.</p>
+        <p>Deploy the frontend by building locally and uploading the <code>dist/</code> folder, or serve the SPA via Nginx/web root and proxy only <code>/api</code> to this server.</p>
+      </div>
+    </body>
+  </html>`);
 });
 
 // Error handling middleware
