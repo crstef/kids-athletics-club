@@ -12,8 +12,9 @@ dist-ssr
 *-dist
 *.local
 
-# Development-only file - production uses dist/index.html
-/index.html
+# Keep entry HTML tracked so Vite can build on any environment
+# (dist/index.html is generated at build time and may overwrite this during deploy)
+# Previously this was ignored which broke server builds due to missing entry.
 
 # Prevent stray built assets at repo root (we only keep dist/)
 /index-*.js
