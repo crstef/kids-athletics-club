@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.fixAdminRole = exports.addGenderColumn = exports.addSampleData = exports.createAdminUser = exports.initializeData = void 0;
+exports.fixUserRoles = exports.fixAdminRole = exports.addGenderColumn = exports.addSampleData = exports.createAdminUser = exports.initializeData = void 0;
 const database_1 = __importDefault(require("../config/database"));
 const crypto_1 = __importDefault(require("crypto"));
 const hashPassword = (password) => {
@@ -485,3 +485,56 @@ const fixAdminRole = async (req, res) => {
     }
 };
 exports.fixAdminRole = fixAdminRole;
+/**
+ * Fix user role associations - link existing users to roles table
+ * GET /api/setup/fix-user-roles
+ */
+const fixUserRoles = async (req, res) => {
+    const client = await database_1.default.connect();
+    try {
+        // Update users to link them with roles table
+        const result = await client.query(`
+      UPDATE users u
+      SET role_id = r.id
+      FROM roles r
+      WHERE u.role = r.name
+        AND u.role_id IS NULL
+        AND u.role IN ('superadmin', 'coach', 'parent', 'athlete')
+      RETURNING u.id, u.email, u.role, r.id as new_role_id
+    `);
+        const updatedCount = result.rows.length;
+        // Verify the update
+        const verification = await client.query(`
+      SELECT 
+        u.email, 
+        u.role, 
+        u.role_id,
+        r.name as role_name,
+        r.default_dashboard_id
+      FROM users u
+      LEFT JOIN roles r ON u.role_id = r.id
+      WHERE u.role IN ('superadmin', 'coach', 'parent', 'athlete')
+      ORDER BY u.role, u.email
+    `);
+        res.json({
+            success: true,
+            message: `Fixed ${updatedCount} users`,
+            updatedUsers: updatedCount,
+            users: verification.rows.map(u => ({
+                email: u.email,
+                role: u.role,
+                roleId: u.role_id,
+                roleName: u.role_name,
+                hasDefaultDashboard: !!u.default_dashboard_id
+            }))
+        });
+    }
+    catch (error) {
+        console.error('Fix user roles error:', error);
+        res.status(500).json({ error: 'Failed to fix user roles' });
+    }
+    finally {
+        client.release();
+    }
+};
+exports.fixUserRoles = fixUserRoles;

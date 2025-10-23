@@ -18,7 +18,7 @@ import ageCategoriesRoutes from './routes/ageCategories';
 import probesRoutes from './routes/probes';
 import userPermissionsRoutes from './routes/userPermissions';
 import dashboardsRoutes from './routes/dashboards';
-import { createAdminUser, initializeData, addSampleData, fixAdminRole, addGenderColumn } from './routes/setup';
+import { createAdminUser, initializeData, addSampleData, fixAdminRole, addGenderColumn, fixUserRoles } from './routes/setup';
 
 dotenv.config();
 
@@ -104,6 +104,7 @@ app.get('/api/setup/initialize-data', initializeData);
 app.get('/api/setup/add-sample-data', addSampleData);
 app.get('/api/setup/fix-admin-role', fixAdminRole);
 app.get('/api/setup/add-gender-column', addGenderColumn);
+app.get('/api/setup/fix-user-roles', fixUserRoles);
 
 // Health check
 app.get('/health', (req: Request, res: Response) => {
