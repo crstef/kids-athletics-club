@@ -823,117 +823,34 @@ exports.populateRoleDashboards = populateRoleDashboards;
 const completeSetup = async (req, res) => {
     const client = await database_1.default.connect();
     try {
-        await client.query('BEGIN');
         const results = {
-            tablesCreated: 0,
             dashboardsInserted: 0,
-            roleDashboardsInserted: 0
+            roleDashboardsInserted: 0,
+            message: 'Setup already complete from reset-database'
         };
-        // 1. Create dashboards table if not exists
-        await client.query(`
-      CREATE TABLE IF NOT EXISTS dashboards (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        name VARCHAR(100) UNIQUE NOT NULL,
-        display_name VARCHAR(150) NOT NULL,
-        description TEXT,
-        icon VARCHAR(50),
-        route VARCHAR(100),
-        is_active BOOLEAN DEFAULT true,
-        sort_order INTEGER DEFAULT 0,
-        created_by UUID,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
-      )
-    `);
-        results.tablesCreated++;
-        // 2. Create role_dashboards table if not exists
-        await client.query(`
-      CREATE TABLE IF NOT EXISTS role_dashboards (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        role_id UUID NOT NULL,
-        dashboard_id UUID NOT NULL,
-        is_default BOOLEAN DEFAULT false,
-        sort_order INTEGER DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(role_id, dashboard_id),
-        FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
-        FOREIGN KEY (dashboard_id) REFERENCES dashboards(id) ON DELETE CASCADE
-      )
-    `);
-        results.tablesCreated++;
-        // 2b. Add updated_at column to role_dashboards if it doesn't exist
-        try {
-            await client.query(`
-        ALTER TABLE role_dashboards 
-        ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      `);
+        // Since reset-database now creates everything including dashboards,
+        // this endpoint just verifies everything is in place
+        // Check if dashboards exist
+        const dashboardCheck = await client.query('SELECT COUNT(*) as count FROM dashboards');
+        if (dashboardCheck.rows[0].count > 0) {
+            results.dashboardsInserted = dashboardCheck.rows[0].count;
         }
-        catch (e) {
-            // Column already exists, ignore error
-            console.log('updated_at column already exists in role_dashboards');
+        // Check if role_dashboards exist
+        const roleDashboardCheck = await client.query('SELECT COUNT(*) as count FROM role_dashboards');
+        if (roleDashboardCheck.rows[0].count > 0) {
+            results.roleDashboardsInserted = roleDashboardCheck.rows[0].count;
         }
-        // 3. Clean up and recreate dashboards with proper data
-        // First, delete any dashboards that have NULL component_name to avoid constraint violations
-        await client.query(`
-      DELETE FROM role_dashboards WHERE dashboard_id IN (
-        SELECT id FROM dashboards WHERE component_name IS NULL
-      )
-    `);
-        await client.query(`
-      DELETE FROM dashboards WHERE component_name IS NULL
-    `);
-        // Then insert/upsert all dashboards with complete data
-        const dashboardsResult = await client.query(`
-      INSERT INTO dashboards (name, display_name, description, component_name, icon, is_active, is_system, created_at, updated_at) VALUES
-      ('SuperAdminDashboard', 'Admin Dashboard', 'Panoul de control pentru administrator', 'SuperAdminDashboard', 'LayoutDashboard', true, true, NOW(), NOW()),
-      ('CoachDashboard', 'Coach Dashboard', 'Panoul de control pentru antrenor', 'CoachDashboard', 'Users', true, true, NOW(), NOW()),
-      ('ParentDashboard', 'Parent Dashboard', 'Panoul de control pentru părinte', 'ParentDashboard', 'UserCircle', true, true, NOW(), NOW()),
-      ('AthleteDashboard', 'Athlete Dashboard', 'Panoul de control pentru atlet', 'AthleteDashboard', 'Trophy', true, true, NOW(), NOW())
-      ON CONFLICT (name) DO UPDATE SET
-        description = EXCLUDED.description,
-        component_name = EXCLUDED.component_name,
-        icon = EXCLUDED.icon,
-        is_active = EXCLUDED.is_active,
-        is_system = EXCLUDED.is_system,
-        updated_at = NOW()
-      RETURNING id
-    `);
-        results.dashboardsInserted = dashboardsResult.rowCount || 0;
-        // 4. Insert role_dashboards assignments
-        const roleDashboardsResult = await client.query(`
-      INSERT INTO role_dashboards (role_id, dashboard_id, is_default, sort_order, created_at, updated_at)
-      SELECT 
-        r.id as role_id,
-        d.id as dashboard_id,
-        true as is_default,
-        0 as sort_order,
-        NOW() as created_at,
-        NOW() as updated_at
-      FROM roles r
-      CROSS JOIN dashboards d
-      WHERE (r.name = 'superadmin' AND d.name = 'SuperAdminDashboard')
-         OR (r.name = 'coach' AND d.name = 'CoachDashboard')
-         OR (r.name = 'parent' AND d.name = 'ParentDashboard')
-         OR (r.name = 'athlete' AND d.name = 'AthleteDashboard')
-      ON CONFLICT (role_id, dashboard_id) DO NOTHING
-      RETURNING id
-    `);
-        results.roleDashboardsInserted = roleDashboardsResult.rowCount || 0;
-        await client.query('COMMIT');
         res.status(200).json({
             success: true,
-            message: 'Complete setup finished successfully!',
+            message: 'Setup verification complete - all tables exist',
             data: results
         });
     }
     catch (error) {
-        await client.query('ROLLBACK');
         console.error('Complete setup error:', error);
         res.status(500).json({
             success: false,
-            error: 'Failed to complete setup',
+            error: 'Failed to verify setup',
             details: error instanceof Error ? error.message : 'Unknown error'
         });
     }
@@ -1250,12 +1167,119 @@ const resetDatabase = async (req, res) => {
          OR (r.name = 'athlete' AND d.name = 'AthleteDashboard')
       ON CONFLICT DO NOTHING
     `);
+        console.log('Inserting sample users...');
+        // Create sample users for testing
+        const sampleUsers = [
+            // SuperAdmin
+            {
+                email: 'admin@kidsathletics.ro',
+                password: hashPassword('admin123'),
+                firstName: 'Administrator',
+                lastName: 'System',
+                role: 'superadmin'
+            },
+            // Coaches
+            {
+                email: 'coach1@kidsathletics.ro',
+                password: hashPassword('coach123'),
+                firstName: 'Ion',
+                lastName: 'Popescu',
+                role: 'coach'
+            },
+            {
+                email: 'coach2@kidsathletics.ro',
+                password: hashPassword('coach123'),
+                firstName: 'Maria',
+                lastName: 'Ionescu',
+                role: 'coach'
+            },
+            // Parents
+            {
+                email: 'parent1@kidsathletics.ro',
+                password: hashPassword('parent123'),
+                firstName: 'Gheorghe',
+                lastName: 'Popescu',
+                role: 'parent'
+            },
+            {
+                email: 'parent2@kidsathletics.ro',
+                password: hashPassword('parent123'),
+                firstName: 'Elena',
+                lastName: 'Ionescu',
+                role: 'parent'
+            },
+            // Athletes
+            {
+                email: 'athlete1@kidsathletics.ro',
+                password: hashPassword('athlete123'),
+                firstName: 'Alexandru',
+                lastName: 'Popescu',
+                role: 'athlete'
+            },
+            {
+                email: 'athlete2@kidsathletics.ro',
+                password: hashPassword('athlete123'),
+                firstName: 'Ioana',
+                lastName: 'Ionescu',
+                role: 'athlete'
+            }
+        ];
+        for (const user of sampleUsers) {
+            await client.query(`INSERT INTO users (email, password, first_name, last_name, role, is_active, needs_approval)
+         VALUES ($1, $2, $3, $4, $5, true, false)
+         ON CONFLICT DO NOTHING`, [user.email, user.password, user.firstName, user.lastName, user.role]);
+        }
+        console.log('Sample users inserted');
+        // Get user IDs for linking
+        const adminUser = await client.query('SELECT id FROM users WHERE role = $1 LIMIT 1', ['superadmin']);
+        const coach1 = await client.query('SELECT id FROM users WHERE email = $1', ['coach1@kidsathletics.ro']);
+        const parent1 = await client.query('SELECT id FROM users WHERE email = $1', ['parent1@kidsathletics.ro']);
+        const parent2 = await client.query('SELECT id FROM users WHERE email = $1', ['parent2@kidsathletics.ro']);
+        const athlete1 = await client.query('SELECT id FROM users WHERE email = $1', ['athlete1@kidsathletics.ro']);
+        const athlete2 = await client.query('SELECT id FROM users WHERE email = $1', ['athlete2@kidsathletics.ro']);
+        if (coach1.rows.length > 0 && parent1.rows.length > 0 && athlete1.rows.length > 0) {
+            // Create sample athletes linked to parents and coaches
+            await client.query(`INSERT INTO athletes (first_name, last_name, age, category, gender, date_of_birth, date_joined, coach_id, parent_id)
+         VALUES 
+         ($1, $2, 14, 'U16', 'M', '2010-05-15', NOW(), $3, $4),
+         ($5, $6, 12, 'U14', 'F', '2012-08-20', NOW(), $3, $7)
+         ON CONFLICT DO NOTHING`, [
+                'Andrei',
+                'Popescu',
+                coach1.rows[0].id,
+                parent1.rows[0].id,
+                'Cristina',
+                'Ionescu',
+                parent2.rows[0].id
+            ]);
+            console.log('Sample athletes inserted');
+            // Link athlete users to their athlete records
+            const athleteRecords = await client.query('SELECT id FROM athletes LIMIT 2');
+            if (athleteRecords.rows.length >= 2 && athlete1.rows.length > 0) {
+                await client.query('UPDATE users SET athlete_id = $1 WHERE email = $2', [athleteRecords.rows[0].id, 'athlete1@kidsathletics.ro']);
+                await client.query('UPDATE users SET athlete_id = $1 WHERE email = $2', [athleteRecords.rows[1].id, 'athlete2@kidsathletics.ro']);
+                // Link coach users to their coach probes
+                await client.query(`INSERT INTO coach_probes (name, description, is_active, created_by)
+           VALUES ($1, $2, true, $3)
+           ON CONFLICT DO NOTHING`, ['Sprint', 'Short distance running', adminUser.rows[0]?.id || null]);
+                const probe = await client.query('SELECT id FROM coach_probes LIMIT 1');
+                if (probe.rows.length > 0) {
+                    await client.query('UPDATE users SET probe_id = $1 WHERE role = $2 AND email IN ($3, $4)', [probe.rows[0].id, 'coach', 'coach1@kidsathletics.ro', 'coach2@kidsathletics.ro']);
+                }
+            }
+        }
         console.log('Data inserted');
         await client.query('COMMIT');
         res.status(200).json({
             success: true,
-            message: 'Database reset and recreated successfully with correct schema!',
-            warning: 'All data has been deleted and recreated'
+            message: 'Database reset and recreated successfully with sample data!',
+            warning: 'All data has been deleted and recreated',
+            testUsers: {
+                superadmin: { email: 'admin@kidsathletics.ro', password: 'admin123' },
+                coach: { email: 'coach1@kidsathletics.ro', password: 'coach123' },
+                parent: { email: 'parent1@kidsathletics.ro', password: 'parent123' },
+                athlete: { email: 'athlete1@kidsathletics.ro', password: 'athlete123' }
+            }
         });
     }
     catch (error) {
