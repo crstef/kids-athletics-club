@@ -1045,6 +1045,41 @@ export const resetDatabase = async (req: Request, res: Response) => {
       )
     `);
 
+    // Components table - UI components/tabs with granular permissions
+    await client.query(`
+      CREATE TABLE components (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name VARCHAR(100) UNIQUE NOT NULL,
+        display_name VARCHAR(150) NOT NULL,
+        description TEXT,
+        component_type VARCHAR(50),
+        is_system BOOLEAN DEFAULT false,
+        icon VARCHAR(50),
+        order_index INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Component permissions - granular control per role
+    await client.query(`
+      CREATE TABLE component_permissions (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        role_id UUID NOT NULL,
+        component_id UUID NOT NULL,
+        can_view BOOLEAN DEFAULT false,
+        can_create BOOLEAN DEFAULT false,
+        can_edit BOOLEAN DEFAULT false,
+        can_delete BOOLEAN DEFAULT false,
+        can_export BOOLEAN DEFAULT false,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(role_id, component_id),
+        FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
+        FOREIGN KEY (component_id) REFERENCES components(id) ON DELETE CASCADE
+      )
+    `);
+
     // Role dashboards table - WITH EXACT COLUMNS FROM SERVER
     await client.query(`
       CREATE TABLE role_dashboards (
@@ -1275,6 +1310,112 @@ export const resetDatabase = async (req: Request, res: Response) => {
          OR (r.name = 'athlete' AND d.name = 'AthleteDashboard')
     `);
     console.log('Role dashboards assigned');
+
+    // Insert system components for granular permissions
+    console.log('Inserting components...');
+    const componentsData = [
+      ['dashboard', 'Dashboard', 'Main dashboard view', 'tab', 'LayoutDashboard', 0],
+      ['athletes', 'Atleți', 'Athletes management tab', 'tab', 'Users', 1],
+      ['athletes-create', 'Adăugare Atlet', 'Create new athlete', 'action', 'Plus', 1],
+      ['athletes-edit', 'Editare Atlet', 'Edit athlete information', 'action', 'Edit', 2],
+      ['athletes-delete', 'Ștergere Atlet', 'Delete athlete', 'action', 'Trash2', 3],
+      ['results', 'Rezultate', 'Results and performance tab', 'tab', 'TrendingUp', 2],
+      ['results-create', 'Înregistrare Rezultat', 'Record new result', 'action', 'Plus', 1],
+      ['results-edit', 'Editare Rezultat', 'Edit result', 'action', 'Edit', 2],
+      ['results-delete', 'Ștergere Rezultat', 'Delete result', 'action', 'Trash2', 3],
+      ['messages', 'Mesaje', 'Messaging tab', 'tab', 'MessageSquare', 3],
+      ['messages-send', 'Trimitere Mesaj', 'Send message', 'action', 'Send', 1],
+      ['events', 'Evenimente', 'Events tab', 'tab', 'Calendar', 4],
+      ['events-create', 'Creare Eveniment', 'Create event', 'action', 'Plus', 1],
+      ['probes', 'Probe', 'Specializations/probes tab', 'tab', 'Zap', 5],
+      ['probes-manage', 'Gestionare Probe', 'Manage probes', 'action', 'Settings', 1],
+      ['access-requests', 'Cereri de Acces', 'Access requests tab', 'tab', 'Lock', 6],
+      ['access-requests-approve', 'Aprobare Cereri', 'Approve/reject requests', 'action', 'CheckCircle', 1],
+      ['categories', 'Categorii', 'Age categories tab', 'tab', 'Grid', 7],
+      ['categories-manage', 'Gestionare Categorii', 'Manage age categories', 'action', 'Settings', 1],
+      ['users', 'Utilizatori', 'User management tab', 'tab', 'Users', 10],
+      ['users-create', 'Creare Utilizator', 'Create user', 'action', 'Plus', 1],
+      ['users-edit', 'Editare Utilizator', 'Edit user', 'action', 'Edit', 2],
+      ['users-delete', 'Ștergere Utilizator', 'Delete user', 'action', 'Trash2', 3],
+      ['roles', 'Roluri', 'Roles management tab', 'tab', 'Shield', 11],
+      ['roles-manage', 'Gestionare Roluri', 'Manage roles', 'action', 'Settings', 1],
+      ['permissions', 'Permisiuni', 'Permissions management tab', 'tab', 'Lock', 12],
+      ['permissions-manage', 'Gestionare Permisiuni', 'Manage permissions', 'action', 'Settings', 1]
+    ];
+
+    for (const comp of componentsData) {
+      await client.query(
+        `INSERT INTO components (name, display_name, description, component_type, icon, order_index, is_system)
+         VALUES ($1, $2, $3, $4, $5, $6, true)
+         ON CONFLICT DO NOTHING`,
+        comp
+      );
+    }
+    console.log(`✓ Inserted ${componentsData.length} components`);
+
+    // Assign component permissions based on roles
+    console.log('Assigning component permissions...');
+    
+    // Superadmin - all components with all permissions
+    await client.query(`
+      INSERT INTO component_permissions (role_id, component_id, can_view, can_create, can_edit, can_delete, created_at, updated_at)
+      SELECT r.id, c.id, true, true, true, true, NOW(), NOW()
+      FROM roles r, components c
+      WHERE r.name = 'superadmin'
+      ON CONFLICT DO NOTHING
+    `);
+
+    // Coach - Athletes, Results, Messages, Probes, Access Requests
+    await client.query(`
+      INSERT INTO component_permissions (role_id, component_id, can_view, can_create, can_edit, can_delete, created_at, updated_at)
+      SELECT r.id, c.id, true, true, true, false, NOW(), NOW()
+      FROM roles r, components c
+      WHERE r.name = 'coach'
+        AND c.name IN ('dashboard', 'athletes', 'athletes-create', 'athletes-edit', 
+                       'results', 'results-create', 'results-edit', 'messages', 'messages-send',
+                       'probes', 'access-requests', 'access-requests-approve')
+      ON CONFLICT DO NOTHING
+    `);
+
+    // Parent - Athletes, Results, Messages (view only, can send messages)
+    await client.query(`
+      INSERT INTO component_permissions (role_id, component_id, can_view, can_create, can_edit, can_delete, created_at, updated_at)
+      SELECT r.id, c.id, true, false, false, false, NOW(), NOW()
+      FROM roles r, components c
+      WHERE r.name = 'parent'
+        AND c.name IN ('dashboard', 'athletes', 'results', 'messages')
+    `);
+    
+    // Parent can send messages (create)
+    await client.query(`
+      INSERT INTO component_permissions (role_id, component_id, can_view, can_create, can_edit, can_delete, created_at, updated_at)
+      SELECT r.id, c.id, true, true, false, false, NOW(), NOW()
+      FROM roles r, components c
+      WHERE r.name = 'parent'
+        AND c.name = 'messages-send'
+      ON CONFLICT DO NOTHING
+    `);
+
+    // Athlete - Results, Messages, Events (view only, can send messages)
+    await client.query(`
+      INSERT INTO component_permissions (role_id, component_id, can_view, can_create, can_edit, can_delete, created_at, updated_at)
+      SELECT r.id, c.id, true, false, false, false, NOW(), NOW()
+      FROM roles r, components c
+      WHERE r.name = 'athlete'
+        AND c.name IN ('dashboard', 'results', 'messages', 'events')
+    `);
+
+    // Athlete can send messages (create)
+    await client.query(`
+      INSERT INTO component_permissions (role_id, component_id, can_view, can_create, can_edit, can_delete, created_at, updated_at)
+      SELECT r.id, c.id, true, true, false, false, NOW(), NOW()
+      FROM roles r, components c
+      WHERE r.name = 'athlete'
+        AND c.name = 'messages-send'
+      ON CONFLICT DO NOTHING
+    `);
+
+    console.log('Component permissions assigned');
 
     // Insert permissions
     console.log('Inserting permissions...');
