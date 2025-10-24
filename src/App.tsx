@@ -69,15 +69,21 @@ function AppContent() {
   const [sortBy, setSortBy] = useState<'name' | 'age' | 'results'>('name')
   const [authDialogOpen, setAuthDialogOpen] = useState(false)
   
-  const [activeTab, setActiveTab] = useState(() => {
-    // Restore session state on mount
-    const session = getSessionState()
-    return session?.activeTab || 'dashboard'
-  })
-  const [superAdminActiveTab, setSuperAdminActiveTab] = useState(() => {
-    const session = getSessionState()
-    return session?.superAdminActiveTab || 'dashboard'
-  })
+  const [activeTab, setActiveTab] = useState('dashboard')
+  const [superAdminActiveTab, setSuperAdminActiveTab] = useState('dashboard')
+
+  // Restore session state when user becomes available
+  useEffect(() => {
+    if (currentUser && !authLoading) {
+      const session = getSessionState()
+      if (session?.activeTab) {
+        setActiveTab(session.activeTab)
+      }
+      if (session?.superAdminActiveTab) {
+        setSuperAdminActiveTab(session.superAdminActiveTab)
+      }
+    }
+  }, [currentUser, authLoading, getSessionState])
 
   // Auto-logout on inactivity (only if remember me is not checked)
   useInactivityLogout({

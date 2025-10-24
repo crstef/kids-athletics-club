@@ -96,7 +96,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setCurrentUserState(null)
     // Clear session state on logout
     sessionStorage.removeItem(SESSION_STATE_KEY)
-    // Don't clear rememberMe - it persists across sessions
+    // Clear remember me preference on logout
+    setRememberMeState(false)
+    localStorage.removeItem(REMEMBER_ME_KEY)
   }
 
   const hasPermission = useCallback((permission: string) => {

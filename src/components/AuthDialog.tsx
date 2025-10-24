@@ -57,7 +57,7 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
     }
 
     try {
-      const user = await apiClient.login(loginEmail.trim(), loginPassword)
+      const user = await apiClient.login(loginEmail.trim(), loginPassword, loginRememberMe)
       // Save remember me preference
       setRememberMe(loginRememberMe)
       onLogin(user)

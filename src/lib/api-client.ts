@@ -2,18 +2,30 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || (typeof window !== 'undefin
 
 class ApiClient {
   private token: string | null = null;
+  private useLocalStorage: boolean = false;
 
   constructor() {
-    // Load token from localStorage on init
-    this.token = localStorage.getItem('auth_token');
+    // Try to load token from both storages (localStorage takes precedence for remember me)
+    this.token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+    this.useLocalStorage = !!localStorage.getItem('auth_token');
   }
 
-  setToken(token: string | null) {
+  setToken(token: string | null, rememberMe: boolean = false) {
     this.token = token;
+    this.useLocalStorage = rememberMe;
+    
     if (token) {
-      localStorage.setItem('auth_token', token);
+      if (rememberMe) {
+        localStorage.setItem('auth_token', token);
+        sessionStorage.removeItem('auth_token'); // Clear sessionStorage if switching to localStorage
+      } else {
+        sessionStorage.setItem('auth_token', token);
+        localStorage.removeItem('auth_token'); // Clear localStorage if not remembering
+      }
     } else {
+      // Clear both on logout
       localStorage.removeItem('auth_token');
+      sessionStorage.removeItem('auth_token');
     }
   }
 
@@ -49,12 +61,12 @@ class ApiClient {
   }
 
   // Authentication
-  async login(email: string, password: string) {
+  async login(email: string, password: string, rememberMe: boolean = false) {
     const response = await this.request<{ token: string; user: any }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
-    this.setToken(response.token);
+    this.setToken(response.token, rememberMe);
     return response.user;
   }
 
