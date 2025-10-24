@@ -877,7 +877,6 @@ export const populateRoleDashboards = async (req: Request, res: Response) => {
         });
       }
     }
-
     res.status(200).json({
       success: true,
       message: `Populated role_dashboards. Assigned ${assignedCount} dashboard(s) to role(s).`,
@@ -887,7 +886,11 @@ export const populateRoleDashboards = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Populate role dashboards error:', error);
-    res.status(500).json({ error: 'Failed to populate role dashboards' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to populate role dashboards',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
   } finally {
     client.release();
   }
