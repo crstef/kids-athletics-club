@@ -686,11 +686,12 @@ const populateRoleDashboards = async (req, res) => {
         const rolesResult = await client.query('SELECT id, name FROM roles WHERE name IN (\'superadmin\', \'coach\', \'parent\', \'athlete\')');
         const roles = rolesResult.rows;
         // Dashboard name mapping per role
+        // Names MUST match exactly what's in dashboards table
         const dashboardMapping = {
-            'superadmin': 'superadmin-dashboard',
-            'coach': 'coach-dashboard',
-            'parent': 'parent-dashboard',
-            'athlete': 'athlete-dashboard'
+            'superadmin': 'SuperAdminDashboard',
+            'coach': 'CoachDashboard',
+            'parent': 'ParentDashboard',
+            'athlete': 'AthleteDashboard'
         };
         let assignedCount = 0;
         const assignments = [];

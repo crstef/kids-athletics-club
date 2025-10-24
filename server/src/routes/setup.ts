@@ -747,11 +747,12 @@ export const populateRoleDashboards = async (req: Request, res: Response) => {
     const roles = rolesResult.rows;
 
     // Dashboard name mapping per role
+    // Names MUST match exactly what's in dashboards table
     const dashboardMapping: Record<string, string> = {
-      'superadmin': 'superadmin-dashboard',
-      'coach': 'coach-dashboard',
-      'parent': 'parent-dashboard',
-      'athlete': 'athlete-dashboard'
+      'superadmin': 'SuperAdminDashboard',
+      'coach': 'CoachDashboard',
+      'parent': 'ParentDashboard',
+      'athlete': 'AthleteDashboard'
     };
 
     let assignedCount = 0;
