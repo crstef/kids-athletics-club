@@ -18,7 +18,7 @@ import ageCategoriesRoutes from './routes/ageCategories';
 import probesRoutes from './routes/probes';
 import userPermissionsRoutes from './routes/userPermissions';
 import dashboardsRoutes from './routes/dashboards';
-import { createAdminUser, initializeData, addSampleData, fixAdminRole, addGenderColumn, fixUserRoles, addModernDashboards, addCategoryToPermissions, populateRoleDashboards } from './routes/setup';
+import { createAdminUser, initializeData, addSampleData, fixAdminRole, addGenderColumn, fixUserRoles, addModernDashboards, addCategoryToPermissions, populateRoleDashboards, completeSetup } from './routes/setup';
 
 dotenv.config();
 
@@ -108,6 +108,7 @@ app.get('/api/setup/fix-user-roles', fixUserRoles);
 app.post('/api/setup/add-modern-dashboards', addModernDashboards);
 app.get('/api/setup/add-category-to-permissions', addCategoryToPermissions);
 app.post('/api/setup/populate-role-dashboards', populateRoleDashboards);
+app.get('/api/setup/complete', completeSetup);
 
 // Health check
 app.get('/health', (req: Request, res: Response) => {
