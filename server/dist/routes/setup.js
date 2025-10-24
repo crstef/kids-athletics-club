@@ -236,17 +236,17 @@ const initializeData = async (req, res) => {
       ('100m garduri', 'Alergare 100m cu garduri', NOW(), NOW())
     `);
         results.probes = 15;
-        // 8. Insert Dashboards
+        // 3. Insert dashboards
         const dashboardsResult = await client.query(`
-      INSERT INTO dashboards (name, display_name, description, is_active, sort_order, created_at, updated_at) VALUES
-      ('SuperAdminDashboard', 'Admin Dashboard', 'Panoul de control pentru administrator', true, 0, NOW(), NOW()),
-      ('CoachDashboard', 'Coach Dashboard', 'Panoul de control pentru antrenor', true, 1, NOW(), NOW()),
-      ('ParentDashboard', 'Parent Dashboard', 'Panoul de control pentru părinte', true, 2, NOW(), NOW()),
-      ('AthleteDashboard', 'Athlete Dashboard', 'Panoul de control pentru atlet', true, 3, NOW(), NOW())
+      INSERT INTO dashboards (name, display_name, description, component_name, icon, is_active, is_system, created_at, updated_at) VALUES
+      ('SuperAdminDashboard', 'Admin Dashboard', 'Panoul de control pentru administrator', 'SuperAdminDashboard', 'LayoutDashboard', true, true, NOW(), NOW()),
+      ('CoachDashboard', 'Coach Dashboard', 'Panoul de control pentru antrenor', 'CoachDashboard', 'Users', true, true, NOW(), NOW()),
+      ('ParentDashboard', 'Parent Dashboard', 'Panoul de control pentru părinte', 'ParentDashboard', 'UserCircle', true, true, NOW(), NOW()),
+      ('AthleteDashboard', 'Athlete Dashboard', 'Panoul de control pentru atlet', 'AthleteDashboard', 'Trophy', true, true, NOW(), NOW())
       ON CONFLICT (name) DO NOTHING
       RETURNING id
     `);
-        results.dashboardsCreated = dashboardsResult.rowCount || 0;
+        results.dashboardsInserted = dashboardsResult.rowCount || 0;
         // 9. Populate role_dashboards - assign each role their default dashboard
         if (dashboardsResult.rowCount && dashboardsResult.rowCount > 0) {
             const roleDashboardsResult = await client.query(`
@@ -860,13 +860,13 @@ const completeSetup = async (req, res) => {
       )
     `);
         results.tablesCreated++;
-        // 3. Insert dashboards
+        // 3. Insert dashboards (only required columns)
         const dashboardsResult = await client.query(`
-      INSERT INTO dashboards (name, display_name, description, is_active, sort_order, created_at, updated_at) VALUES
-      ('SuperAdminDashboard', 'Admin Dashboard', 'Panoul de control pentru administrator', true, 0, NOW(), NOW()),
-      ('CoachDashboard', 'Coach Dashboard', 'Panoul de control pentru antrenor', true, 1, NOW(), NOW()),
-      ('ParentDashboard', 'Parent Dashboard', 'Panoul de control pentru părinte', true, 2, NOW(), NOW()),
-      ('AthleteDashboard', 'Athlete Dashboard', 'Panoul de control pentru atlet', true, 3, NOW(), NOW())
+      INSERT INTO dashboards (name, display_name) VALUES
+      ('SuperAdminDashboard', 'Admin Dashboard'),
+      ('CoachDashboard', 'Coach Dashboard'),
+      ('ParentDashboard', 'Parent Dashboard'),
+      ('AthleteDashboard', 'Athlete Dashboard')
       ON CONFLICT (name) DO NOTHING
       RETURNING id
     `);
