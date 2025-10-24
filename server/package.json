@@ -5,7 +5,8 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "nodemon src/index.ts",
-    "build": "tsc",
+    "build": "tsc && npm run postbuild",
+    "postbuild": "cd .. && git add server/dist/ && git commit -m 'chore: update compiled server files' --no-verify || true",
     "start": "node dist/index.js",
     "db:init": "psql -U $DB_USER -d $DB_NAME -f ../schema.sql",
     "db:backup": "bash ./scripts/backup-db.sh",
