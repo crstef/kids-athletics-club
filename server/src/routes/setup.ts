@@ -1349,6 +1349,8 @@ export const resetDatabase = async (req: Request, res: Response) => {
     `);
     console.log('Role permissions assigned');
 
+    console.log('Inserting sample users...');
+
     // Create sample users for testing
     const sampleUsers = [
       // SuperAdmin
@@ -1409,9 +1411,8 @@ export const resetDatabase = async (req: Request, res: Response) => {
     try {
       for (const user of sampleUsers) {
         await client.query(
-          `INSERT INTO users (email, password, first_name, last_name, role, is_active, needs_approval)
-           VALUES ($1, $2, $3, $4, $5, true, false)
-           ON CONFLICT DO NOTHING`,
+          `INSERT INTO users (email, password, first_name, last_name, role, role_id, is_active, needs_approval)
+           VALUES ($1, $2, $3, $4, $5, (SELECT id FROM roles WHERE name = $5), true, false)`,
           [user.email, user.password, user.firstName, user.lastName, user.role]
         );
       }
