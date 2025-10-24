@@ -18,14 +18,14 @@ describe('Permission to Tab Mapping System', () => {
       
       for (const tabId of requiredTabs) {
         const found = Object.values(PERMISSION_TO_TAB_MAP).some(tab => tab.id === tabId)
-        expect(found).toBe(true, `Tab '${tabId}' not found in PERMISSION_TO_TAB_MAP`)
+        expect(found).toBe(true)
       }
     })
 
     it('should have unique tab IDs', () => {
       const tabIds = Object.values(PERMISSION_TO_TAB_MAP).map(t => t.id)
       const uniqueIds = new Set(tabIds)
-      expect(uniqueIds.size).toBe(tabIds.length, 'Duplicate tab IDs found')
+      expect(uniqueIds.size).toBe(tabIds.length)
     })
 
     it('should map all tabs to permissions without conflicts', () => {
@@ -175,7 +175,7 @@ describe('Permission to Tab Mapping System', () => {
 
       for (const testCase of testCases) {
         const permission = getPermissionForTab(testCase.tabId)
-        expect(permission).toBe(testCase.expectedPermission, `Tab '${testCase.tabId}' should need permission '${testCase.expectedPermission}'`)
+        expect(permission).toBe(testCase.expectedPermission)
       }
     })
 
