@@ -1235,6 +1235,7 @@ const resetDatabase = async (req, res) => {
         AND p.name IN ('results.view', 'messages.view', 'dashboard.view.athlete')
     `);
         console.log('Role permissions assigned');
+        console.log('Inserting sample users...');
         // Create sample users for testing
         const sampleUsers = [
             // SuperAdmin
@@ -1293,9 +1294,8 @@ const resetDatabase = async (req, res) => {
         ];
         try {
             for (const user of sampleUsers) {
-                await client.query(`INSERT INTO users (email, password, first_name, last_name, role, is_active, needs_approval)
-           VALUES ($1, $2, $3, $4, $5, true, false)
-           ON CONFLICT DO NOTHING`, [user.email, user.password, user.firstName, user.lastName, user.role]);
+                await client.query(`INSERT INTO users (email, password, first_name, last_name, role, role_id, is_active, needs_approval)
+           VALUES ($1, $2, $3, $4, $5, (SELECT id FROM roles WHERE name = $5), true, false)`, [user.email, user.password, user.firstName, user.lastName, user.role]);
             }
             console.log('Sample users inserted successfully');
         }
