@@ -31,9 +31,11 @@ CREATE TABLE IF NOT EXISTS athletes (
     date_joined TIMESTAMP NOT NULL,
     avatar TEXT,
     coach_id UUID,
+    parent_id UUID,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (coach_id) REFERENCES users(id) ON DELETE SET NULL
+    FOREIGN KEY (coach_id) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (parent_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
 -- Results table
@@ -152,11 +154,14 @@ CREATE TABLE IF NOT EXISTS roles (
 
 -- Role permissions (many-to-many)
 CREATE TABLE IF NOT EXISTS role_permissions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     role_id UUID NOT NULL,
     permission_id UUID NOT NULL,
     granted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     granted_by UUID,
-    PRIMARY KEY (role_id, permission_id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(role_id, permission_id),
     FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
     FOREIGN KEY (permission_id) REFERENCES permissions(id) ON DELETE CASCADE,
     FOREIGN KEY (granted_by) REFERENCES users(id) ON DELETE SET NULL

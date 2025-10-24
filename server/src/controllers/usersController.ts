@@ -20,10 +20,15 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
     const queryParams: any[] = [];
 
     if (currentUser?.role === 'coach') {
-      // Coaches can see the parents of the athletes they coach
-      query += ` WHERE u.role = 'parent' AND u.id IN (
-                   SELECT parent_id FROM athletes WHERE coach_id = $1
-                 ) OR u.id = $1`;
+      // Coaches can see the parents of the athletes they coach AND themselves
+      query += ` WHERE (u.role = 'parent' AND u.id IN (
+                   SELECT DISTINCT parent_id FROM athletes WHERE coach_id = $1 AND parent_id IS NOT NULL
+                 )) OR (u.role = 'coach' AND u.id = $2)`;
+      queryParams.push(currentUser.userId);
+      queryParams.push(currentUser.userId);
+    } else if (currentUser?.role === 'parent') {
+      // Parents can only see themselves
+      query += ` WHERE u.id = $1`;
       queryParams.push(currentUser.userId);
     }
 

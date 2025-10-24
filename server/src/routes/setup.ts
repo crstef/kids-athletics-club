@@ -847,7 +847,6 @@ export const populateRoleDashboards = async (req: Request, res: Response) => {
       }
 
       const dashboardId = dashboardResult.rows[0].id;
-
       // Check if assignment already exists
       const existingResult = await client.query(
         'SELECT id FROM role_dashboards WHERE role_id = $1 AND dashboard_id = $2',
@@ -1139,13 +1138,14 @@ export const resetDatabase = async (req: Request, res: Response) => {
     // Role dashboards table - WITH EXACT COLUMNS FROM SERVER
     await client.query(`
       CREATE TABLE role_dashboards (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         role_id UUID NOT NULL,
         dashboard_id UUID NOT NULL,
         is_default BOOLEAN DEFAULT true,
         sort_order INTEGER DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (role_id, dashboard_id),
+        UNIQUE(role_id, dashboard_id),
         FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
         FOREIGN KEY (dashboard_id) REFERENCES dashboards(id) ON DELETE CASCADE
       )
@@ -1154,11 +1154,14 @@ export const resetDatabase = async (req: Request, res: Response) => {
     // Other tables (minimal schema)
     await client.query(`
       CREATE TABLE role_permissions (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         role_id UUID NOT NULL,
         permission_id UUID NOT NULL,
         granted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         granted_by UUID,
-        PRIMARY KEY (role_id, permission_id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(role_id, permission_id),
         FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
         FOREIGN KEY (permission_id) REFERENCES permissions(id) ON DELETE CASCADE,
         FOREIGN KEY (granted_by) REFERENCES users(id) ON DELETE SET NULL
@@ -1195,9 +1198,11 @@ export const resetDatabase = async (req: Request, res: Response) => {
         date_joined TIMESTAMP NOT NULL,
         avatar TEXT,
         coach_id UUID,
+        parent_id UUID,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (coach_id) REFERENCES users(id) ON DELETE SET NULL
+        FOREIGN KEY (coach_id) REFERENCES users(id) ON DELETE SET NULL,
+        FOREIGN KEY (parent_id) REFERENCES users(id) ON DELETE SET NULL
       )
     `);
 
@@ -1374,6 +1379,74 @@ export const resetDatabase = async (req: Request, res: Response) => {
     res.status(500).json({ 
       success: false,
       error: 'Failed to reset database',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  } finally {
+    client.release();
+  }
+};
+
+/**
+ * Fix existing role_dashboards table - add id column if missing
+ * GET /api/setup/fix-role-dashboards-schema
+ */
+export const fixRoleDashboardsSchema = async (req: Request, res: Response) => {
+  const client = await pool.connect();
+  
+  try {
+    // Check if id column exists
+    const checkColumn = await client.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'role_dashboards' 
+      AND column_name = 'id'
+    `);
+
+    if (checkColumn.rows.length > 0) {
+      return res.status(200).json({
+        success: true,
+        message: 'id column already exists in role_dashboards',
+        alreadyExists: true
+      });
+    }
+
+    // Add id column as PRIMARY KEY
+    await client.query(`
+      ALTER TABLE role_dashboards
+      ADD COLUMN id UUID PRIMARY KEY DEFAULT gen_random_uuid()
+    `);
+
+    // Drop old composite key if exists
+    try {
+      await client.query(`
+        ALTER TABLE role_dashboards
+        DROP CONSTRAINT role_dashboards_pkey
+      `);
+    } catch (e) {
+      // Constraint might not exist or have different name, ignore
+    }
+
+    // Add unique constraint on (role_id, dashboard_id)
+    try {
+      await client.query(`
+        ALTER TABLE role_dashboards
+        ADD CONSTRAINT role_dashboards_role_id_dashboard_id_key UNIQUE(role_id, dashboard_id)
+      `);
+    } catch (e) {
+      // Constraint might already exist, ignore
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Added id column and fixed schema for role_dashboards',
+      alreadyExists: false
+    });
+
+  } catch (error) {
+    console.error('Fix role_dashboards schema error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to fix role_dashboards schema',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   } finally {
