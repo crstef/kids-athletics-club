@@ -17,10 +17,11 @@ router.delete('/:id', (0, auth_1.requireRole)('superadmin'), rolesController_1.d
 router.get('/:roleId/permissions', (0, auth_1.requireRole)('superadmin'), async (req, res) => {
     try {
         const { roleId } = req.params;
-        const result = await database_1.default.query(`SELECT p.id, p.name, p.description, p.is_active
+        // Return ALL permissions with a flag indicating if assigned to this role
+        const result = await database_1.default.query(`SELECT p.id, p.name, p.description, p.is_active,
+              CASE WHEN rp.permission_id IS NOT NULL THEN true ELSE false END as assigned
        FROM permissions p
-       INNER JOIN role_permissions rp ON p.id = rp.permission_id
-       WHERE rp.role_id = $1
+       LEFT JOIN role_permissions rp ON p.id = rp.permission_id AND rp.role_id = $1
        ORDER BY p.name`, [roleId]);
         res.json(result.rows);
     }
