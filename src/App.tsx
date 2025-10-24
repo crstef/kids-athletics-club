@@ -76,6 +76,17 @@ function AppContent() {
     }
   }, [currentUser, authLoading])
 
+  // Also refetch components on explicit refresh events (after admin saves widgets)
+  useEffect(() => {
+    const handler = () => {
+      if (currentUser && !authLoading) {
+        fetchComponents()
+      }
+    }
+    window.addEventListener('components:refresh', handler)
+    return () => window.removeEventListener('components:refresh', handler)
+  }, [currentUser, authLoading, fetchComponents])
+
   // Restore session state when user becomes available
   useEffect(() => {
     if (currentUser && !authLoading) {

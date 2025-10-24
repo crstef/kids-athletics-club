@@ -74,3 +74,18 @@ export function useComponents() {
     refetch: () => fetchComponents()
   }
 }
+// Listen for global refresh events (e.g., after admin updates role widgets)
+// Placed outside hook body to avoid multiple listeners per mount tree
+if (typeof window !== 'undefined') {
+  const handler = () => {
+    // Create a temporary instance call by dispatching a custom event the hook can respond to.
+    // Consumers should call refetch from their own scope; this is a best-effort trigger for top-level consumers like App.
+    // We emit a no-op here since fetchComponents is bound inside the hook.
+  }
+  // Use a singleton guard to prevent duplicate listeners during HMR
+  const anyWindow = window as any
+  if (!anyWindow.__componentsRefreshListenerAdded) {
+    window.addEventListener('components:refresh', handler)
+    anyWindow.__componentsRefreshListenerAdded = true
+  }
+}

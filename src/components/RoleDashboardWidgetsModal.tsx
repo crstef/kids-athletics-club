@@ -93,6 +93,8 @@ export function RoleDashboardWidgetsModal({ open, onClose, role, onSave }: RoleD
       await apiClient.updateRoleComponentPermissionsForWidgets(role.id, permissions)
 
       toast.success('Widget-urile au fost actualizate!')
+  // Trigger immediate components refresh for current user sessions
+  window.dispatchEvent(new CustomEvent('components:refresh'))
       onSave()
       onClose()
     } catch (error: any) {

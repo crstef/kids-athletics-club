@@ -84,6 +84,9 @@ export function RolePermissionsModal({ open, onClose, role, onSave }: RolePermis
       }
 
       toast.success('Permisiuni actualizate cu succes!')
+  // Optional: trigger clients to reload capabilities; UI uses hasPermission from auth context
+  // Visible tabs are managed separately via components, but fire a refresh in case UI wants to react
+  window.dispatchEvent(new CustomEvent('components:refresh'))
       onSave()
       onClose()
     } catch (error: any) {

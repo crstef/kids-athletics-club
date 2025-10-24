@@ -1,12 +1,13 @@
 import { Router } from 'express';
 import { getAllAccessRequests, createAccessRequest, updateAccessRequest } from '../controllers/accessRequestsController';
 import { authenticate } from '../middleware/auth';
+import { authorizeDb } from '../middleware/authorizeDb';
 
 const router = Router();
 router.use(authenticate);
 
-router.get('/', getAllAccessRequests);
-router.post('/', createAccessRequest);
-router.put('/:id', updateAccessRequest);
+router.get('/', authorizeDb('access_requests.view'), getAllAccessRequests);
+router.post('/', authorizeDb('access_requests.view'), createAccessRequest);
+router.put('/:id', authorizeDb('access_requests.approve'), updateAccessRequest);
 
 export default router;
