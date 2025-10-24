@@ -88,7 +88,7 @@ describe('AUTH SYSTEM ANALYSIS & TESTS', () => {
         users: ['users.view', 'users.edit'],
         roles: ['roles.view', 'roles.edit'],
         permissions: ['permissions.view', 'permissions.edit'],
-        dashboards: ['dashboard.view', 'dashboard.edit']
+        dashboard: ['dashboard.view', 'dashboard.edit'] // Note: singular 'dashboard'
       }
 
       Object.entries(permissionCategories).forEach(([category, perms]) => {
