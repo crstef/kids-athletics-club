@@ -1410,10 +1410,14 @@ export const resetDatabase = async (req: Request, res: Response) => {
 
     try {
       for (const user of sampleUsers) {
+        // First get the role_id
+        const roleResult = await client.query('SELECT id FROM roles WHERE name = $1', [user.role]);
+        const roleId = roleResult.rows.length > 0 ? roleResult.rows[0].id : null;
+
         await client.query(
           `INSERT INTO users (email, password, first_name, last_name, role, role_id, is_active, needs_approval)
-           VALUES ($1, $2, $3, $4, $5, (SELECT id FROM roles WHERE name = $5), true, false)`,
-          [user.email, user.password, user.firstName, user.lastName, user.role]
+           VALUES ($1, $2, $3, $4, $5, $6, true, false)`,
+          [user.email, user.password, user.firstName, user.lastName, user.role, roleId]
         );
       }
       console.log('Sample users inserted successfully');
