@@ -17,11 +17,11 @@ router.delete('/:id', (0, auth_1.requireRole)('superadmin'), rolesController_1.d
 router.get('/:roleId/permissions', (0, auth_1.requireRole)('superadmin'), async (req, res) => {
     try {
         const { roleId } = req.params;
-        const result = await database_1.default.query(`SELECT p.id, p.name, p.description, p.category
+        const result = await database_1.default.query(`SELECT p.id, p.name, p.description, p.is_active
        FROM permissions p
        INNER JOIN role_permissions rp ON p.id = rp.permission_id
        WHERE rp.role_id = $1
-       ORDER BY p.category, p.name`, [roleId]);
+       ORDER BY p.name`, [roleId]);
         res.json(result.rows);
     }
     catch (error) {
