@@ -206,6 +206,34 @@ INSERT INTO probes (name, category, unit, description, created_at, updated_at) V
 ('100m garduri', 'hurdles', 'seconds', 'Alergare 100m cu garduri', NOW(), NOW());
 
 -- =====================================================
+-- DASHBOARDS
+-- =====================================================
+INSERT INTO dashboards (name, display_name, description, route, is_active, sort_order, created_at, updated_at) VALUES
+('SuperAdminDashboard', 'Admin Dashboard', 'Panoul de control pentru administrator', '/dashboard', true, 0, NOW(), NOW()),
+('CoachDashboard', 'Coach Dashboard', 'Panoul de control pentru antrenor', '/dashboard', true, 1, NOW(), NOW()),
+('ParentDashboard', 'Parent Dashboard', 'Panoul de control pentru părinte', '/dashboard', true, 2, NOW(), NOW()),
+('AthleteDashboard', 'Athlete Dashboard', 'Panoul de control pentru atlet', '/dashboard', true, 3, NOW(), NOW());
+
+-- =====================================================
+-- ROLE DASHBOARDS
+-- =====================================================
+INSERT INTO role_dashboards (role_id, dashboard_id, is_default, sort_order, created_at, updated_at)
+SELECT 
+    r.id as role_id,
+    d.id as dashboard_id,
+    true as is_default,
+    d.sort_order as sort_order,
+    NOW() as created_at,
+    NOW() as updated_at
+FROM roles r
+CROSS JOIN dashboards d
+WHERE (r.name = 'superadmin' AND d.name = 'SuperAdminDashboard')
+   OR (r.name = 'coach' AND d.name = 'CoachDashboard')
+   OR (r.name = 'parent' AND d.name = 'ParentDashboard')
+   OR (r.name = 'athlete' AND d.name = 'AthleteDashboard')
+ON CONFLICT (role_id, dashboard_id) DO NOTHING;
+
+-- =====================================================
 -- FINALIZARE
 -- =====================================================
 
@@ -228,7 +256,17 @@ UNION ALL
 SELECT 
     'Probe atletice' as Tip,
     COUNT(*) as Total
-FROM probes;
+FROM probes
+UNION ALL
+SELECT 
+    'Dashboards' as Tip,
+    COUNT(*) as Total
+FROM dashboards
+UNION ALL
+SELECT 
+    'Role Dashboards' as Tip,
+    COUNT(*) as Total
+FROM role_dashboards;
 
 -- Verifică permisiunile adminului
 SELECT 
