@@ -1225,14 +1225,13 @@ const resetDatabase = async (req, res) => {
     `);
         // Assign dashboards to roles
         await client.query(`
-      INSERT INTO role_dashboards (role_id, dashboard_id, is_default, sort_order, created_at, updated_at)
+      INSERT INTO role_dashboards (role_id, dashboard_id, is_default, sort_order, created_at)
       SELECT 
         r.id as role_id,
         d.id as dashboard_id,
         true as is_default,
         0 as sort_order,
-        NOW() as created_at,
-        NOW() as updated_at
+        NOW() as created_at
       FROM roles r
       CROSS JOIN dashboards d
       WHERE (r.name = 'superadmin' AND d.name = 'SuperAdminDashboard')
