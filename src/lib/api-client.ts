@@ -456,6 +456,26 @@ class ApiClient {
       body: JSON.stringify({ permissions }),
     });
   }
+
+  async grantPermissionToRole(roleId: string, permissionId: string) {
+    return this.request(`/roles/${roleId}/permissions`, {
+      method: 'POST',
+      body: JSON.stringify({ permissionId }),
+    });
+  }
+
+  async revokePermissionFromRole(roleId: string, permissionId: string) {
+    return this.request(`/roles/${roleId}/permissions/${permissionId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async updateRoleComponentPermissionsForWidgets(roleId: string, permissions: any[]) {
+    return this.request(`/roles/${roleId}/component-permissions`, {
+      method: 'PUT',
+      body: JSON.stringify({ permissions }),
+    });
+  }
 }
 
 export const apiClient = new ApiClient();

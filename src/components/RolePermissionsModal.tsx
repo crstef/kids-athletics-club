@@ -31,14 +31,12 @@ export function RolePermissionsModal({ open, onClose, role, onSave }: RolePermis
         setLoading(true)
         
         // Get all permissions
-        const permsResponse = await apiClient.request('/permissions') as any
-        const permissions = Array.isArray(permsResponse) ? permsResponse : permsResponse?.rows || []
+        const permissions = await apiClient.getPermissions() as Permission[]
         setAllPermissions(permissions)
 
         // Get role's current permissions
-        const rolePermsResponse = await apiClient.request(`/roles/${role.id}/permissions`) as any
-        const currentRolePerms = rolePermsResponse?.permissions || rolePermsResponse || []
-        const permIds = new Set(currentRolePerms.map((p: any) => p.id || p.permissionId))
+        const currentRolePerms = await apiClient.getRolePermissions(role.id) as any[]
+        const permIds = new Set(currentRolePerms.map((p: any) => p.id || p.permissionId) as string[])
         setRolePermissions(permIds)
       } catch (error) {
         console.error('Error fetching permissions:', error)
@@ -66,23 +64,18 @@ export function RolePermissionsModal({ open, onClose, role, onSave }: RolePermis
       setSaving(true)
       
       // Get permissions to add and remove
-      const oldPerms = new Set(role.permissions?.map(p => typeof p === 'string' ? p : p.id) || [])
+      const oldPerms = new Set((role.permissions as string[] || []))
       const toAdd = Array.from(rolePermissions).filter(p => !oldPerms.has(p))
       const toRemove = Array.from(oldPerms).filter(p => !rolePermissions.has(p))
 
-      // For simplicity, we'll just send the full new permission list
-      // In production, you'd want to batch these operations
+      // Add new permissions
       for (const permId of toAdd) {
-        await apiClient.request(`/roles/${role.id}/permissions`, {
-          method: 'POST',
-          body: JSON.stringify({ permissionId: permId })
-        })
+        await apiClient.grantPermissionToRole(role.id, permId)
       }
 
+      // Remove permissions
       for (const permId of toRemove) {
-        await apiClient.request(`/roles/${role.id}/permissions/${permId}`, {
-          method: 'DELETE'
-        })
+        await apiClient.revokePermissionFromRole(role.id, permId)
       }
 
       toast.success('Permisiuni actualizate cu succes!')

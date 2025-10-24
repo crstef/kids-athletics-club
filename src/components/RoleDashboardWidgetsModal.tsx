@@ -37,9 +37,8 @@ export function RoleDashboardWidgetsModal({ open, onClose, role, onSave }: RoleD
       try {
         setLoading(true)
         
-        // Get all components/widgets - this comes from our components table
-        // For now, we'll use the dashboard-related components
-        const response = await apiClient.request('/components/all') as any
+        // Get all components/widgets
+        const response = await apiClient.getAllComponents() as any
         const components = response?.components || []
         
         // Filter to only tabs and widgets (not actions for dashboard)
@@ -49,9 +48,8 @@ export function RoleDashboardWidgetsModal({ open, onClose, role, onSave }: RoleD
         setAllWidgets(widgets)
 
         // Get role's current widgets
-        const roleWidgetsResponse = await apiClient.request(`/roles/${role.id}/component-permissions`) as any
-        const currentWidgets = roleWidgetsResponse?.permissions || []
-        const widgetIds = new Set(currentWidgets.map((w: any) => w.componentId))
+        const currentWidgets = await apiClient.getRoleComponentPermissions(role.id) as any[]
+        const widgetIds = new Set(currentWidgets.map((w: any) => w.componentId) as string[])
         setSelectedWidgets(widgetIds)
       } catch (error) {
         console.error('Error fetching widgets:', error)
@@ -90,10 +88,7 @@ export function RoleDashboardWidgetsModal({ open, onClose, role, onSave }: RoleD
         can_export: false
       }))
 
-      await apiClient.request(`/roles/${role.id}/component-permissions`, {
-        method: 'PUT',
-        body: JSON.stringify({ permissions })
-      })
+      await apiClient.updateRoleComponentPermissionsForWidgets(role.id, permissions)
 
       toast.success('Widget-urile au fost actualizate!')
       onSave()
