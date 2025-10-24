@@ -24,8 +24,42 @@ const initializeData = async (req, res) => {
             rolePermissions: 0,
             userPermissions: 0,
             ageCategories: 0,
-            probes: 0
+            probes: 0,
+            dashboardsCreated: 0,
+            roleDashboardsCreated: 0
         };
+        // CREATE TABLES IF NOT EXISTS - dashboards and role_dashboards
+        // These tables are needed for dashboard assignments
+        await client.query(`
+      CREATE TABLE IF NOT EXISTS dashboards (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name VARCHAR(100) UNIQUE NOT NULL,
+        display_name VARCHAR(150) NOT NULL,
+        description TEXT,
+        icon VARCHAR(50),
+        route VARCHAR(100),
+        is_active BOOLEAN DEFAULT true,
+        sort_order INTEGER DEFAULT 0,
+        created_by UUID,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+      )
+    `);
+        await client.query(`
+      CREATE TABLE IF NOT EXISTS role_dashboards (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        role_id UUID NOT NULL,
+        dashboard_id UUID NOT NULL,
+        is_default BOOLEAN DEFAULT false,
+        sort_order INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(role_id, dashboard_id),
+        FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
+        FOREIGN KEY (dashboard_id) REFERENCES dashboards(id) ON DELETE CASCADE
+      )
+    `);
         // If reset_permissions is true, delete existing role permissions
         if (resetPermissions) {
             await client.query(`DELETE FROM role_permissions WHERE role_id IN (
