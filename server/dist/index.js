@@ -105,6 +105,7 @@ app.get('/api/setup/add-category-to-permissions', setup_1.addCategoryToPermissio
 app.post('/api/setup/populate-role-dashboards', setup_1.populateRoleDashboards);
 app.get('/api/setup/complete', setup_1.completeSetup);
 app.get('/api/setup/reset-database', setup_1.resetDatabase);
+app.get('/api/setup/fix-role-dashboards-schema', setup_1.fixRoleDashboardsSchema);
 // Health check
 app.get('/health', (req, res) => {
     res.json({

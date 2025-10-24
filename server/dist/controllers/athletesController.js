@@ -96,7 +96,7 @@ const updateAthlete = async (req, res) => {
     const client = await database_1.default.connect();
     try {
         const { id } = req.params;
-        const { firstName, lastName, age, category, gender, dateOfBirth, dateJoined, avatar, coachId } = req.body;
+        const { firstName, lastName, age, category, gender, dateOfBirth, dateJoined, avatar, coachId, parentId } = req.body;
         const athlete = await client.query('SELECT id FROM athletes WHERE id = $1', [id]);
         if (athlete.rows.length === 0) {
             return res.status(404).json({ error: 'Athlete not found' });
@@ -139,6 +139,10 @@ const updateAthlete = async (req, res) => {
         if (coachId !== undefined) {
             updates.push(`coach_id = $${paramCount++}`);
             values.push(coachId);
+        }
+        if (parentId !== undefined) {
+            updates.push(`parent_id = $${paramCount++}`);
+            values.push(parentId || null);
         }
         if (updates.length === 0) {
             return res.status(400).json({ error: 'No fields to update' });
