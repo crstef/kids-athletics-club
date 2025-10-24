@@ -29,9 +29,6 @@ dist-ssr
 # Avoid accidental duplicate builds inside src/
 /src/dist/
 
-# Note: dist/ and server/dist/ are now INCLUDED for production deployment
-# To avoid committing them, use: git update-index --assume-unchanged dist/ server/dist/
-
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -55,4 +52,3 @@ pids
 # Server
 server/node_modules
 server/.env
-# Note: server/dist/ is now INCLUDED for production deployment
