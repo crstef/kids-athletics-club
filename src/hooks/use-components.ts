@@ -32,7 +32,7 @@ export interface TabComponent extends Component {
 export function useComponents() {
   const [components, setComponents] = useState<Component[]>([])
   const [tabs, setTabs] = useState<TabComponent[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const fetchComponents = async (token?: string) => {
@@ -49,6 +49,10 @@ export function useComponents() {
           (c: Component) => c.componentType === 'tab'
         ) as TabComponent[]
         setTabs(tabComponents)
+      } else {
+        console.warn('Invalid response from getMyComponents:', response)
+        setComponents([])
+        setTabs([])
       }
     } catch (err) {
       console.error('Failed to fetch components:', err)
