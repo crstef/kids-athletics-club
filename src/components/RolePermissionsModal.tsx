@@ -34,9 +34,14 @@ export function RolePermissionsModal({ open, onClose, role, onSave }: RolePermis
         const permissions = await apiClient.getPermissions() as Permission[]
         setAllPermissions(permissions)
 
-        // Get role's current permissions
-        const currentRolePerms = await apiClient.getRolePermissions(role.id) as any[]
-        const permIds = new Set(currentRolePerms.map((p: any) => p.id || p.permissionId) as string[])
+        // Get role's current permissions (with assigned flag from backend)
+        const rolePermsWithFlags = await apiClient.getRolePermissions(role.id) as any[]
+        // Extract IDs of permissions where assigned = true
+        const permIds = new Set(
+          rolePermsWithFlags
+            .filter((p: any) => p.assigned === true)
+            .map((p: any) => p.id)
+        )
         setRolePermissions(permIds)
       } catch (error) {
         console.error('Error fetching permissions:', error)

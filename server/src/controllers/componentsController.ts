@@ -130,31 +130,30 @@ export const getRoleComponentPermissions = async (req: AuthRequest, res: Respons
 
     const { roleId } = req.params;
 
+    // Return ALL components with permission flags for this role
     const result = await client.query(`
       SELECT 
-        cp.id,
-        cp.role_id,
-        cp.component_id,
+        COALESCE(cp.id, '') as id,
+        c.id as component_id,
         c.name as component_name,
         c.display_name,
-        cp.can_view,
-        cp.can_create,
-        cp.can_edit,
-        cp.can_delete,
-        cp.can_export,
-        cp.created_at,
-        cp.updated_at
-      FROM component_permissions cp
-      JOIN components c ON cp.component_id = c.id
-      WHERE cp.role_id = $1
+        COALESCE(cp.can_view, false) as can_view,
+        COALESCE(cp.can_create, false) as can_create,
+        COALESCE(cp.can_edit, false) as can_edit,
+        COALESCE(cp.can_delete, false) as can_delete,
+        COALESCE(cp.can_export, false) as can_export,
+        CASE WHEN cp.id IS NOT NULL THEN true ELSE false END as is_assigned,
+        c.order_index,
+        c.component_type
+      FROM components c
+      LEFT JOIN component_permissions cp ON c.id = cp.component_id AND cp.role_id = $1
       ORDER BY c.order_index ASC, c.display_name ASC
     `, [roleId]);
 
     res.json({
       success: true,
       permissions: result.rows.map(p => ({
-        id: p.id,
-        roleId: p.role_id,
+        id: p.id || p.component_id,
         componentId: p.component_id,
         componentName: p.component_name,
         displayName: p.display_name,
@@ -163,8 +162,9 @@ export const getRoleComponentPermissions = async (req: AuthRequest, res: Respons
         canEdit: p.can_edit,
         canDelete: p.can_delete,
         canExport: p.can_export,
-        createdAt: p.created_at,
-        updatedAt: p.updated_at
+        isAssigned: p.is_assigned,
+        orderIndex: p.order_index,
+        componentType: p.component_type
       }))
     });
   } catch (error) {

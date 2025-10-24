@@ -37,19 +37,21 @@ export function RoleDashboardWidgetsModal({ open, onClose, role, onSave }: RoleD
       try {
         setLoading(true)
         
-        // Get all components/widgets
-        const response = await apiClient.getAllComponents() as any
-        const components = response?.components || []
+        // Get all components/widgets with permission flags
+        const response = await apiClient.getRoleComponentPermissions(role.id) as any[]
         
         // Filter to only tabs and widgets (not actions for dashboard)
-        const widgets = components.filter((c: any) => 
+        const widgets = response.filter((c: any) => 
           c.componentType === 'tab' || c.componentType === 'widget'
         )
         setAllWidgets(widgets)
 
-        // Get role's current widgets
-        const currentWidgets = await apiClient.getRoleComponentPermissions(role.id) as any[]
-        const widgetIds = new Set(currentWidgets.map((w: any) => w.componentId) as string[])
+        // Build set of currently assigned widgets (where can_view = true or isAssigned = true)
+        const widgetIds = new Set(
+          widgets
+            .filter((w: any) => w.isAssigned === true || w.canView === true)
+            .map((w: any) => w.componentId)
+        )
         setSelectedWidgets(widgetIds)
       } catch (error) {
         console.error('Error fetching widgets:', error)
