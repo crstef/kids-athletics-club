@@ -952,27 +952,25 @@ export const resetDatabase = async (req: Request, res: Response) => {
   const client = await pool.connect();
   
   try {
-    await client.query('BEGIN');
-
-    console.log('Dropping all tables...');
-    // Drop all tables in reverse order of dependencies
-    await client.query(`
-      DROP TABLE IF EXISTS role_dashboards CASCADE;
-      DROP TABLE IF EXISTS dashboards CASCADE;
-      DROP TABLE IF EXISTS user_permissions CASCADE;
-      DROP TABLE IF EXISTS role_permissions CASCADE;
-      DROP TABLE IF EXISTS permissions CASCADE;
-      DROP TABLE IF EXISTS approval_requests CASCADE;
-      DROP TABLE IF EXISTS access_requests CASCADE;
-      DROP TABLE IF EXISTS messages CASCADE;
-      DROP TABLE IF EXISTS results CASCADE;
-      DROP TABLE IF EXISTS events CASCADE;
-      DROP TABLE IF EXISTS athletes CASCADE;
-      DROP TABLE IF EXISTS coach_probes CASCADE;
-      DROP TABLE IF EXISTS age_categories CASCADE;
-      DROP TABLE IF EXISTS users CASCADE;
-      DROP TABLE IF EXISTS roles CASCADE;
-    `);
+    console.log('Dropping ALL tables completely...');
+    
+    // Drop EVERYTHING in proper order
+    await client.query('DROP TABLE IF EXISTS role_dashboards CASCADE');
+    await client.query('DROP TABLE IF EXISTS user_permissions CASCADE');
+    await client.query('DROP TABLE IF EXISTS role_permissions CASCADE');
+    await client.query('DROP TABLE IF EXISTS dashboards CASCADE');
+    await client.query('DROP TABLE IF EXISTS permissions CASCADE');
+    await client.query('DROP TABLE IF EXISTS approval_requests CASCADE');
+    await client.query('DROP TABLE IF EXISTS access_requests CASCADE');
+    await client.query('DROP TABLE IF EXISTS messages CASCADE');
+    await client.query('DROP TABLE IF EXISTS results CASCADE');
+    await client.query('DROP TABLE IF EXISTS events CASCADE');
+    await client.query('DROP TABLE IF EXISTS athletes CASCADE');
+    await client.query('DROP TABLE IF EXISTS coach_probes CASCADE');
+    await client.query('DROP TABLE IF EXISTS age_categories CASCADE');
+    await client.query('DROP TABLE IF EXISTS users CASCADE');
+    await client.query('DROP TABLE IF EXISTS roles CASCADE');
+    
     console.log('All tables dropped');
 
     // Create all tables with correct schema
@@ -1238,26 +1236,29 @@ export const resetDatabase = async (req: Request, res: Response) => {
     console.log('Inserting initial data...');
 
     // Insert roles
+    console.log('Inserting roles...');
     await client.query(`
       INSERT INTO roles (name, display_name, description, is_system, created_at, updated_at) VALUES
       ('superadmin', 'Super Administrator', 'Administrator complet al sistemului', true, NOW(), NOW()),
       ('coach', 'Antrenor', 'Antrenor - poate gestiona atleți și rezultate', true, NOW(), NOW()),
       ('parent', 'Părinte', 'Părinte - poate vedea datele copiilor săi', true, NOW(), NOW()),
       ('athlete', 'Atlet', 'Atlet - poate vedea propriile rezultate', true, NOW(), NOW())
-      ON CONFLICT DO NOTHING
     `);
+    console.log('Roles inserted');
 
     // Insert dashboards
+    console.log('Inserting dashboards...');
     await client.query(`
       INSERT INTO dashboards (name, display_name, description, component_name, icon, is_active, is_system, created_at, updated_at) VALUES
       ('SuperAdminDashboard', 'Admin Dashboard', 'Panoul de control pentru administrator', 'SuperAdminDashboard', 'LayoutDashboard', true, true, NOW(), NOW()),
       ('CoachDashboard', 'Coach Dashboard', 'Panoul de control pentru antrenor', 'CoachDashboard', 'Users', true, true, NOW(), NOW()),
       ('ParentDashboard', 'Parent Dashboard', 'Panoul de control pentru părinte', 'ParentDashboard', 'UserCircle', true, true, NOW(), NOW()),
       ('AthleteDashboard', 'Athlete Dashboard', 'Panoul de control pentru atlet', 'AthleteDashboard', 'Trophy', true, true, NOW(), NOW())
-      ON CONFLICT DO NOTHING
     `);
+    console.log('Dashboards inserted');
 
     // Assign dashboards to roles
+    console.log('Assigning dashboards to roles...');
     await client.query(`
       INSERT INTO role_dashboards (role_id, dashboard_id, is_default, sort_order, created_at)
       SELECT 
@@ -1272,10 +1273,81 @@ export const resetDatabase = async (req: Request, res: Response) => {
          OR (r.name = 'coach' AND d.name = 'CoachDashboard')
          OR (r.name = 'parent' AND d.name = 'ParentDashboard')
          OR (r.name = 'athlete' AND d.name = 'AthleteDashboard')
-      ON CONFLICT DO NOTHING
     `);
+    console.log('Role dashboards assigned');
 
-    console.log('Inserting sample users...');
+    // Insert permissions
+    console.log('Inserting permissions...');
+    await client.query(`
+      INSERT INTO permissions (name, description, is_active, created_at, updated_at) VALUES
+      ('athletes.create', 'Create athletes', true, NOW(), NOW()),
+      ('athletes.view', 'View athletes', true, NOW(), NOW()),
+      ('athletes.edit', 'Edit athletes', true, NOW(), NOW()),
+      ('athletes.delete', 'Delete athletes', true, NOW(), NOW()),
+      ('results.create', 'Create results', true, NOW(), NOW()),
+      ('results.view', 'View results', true, NOW(), NOW()),
+      ('results.edit', 'Edit results', true, NOW(), NOW()),
+      ('results.delete', 'Delete results', true, NOW(), NOW()),
+      ('users.create', 'Create users', true, NOW(), NOW()),
+      ('users.view', 'View users', true, NOW(), NOW()),
+      ('users.edit', 'Edit users', true, NOW(), NOW()),
+      ('users.delete', 'Delete users', true, NOW(), NOW()),
+      ('roles.create', 'Create roles', true, NOW(), NOW()),
+      ('roles.view', 'View roles', true, NOW(), NOW()),
+      ('roles.edit', 'Edit roles', true, NOW(), NOW()),
+      ('roles.delete', 'Delete roles', true, NOW(), NOW()),
+      ('permissions.view', 'View permissions', true, NOW(), NOW()),
+      ('messages.create', 'Create messages', true, NOW(), NOW()),
+      ('messages.view', 'View messages', true, NOW(), NOW()),
+      ('dashboard.view.superadmin', 'View admin dashboard', true, NOW(), NOW()),
+      ('dashboard.view.coach', 'View coach dashboard', true, NOW(), NOW()),
+      ('dashboard.view.parent', 'View parent dashboard', true, NOW(), NOW()),
+      ('dashboard.view.athlete', 'View athlete dashboard', true, NOW(), NOW())
+    `);
+    console.log('Permissions inserted');
+
+    // Assign permissions to roles
+    console.log('Assigning permissions to roles...');
+    await client.query(`
+      INSERT INTO role_permissions (role_id, permission_id, granted_at, created_at, updated_at)
+      SELECT r.id, p.id, NOW(), NOW(), NOW()
+      FROM roles r
+      CROSS JOIN permissions p
+      WHERE r.name = 'superadmin'
+    `);
+    
+    // Coach permissions
+    await client.query(`
+      INSERT INTO role_permissions (role_id, permission_id, granted_at, created_at, updated_at)
+      SELECT r.id, p.id, NOW(), NOW(), NOW()
+      FROM roles r
+      CROSS JOIN permissions p
+      WHERE r.name = 'coach'
+        AND p.name IN ('athletes.create', 'athletes.view', 'athletes.edit', 
+                       'results.create', 'results.view', 'results.edit',
+                       'messages.create', 'messages.view', 'dashboard.view.coach')
+    `);
+    
+    // Parent permissions
+    await client.query(`
+      INSERT INTO role_permissions (role_id, permission_id, granted_at, created_at, updated_at)
+      SELECT r.id, p.id, NOW(), NOW(), NOW()
+      FROM roles r
+      CROSS JOIN permissions p
+      WHERE r.name = 'parent'
+        AND p.name IN ('athletes.view', 'results.view', 'messages.create', 'messages.view', 'dashboard.view.parent')
+    `);
+    
+    // Athlete permissions
+    await client.query(`
+      INSERT INTO role_permissions (role_id, permission_id, granted_at, created_at, updated_at)
+      SELECT r.id, p.id, NOW(), NOW(), NOW()
+      FROM roles r
+      CROSS JOIN permissions p
+      WHERE r.name = 'athlete'
+        AND p.name IN ('results.view', 'messages.view', 'dashboard.view.athlete')
+    `);
+    console.log('Role permissions assigned');
 
     // Create sample users for testing
     const sampleUsers = [
@@ -1413,8 +1485,6 @@ export const resetDatabase = async (req: Request, res: Response) => {
 
     console.log('Data inserted');
 
-    await client.query('COMMIT');
-
     res.status(200).json({
       success: true,
       message: 'Database reset and recreated successfully with sample data!',
@@ -1428,7 +1498,6 @@ export const resetDatabase = async (req: Request, res: Response) => {
     });
 
   } catch (error) {
-    await client.query('ROLLBACK');
     console.error('Reset database error:', error);
     res.status(500).json({ 
       success: false,
