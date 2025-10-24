@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import pool from '../config/database';
 import crypto from 'crypto';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const hashPassword = (password: string): string => {
   return crypto.createHash('sha256').update(password).digest('hex');
@@ -278,7 +280,6 @@ export const initializeData = async (req: Request, res: Response) => {
            OR (r.name = 'parent' AND d.name = 'ParentDashboard')
            OR (r.name = 'athlete' AND d.name = 'AthleteDashboard')
         ON CONFLICT (role_id, dashboard_id) DO NOTHING
-        RETURNING id
       `);
       results.roleDashboardsCreated = roleDashboardsResult.rowCount || 0;
     }
@@ -1021,6 +1022,92 @@ export const completeSetup = async (req: Request, res: Response) => {
     res.status(500).json({ 
       success: false,
       error: 'Failed to complete setup',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  } finally {
+    client.release();
+  }
+};
+
+/**
+ * Full database reset - drops all tables and recreates schema from scratch
+ * DANGER: Deletes all data! Use only for development/testing
+ * GET /api/setup/reset-database
+ */
+export const resetDatabase = async (req: Request, res: Response) => {
+  const client = await pool.connect();
+  
+  try {
+    await client.query('BEGIN');
+
+    console.log('Dropping all tables...');
+    // Drop all tables in reverse order of dependencies
+    const dropTablesSql = `
+      DROP TABLE IF EXISTS role_dashboards CASCADE;
+      DROP TABLE IF EXISTS dashboards CASCADE;
+      DROP TABLE IF EXISTS user_permissions CASCADE;
+      DROP TABLE IF EXISTS role_permissions CASCADE;
+      DROP TABLE IF EXISTS permissions CASCADE;
+      DROP TABLE IF EXISTS approval_requests CASCADE;
+      DROP TABLE IF EXISTS access_requests CASCADE;
+      DROP TABLE IF EXISTS messages CASCADE;
+      DROP TABLE IF EXISTS results CASCADE;
+      DROP TABLE IF EXISTS events CASCADE;
+      DROP TABLE IF EXISTS athletes CASCADE;
+      DROP TABLE IF EXISTS coach_probes CASCADE;
+      DROP TABLE IF EXISTS age_categories CASCADE;
+      DROP TABLE IF EXISTS users CASCADE;
+      DROP TABLE IF EXISTS roles CASCADE;
+    `;
+
+    for (const sql of dropTablesSql.split(';').filter(s => s.trim())) {
+      await client.query(sql);
+    }
+    console.log('All tables dropped');
+
+    // Read and execute schema.sql
+    console.log('Creating schema...');
+    const schemaPath = path.join(__dirname, '../../schema.sql');
+    const schemaSql = fs.readFileSync(schemaPath, 'utf-8');
+    
+    // Split by ; and execute each statement
+    for (const statement of schemaSql.split(';').filter(s => s.trim())) {
+      try {
+        await client.query(statement);
+      } catch (e) {
+        console.warn('Schema statement error (might be expected):', (e as Error).message);
+      }
+    }
+    console.log('Schema created');
+
+    // Read and execute init-data.sql
+    console.log('Initializing data...');
+    const initDataPath = path.join(__dirname, '../../init-data.sql');
+    const initDataSql = fs.readFileSync(initDataPath, 'utf-8');
+    
+    for (const statement of initDataSql.split(';').filter(s => s.trim())) {
+      try {
+        await client.query(statement);
+      } catch (e) {
+        console.warn('Init data statement error (might be expected):', (e as Error).message);
+      }
+    }
+    console.log('Data initialized');
+
+    await client.query('COMMIT');
+
+    res.status(200).json({
+      success: true,
+      message: 'Database reset and recreated successfully!',
+      warning: 'All data has been deleted and recreated'
+    });
+
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Reset database error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to reset database',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   } finally {
