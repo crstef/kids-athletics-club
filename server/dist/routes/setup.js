@@ -238,11 +238,11 @@ const initializeData = async (req, res) => {
         results.probes = 15;
         // 8. Insert Dashboards
         const dashboardsResult = await client.query(`
-      INSERT INTO dashboards (name, display_name, description, route, is_active, sort_order, created_at, updated_at) VALUES
-      ('SuperAdminDashboard', 'Admin Dashboard', 'Panoul de control pentru administrator', '/dashboard', true, 0, NOW(), NOW()),
-      ('CoachDashboard', 'Coach Dashboard', 'Panoul de control pentru antrenor', '/dashboard', true, 1, NOW(), NOW()),
-      ('ParentDashboard', 'Parent Dashboard', 'Panoul de control pentru părinte', '/dashboard', true, 2, NOW(), NOW()),
-      ('AthleteDashboard', 'Athlete Dashboard', 'Panoul de control pentru atlet', '/dashboard', true, 3, NOW(), NOW())
+      INSERT INTO dashboards (name, display_name, description, is_active, sort_order, created_at, updated_at) VALUES
+      ('SuperAdminDashboard', 'Admin Dashboard', 'Panoul de control pentru administrator', true, 0, NOW(), NOW()),
+      ('CoachDashboard', 'Coach Dashboard', 'Panoul de control pentru antrenor', true, 1, NOW(), NOW()),
+      ('ParentDashboard', 'Parent Dashboard', 'Panoul de control pentru părinte', true, 2, NOW(), NOW()),
+      ('AthleteDashboard', 'Athlete Dashboard', 'Panoul de control pentru atlet', true, 3, NOW(), NOW())
       ON CONFLICT (name) DO NOTHING
       RETURNING id
     `);
@@ -862,11 +862,11 @@ const completeSetup = async (req, res) => {
         results.tablesCreated++;
         // 3. Insert dashboards
         const dashboardsResult = await client.query(`
-      INSERT INTO dashboards (name, display_name, description, route, is_active, sort_order, created_at, updated_at) VALUES
-      ('SuperAdminDashboard', 'Admin Dashboard', 'Panoul de control pentru administrator', '/dashboard', true, 0, NOW(), NOW()),
-      ('CoachDashboard', 'Coach Dashboard', 'Panoul de control pentru antrenor', '/dashboard', true, 1, NOW(), NOW()),
-      ('ParentDashboard', 'Parent Dashboard', 'Panoul de control pentru părinte', '/dashboard', true, 2, NOW(), NOW()),
-      ('AthleteDashboard', 'Athlete Dashboard', 'Panoul de control pentru atlet', '/dashboard', true, 3, NOW(), NOW())
+      INSERT INTO dashboards (name, display_name, description, is_active, sort_order, created_at, updated_at) VALUES
+      ('SuperAdminDashboard', 'Admin Dashboard', 'Panoul de control pentru administrator', true, 0, NOW(), NOW()),
+      ('CoachDashboard', 'Coach Dashboard', 'Panoul de control pentru antrenor', true, 1, NOW(), NOW()),
+      ('ParentDashboard', 'Parent Dashboard', 'Panoul de control pentru părinte', true, 2, NOW(), NOW()),
+      ('AthleteDashboard', 'Athlete Dashboard', 'Panoul de control pentru atlet', true, 3, NOW(), NOW())
       ON CONFLICT (name) DO NOTHING
       RETURNING id
     `);
