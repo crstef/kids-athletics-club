@@ -1,37 +1,4 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -39,8 +6,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.resetDatabase = exports.completeSetup = exports.populateRoleDashboards = exports.addCategoryToPermissions = exports.addModernDashboards = exports.fixUserRoles = exports.fixAdminRole = exports.addGenderColumn = exports.addSampleData = exports.createAdminUser = exports.initializeData = void 0;
 const database_1 = __importDefault(require("../config/database"));
 const crypto_1 = __importDefault(require("crypto"));
-const fs = __importStar(require("fs"));
-const path = __importStar(require("path"));
 const hashPassword = (password) => {
     return crypto_1.default.createHash('sha256').update(password).digest('hex');
 };
@@ -984,7 +949,7 @@ const resetDatabase = async (req, res) => {
         await client.query('BEGIN');
         console.log('Dropping all tables...');
         // Drop all tables in reverse order of dependencies
-        const dropTablesSql = `
+        await client.query(`
       DROP TABLE IF EXISTS role_dashboards CASCADE;
       DROP TABLE IF EXISTS dashboards CASCADE;
       DROP TABLE IF EXISTS user_permissions CASCADE;
@@ -1000,42 +965,287 @@ const resetDatabase = async (req, res) => {
       DROP TABLE IF EXISTS age_categories CASCADE;
       DROP TABLE IF EXISTS users CASCADE;
       DROP TABLE IF EXISTS roles CASCADE;
-    `;
-        for (const sql of dropTablesSql.split(';').filter(s => s.trim())) {
-            await client.query(sql);
-        }
+    `);
         console.log('All tables dropped');
-        // Read and execute schema.sql
-        console.log('Creating schema...');
-        const schemaPath = path.join(__dirname, '../../schema.sql');
-        const schemaSql = fs.readFileSync(schemaPath, 'utf-8');
-        // Split by ; and execute each statement
-        for (const statement of schemaSql.split(';').filter(s => s.trim())) {
-            try {
-                await client.query(statement);
-            }
-            catch (e) {
-                console.warn('Schema statement error (might be expected):', e.message);
-            }
-        }
-        console.log('Schema created');
-        // Read and execute init-data.sql
-        console.log('Initializing data...');
-        const initDataPath = path.join(__dirname, '../../init-data.sql');
-        const initDataSql = fs.readFileSync(initDataPath, 'utf-8');
-        for (const statement of initDataSql.split(';').filter(s => s.trim())) {
-            try {
-                await client.query(statement);
-            }
-            catch (e) {
-                console.warn('Init data statement error (might be expected):', e.message);
-            }
-        }
-        console.log('Data initialized');
+        // Create all tables with correct schema
+        console.log('Creating tables...');
+        // Users table
+        await client.query(`
+      CREATE TABLE users (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        first_name VARCHAR(100) NOT NULL,
+        last_name VARCHAR(100) NOT NULL,
+        role VARCHAR(50) NOT NULL,
+        role_id UUID,
+        is_active BOOLEAN DEFAULT false,
+        needs_approval BOOLEAN DEFAULT true,
+        approved_by UUID,
+        approved_at TIMESTAMP,
+        probe_id UUID,
+        athlete_id UUID,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+        // Roles table
+        await client.query(`
+      CREATE TABLE roles (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name VARCHAR(50) UNIQUE NOT NULL,
+        display_name VARCHAR(100) NOT NULL,
+        description TEXT,
+        is_system BOOLEAN DEFAULT false,
+        is_active BOOLEAN DEFAULT true,
+        created_by UUID,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+      )
+    `);
+        // Permissions table
+        await client.query(`
+      CREATE TABLE permissions (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name VARCHAR(100) UNIQUE NOT NULL,
+        description TEXT NOT NULL,
+        is_active BOOLEAN DEFAULT true,
+        created_by UUID,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+      )
+    `);
+        // Dashboards table - WITH EXACT COLUMNS FROM SERVER
+        await client.query(`
+      CREATE TABLE dashboards (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name VARCHAR(100) UNIQUE NOT NULL,
+        display_name VARCHAR(100) NOT NULL,
+        description TEXT,
+        component_name VARCHAR(100) NOT NULL,
+        icon VARCHAR(50),
+        is_active BOOLEAN DEFAULT true,
+        is_system BOOLEAN DEFAULT false,
+        created_by UUID,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+      )
+    `);
+        // Role dashboards table - WITH EXACT COLUMNS FROM SERVER
+        await client.query(`
+      CREATE TABLE role_dashboards (
+        role_id UUID NOT NULL,
+        dashboard_id UUID NOT NULL,
+        is_default BOOLEAN DEFAULT true,
+        sort_order INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (role_id, dashboard_id),
+        FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
+        FOREIGN KEY (dashboard_id) REFERENCES dashboards(id) ON DELETE CASCADE
+      )
+    `);
+        // Other tables (minimal schema)
+        await client.query(`
+      CREATE TABLE role_permissions (
+        role_id UUID NOT NULL,
+        permission_id UUID NOT NULL,
+        granted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        granted_by UUID,
+        PRIMARY KEY (role_id, permission_id),
+        FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
+        FOREIGN KEY (permission_id) REFERENCES permissions(id) ON DELETE CASCADE,
+        FOREIGN KEY (granted_by) REFERENCES users(id) ON DELETE SET NULL
+      )
+    `);
+        await client.query(`
+      CREATE TABLE user_permissions (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL,
+        permission_id UUID NOT NULL,
+        resource_type VARCHAR(50),
+        resource_id UUID,
+        granted_by UUID NOT NULL,
+        granted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        expires_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (permission_id) REFERENCES permissions(id) ON DELETE CASCADE,
+        FOREIGN KEY (granted_by) REFERENCES users(id) ON DELETE SET NULL
+      )
+    `);
+        await client.query(`
+      CREATE TABLE athletes (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        first_name VARCHAR(100) NOT NULL,
+        last_name VARCHAR(100) NOT NULL,
+        age INTEGER NOT NULL,
+        category VARCHAR(10) NOT NULL,
+        gender VARCHAR(1) CHECK (gender IN ('M', 'F')),
+        date_of_birth DATE NOT NULL,
+        date_joined TIMESTAMP NOT NULL,
+        avatar TEXT,
+        coach_id UUID,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (coach_id) REFERENCES users(id) ON DELETE SET NULL
+      )
+    `);
+        await client.query(`
+      CREATE TABLE results (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        athlete_id UUID NOT NULL,
+        event_type VARCHAR(100) NOT NULL,
+        value DECIMAL(10, 2) NOT NULL,
+        unit VARCHAR(20) NOT NULL,
+        date TIMESTAMP NOT NULL,
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (athlete_id) REFERENCES athletes(id) ON DELETE CASCADE
+      )
+    `);
+        await client.query(`
+      CREATE TABLE events (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name VARCHAR(100) NOT NULL,
+        category VARCHAR(50) NOT NULL,
+        unit VARCHAR(20) NOT NULL,
+        description TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+        await client.query(`
+      CREATE TABLE access_requests (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        parent_id UUID NOT NULL,
+        athlete_id UUID NOT NULL,
+        coach_id UUID NOT NULL,
+        status VARCHAR(20) DEFAULT 'pending',
+        request_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        response_date TIMESTAMP,
+        message TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (parent_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (athlete_id) REFERENCES athletes(id) ON DELETE CASCADE,
+        FOREIGN KEY (coach_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+        await client.query(`
+      CREATE TABLE approval_requests (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL,
+        coach_id UUID,
+        athlete_id UUID,
+        requested_role VARCHAR(50) NOT NULL,
+        status VARCHAR(20) DEFAULT 'pending',
+        request_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        response_date TIMESTAMP,
+        approved_by UUID,
+        rejection_reason TEXT,
+        child_name VARCHAR(200),
+        approval_notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (coach_id) REFERENCES users(id) ON DELETE SET NULL,
+        FOREIGN KEY (athlete_id) REFERENCES athletes(id) ON DELETE SET NULL,
+        FOREIGN KEY (approved_by) REFERENCES users(id) ON DELETE SET NULL
+      )
+    `);
+        await client.query(`
+      CREATE TABLE age_categories (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name VARCHAR(50) NOT NULL,
+        age_from INTEGER NOT NULL,
+        age_to INTEGER NOT NULL,
+        gender VARCHAR(1),
+        description TEXT,
+        is_active BOOLEAN DEFAULT true,
+        created_by UUID,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+      )
+    `);
+        await client.query(`
+      CREATE TABLE coach_probes (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name VARCHAR(100) NOT NULL,
+        description TEXT,
+        is_active BOOLEAN DEFAULT true,
+        created_by UUID,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+      )
+    `);
+        await client.query(`
+      CREATE TABLE messages (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        from_user_id UUID NOT NULL,
+        to_user_id UUID NOT NULL,
+        athlete_id UUID,
+        content TEXT NOT NULL,
+        read BOOLEAN DEFAULT false,
+        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (from_user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (to_user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (athlete_id) REFERENCES athletes(id) ON DELETE SET NULL
+      )
+    `);
+        console.log('All tables created');
+        // Now insert initial data
+        console.log('Inserting initial data...');
+        // Insert roles
+        await client.query(`
+      INSERT INTO roles (name, display_name, description, is_system, created_at, updated_at) VALUES
+      ('superadmin', 'Super Administrator', 'Administrator complet al sistemului', true, NOW(), NOW()),
+      ('coach', 'Antrenor', 'Antrenor - poate gestiona atleți și rezultate', true, NOW(), NOW()),
+      ('parent', 'Părinte', 'Părinte - poate vedea datele copiilor săi', true, NOW(), NOW()),
+      ('athlete', 'Atlet', 'Atlet - poate vedea propriile rezultate', true, NOW(), NOW())
+      ON CONFLICT DO NOTHING
+    `);
+        // Insert dashboards
+        await client.query(`
+      INSERT INTO dashboards (name, display_name, description, component_name, icon, is_active, is_system, created_at, updated_at) VALUES
+      ('SuperAdminDashboard', 'Admin Dashboard', 'Panoul de control pentru administrator', 'SuperAdminDashboard', 'LayoutDashboard', true, true, NOW(), NOW()),
+      ('CoachDashboard', 'Coach Dashboard', 'Panoul de control pentru antrenor', 'CoachDashboard', 'Users', true, true, NOW(), NOW()),
+      ('ParentDashboard', 'Parent Dashboard', 'Panoul de control pentru părinte', 'ParentDashboard', 'UserCircle', true, true, NOW(), NOW()),
+      ('AthleteDashboard', 'Athlete Dashboard', 'Panoul de control pentru atlet', 'AthleteDashboard', 'Trophy', true, true, NOW(), NOW())
+      ON CONFLICT DO NOTHING
+    `);
+        // Assign dashboards to roles
+        await client.query(`
+      INSERT INTO role_dashboards (role_id, dashboard_id, is_default, sort_order, created_at, updated_at)
+      SELECT 
+        r.id as role_id,
+        d.id as dashboard_id,
+        true as is_default,
+        0 as sort_order,
+        NOW() as created_at,
+        NOW() as updated_at
+      FROM roles r
+      CROSS JOIN dashboards d
+      WHERE (r.name = 'superadmin' AND d.name = 'SuperAdminDashboard')
+         OR (r.name = 'coach' AND d.name = 'CoachDashboard')
+         OR (r.name = 'parent' AND d.name = 'ParentDashboard')
+         OR (r.name = 'athlete' AND d.name = 'AthleteDashboard')
+      ON CONFLICT DO NOTHING
+    `);
+        console.log('Data inserted');
         await client.query('COMMIT');
         res.status(200).json({
             success: true,
-            message: 'Database reset and recreated successfully!',
+            message: 'Database reset and recreated successfully with correct schema!',
             warning: 'All data has been deleted and recreated'
         });
     }
