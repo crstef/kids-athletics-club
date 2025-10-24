@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.populateRoleDashboards = exports.addCategoryToPermissions = exports.addModernDashboards = exports.fixUserRoles = exports.fixAdminRole = exports.addGenderColumn = exports.addSampleData = exports.createAdminUser = exports.initializeData = void 0;
+exports.completeSetup = exports.populateRoleDashboards = exports.addCategoryToPermissions = exports.addModernDashboards = exports.fixUserRoles = exports.fixAdminRole = exports.addGenderColumn = exports.addSampleData = exports.createAdminUser = exports.initializeData = void 0;
 const database_1 = __importDefault(require("../config/database"));
 const crypto_1 = __importDefault(require("crypto"));
 const hashPassword = (password) => {
@@ -812,3 +812,103 @@ const populateRoleDashboards = async (req, res) => {
     }
 };
 exports.populateRoleDashboards = populateRoleDashboards;
+/**
+ * Complete setup - creates all tables and populates dashboards
+ * Should be called after git pull to ensure all tables exist
+ * GET /api/setup/complete
+ */
+const completeSetup = async (req, res) => {
+    const client = await database_1.default.connect();
+    try {
+        await client.query('BEGIN');
+        const results = {
+            tablesCreated: 0,
+            dashboardsInserted: 0,
+            roleDashboardsInserted: 0
+        };
+        // 1. Create dashboards table if not exists
+        await client.query(`
+      CREATE TABLE IF NOT EXISTS dashboards (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name VARCHAR(100) UNIQUE NOT NULL,
+        display_name VARCHAR(150) NOT NULL,
+        description TEXT,
+        icon VARCHAR(50),
+        route VARCHAR(100),
+        is_active BOOLEAN DEFAULT true,
+        sort_order INTEGER DEFAULT 0,
+        created_by UUID,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+      )
+    `);
+        results.tablesCreated++;
+        // 2. Create role_dashboards table if not exists
+        await client.query(`
+      CREATE TABLE IF NOT EXISTS role_dashboards (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        role_id UUID NOT NULL,
+        dashboard_id UUID NOT NULL,
+        is_default BOOLEAN DEFAULT false,
+        sort_order INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(role_id, dashboard_id),
+        FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
+        FOREIGN KEY (dashboard_id) REFERENCES dashboards(id) ON DELETE CASCADE
+      )
+    `);
+        results.tablesCreated++;
+        // 3. Insert dashboards
+        const dashboardsResult = await client.query(`
+      INSERT INTO dashboards (name, display_name, description, route, is_active, sort_order, created_at, updated_at) VALUES
+      ('SuperAdminDashboard', 'Admin Dashboard', 'Panoul de control pentru administrator', '/dashboard', true, 0, NOW(), NOW()),
+      ('CoachDashboard', 'Coach Dashboard', 'Panoul de control pentru antrenor', '/dashboard', true, 1, NOW(), NOW()),
+      ('ParentDashboard', 'Parent Dashboard', 'Panoul de control pentru părinte', '/dashboard', true, 2, NOW(), NOW()),
+      ('AthleteDashboard', 'Athlete Dashboard', 'Panoul de control pentru atlet', '/dashboard', true, 3, NOW(), NOW())
+      ON CONFLICT (name) DO NOTHING
+      RETURNING id
+    `);
+        results.dashboardsInserted = dashboardsResult.rowCount || 0;
+        // 4. Insert role_dashboards assignments
+        const roleDashboardsResult = await client.query(`
+      INSERT INTO role_dashboards (role_id, dashboard_id, is_default, sort_order, created_at, updated_at)
+      SELECT 
+        r.id as role_id,
+        d.id as dashboard_id,
+        true as is_default,
+        d.sort_order as sort_order,
+        NOW() as created_at,
+        NOW() as updated_at
+      FROM roles r
+      CROSS JOIN dashboards d
+      WHERE (r.name = 'superadmin' AND d.name = 'SuperAdminDashboard')
+         OR (r.name = 'coach' AND d.name = 'CoachDashboard')
+         OR (r.name = 'parent' AND d.name = 'ParentDashboard')
+         OR (r.name = 'athlete' AND d.name = 'AthleteDashboard')
+      ON CONFLICT (role_id, dashboard_id) DO NOTHING
+      RETURNING id
+    `);
+        results.roleDashboardsInserted = roleDashboardsResult.rowCount || 0;
+        await client.query('COMMIT');
+        res.status(200).json({
+            success: true,
+            message: 'Complete setup finished successfully!',
+            data: results
+        });
+    }
+    catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Complete setup error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to complete setup',
+            details: error instanceof Error ? error.message : 'Unknown error'
+        });
+    }
+    finally {
+        client.release();
+    }
+};
+exports.completeSetup = completeSetup;
