@@ -945,26 +945,39 @@ export const completeSetup = async (req: Request, res: Response) => {
     `);
     results.tablesCreated++;
 
-    // 3. Insert dashboards (only required columns)
+    // 3. Update existing dashboards or insert new ones
+    // First update any existing with NULL component_name
+    await client.query(`
+      UPDATE dashboards 
+      SET component_name = name, is_active = true
+      WHERE component_name IS NULL OR component_name = ''
+    `);
+
+    // Then insert new ones with all required fields
     const dashboardsResult = await client.query(`
-      INSERT INTO dashboards (name, display_name) VALUES
-      ('SuperAdminDashboard', 'Admin Dashboard'),
-      ('CoachDashboard', 'Coach Dashboard'),
-      ('ParentDashboard', 'Parent Dashboard'),
-      ('AthleteDashboard', 'Athlete Dashboard')
-      ON CONFLICT (name) DO NOTHING
+      INSERT INTO dashboards (name, display_name, description, component_name, icon, is_active, is_system, created_at, updated_at) VALUES
+      ('SuperAdminDashboard', 'Admin Dashboard', 'Panoul de control pentru administrator', 'SuperAdminDashboard', 'LayoutDashboard', true, true, NOW(), NOW()),
+      ('CoachDashboard', 'Coach Dashboard', 'Panoul de control pentru antrenor', 'CoachDashboard', 'Users', true, true, NOW(), NOW()),
+      ('ParentDashboard', 'Parent Dashboard', 'Panoul de control pentru părinte', 'ParentDashboard', 'UserCircle', true, true, NOW(), NOW()),
+      ('AthleteDashboard', 'Athlete Dashboard', 'Panoul de control pentru atlet', 'AthleteDashboard', 'Trophy', true, true, NOW(), NOW())
+      ON CONFLICT (name) DO UPDATE SET
+        description = EXCLUDED.description,
+        component_name = EXCLUDED.component_name,
+        icon = EXCLUDED.icon,
+        is_active = EXCLUDED.is_active,
+        is_system = EXCLUDED.is_system,
+        updated_at = NOW()
       RETURNING id
     `);
     results.dashboardsInserted = dashboardsResult.rowCount || 0;
 
     // 4. Insert role_dashboards assignments
     const roleDashboardsResult = await client.query(`
-      INSERT INTO role_dashboards (role_id, dashboard_id, is_default, sort_order, created_at, updated_at)
+      INSERT INTO role_dashboards (role_id, dashboard_id, is_default, created_at, updated_at)
       SELECT 
         r.id as role_id,
         d.id as dashboard_id,
         true as is_default,
-        d.sort_order as sort_order,
         NOW() as created_at,
         NOW() as updated_at
       FROM roles r
