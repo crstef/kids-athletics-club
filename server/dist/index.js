@@ -101,6 +101,7 @@ app.get('/api/setup/fix-admin-role', setup_1.fixAdminRole);
 app.get('/api/setup/add-gender-column', setup_1.addGenderColumn);
 app.get('/api/setup/fix-user-roles', setup_1.fixUserRoles);
 app.post('/api/setup/add-modern-dashboards', setup_1.addModernDashboards);
+app.get('/api/setup/add-category-to-permissions', setup_1.addCategoryToPermissions);
 // Health check
 app.get('/health', (req, res) => {
     res.json({

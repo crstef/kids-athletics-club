@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.addModernDashboards = exports.fixUserRoles = exports.fixAdminRole = exports.addGenderColumn = exports.addSampleData = exports.createAdminUser = exports.initializeData = void 0;
+exports.addCategoryToPermissions = exports.addModernDashboards = exports.fixUserRoles = exports.fixAdminRole = exports.addGenderColumn = exports.addSampleData = exports.createAdminUser = exports.initializeData = void 0;
 const database_1 = __importDefault(require("../config/database"));
 const crypto_1 = __importDefault(require("crypto"));
 const hashPassword = (password) => {
@@ -618,3 +618,59 @@ const addModernDashboards = async (_req, res) => {
     }
 };
 exports.addModernDashboards = addModernDashboards;
+const addCategoryToPermissions = async (req, res) => {
+    const client = await database_1.default.connect();
+    try {
+        // Check if column already exists
+        const checkColumn = await client.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'permissions' 
+      AND column_name = 'category'
+    `);
+        if (checkColumn.rows.length > 0) {
+            return res.status(200).json({
+                success: true,
+                message: 'Category column already exists',
+                alreadyExists: true
+            });
+        }
+        // Add category column
+        await client.query(`
+      ALTER TABLE permissions 
+      ADD COLUMN category VARCHAR(50) DEFAULT 'general'
+    `);
+        // Update existing permissions with categories based on their names
+        await client.query(`
+      UPDATE permissions
+      SET category = CASE
+        WHEN name LIKE 'athletes.%' THEN 'athletes'
+        WHEN name LIKE 'results.%' THEN 'results'
+        WHEN name LIKE 'events.%' THEN 'events'
+        WHEN name LIKE 'messages.%' THEN 'messages'
+        WHEN name LIKE 'access_requests.%' THEN 'access_requests'
+        WHEN name LIKE 'users.%' THEN 'users'
+        WHEN name LIKE 'roles.%' THEN 'roles'
+        WHEN name LIKE 'permissions.%' THEN 'permissions'
+        WHEN name LIKE 'dashboard.%' THEN 'dashboards'
+        ELSE 'general'
+      END
+      WHERE category = 'general' OR category IS NULL
+    `);
+        const result = await client.query('SELECT COUNT(*) as count FROM permissions WHERE category IS NOT NULL');
+        const totalPermissions = result.rows[0].count;
+        res.status(200).json({
+            success: true,
+            message: 'Category column added and permissions categorized',
+            totalPermissions
+        });
+    }
+    catch (error) {
+        console.error('Add category to permissions error:', error);
+        res.status(500).json({ error: 'Failed to add category column' });
+    }
+    finally {
+        client.release();
+    }
+};
+exports.addCategoryToPermissions = addCategoryToPermissions;

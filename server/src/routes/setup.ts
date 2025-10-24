@@ -671,3 +671,65 @@ export const addModernDashboards = async (_req: Request, res: Response) => {
     client.release();
   }
 };
+
+export const addCategoryToPermissions = async (req: Request, res: Response) => {
+  const client = await pool.connect();
+  
+  try {
+    // Check if column already exists
+    const checkColumn = await client.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'permissions' 
+      AND column_name = 'category'
+    `);
+
+    if (checkColumn.rows.length > 0) {
+      return res.status(200).json({
+        success: true,
+        message: 'Category column already exists',
+        alreadyExists: true
+      });
+    }
+
+    // Add category column
+    await client.query(`
+      ALTER TABLE permissions 
+      ADD COLUMN category VARCHAR(50) DEFAULT 'general'
+    `);
+
+    // Update existing permissions with categories based on their names
+    await client.query(`
+      UPDATE permissions
+      SET category = CASE
+        WHEN name LIKE 'athletes.%' THEN 'athletes'
+        WHEN name LIKE 'results.%' THEN 'results'
+        WHEN name LIKE 'events.%' THEN 'events'
+        WHEN name LIKE 'messages.%' THEN 'messages'
+        WHEN name LIKE 'access_requests.%' THEN 'access_requests'
+        WHEN name LIKE 'users.%' THEN 'users'
+        WHEN name LIKE 'roles.%' THEN 'roles'
+        WHEN name LIKE 'permissions.%' THEN 'permissions'
+        WHEN name LIKE 'dashboard.%' THEN 'dashboards'
+        ELSE 'general'
+      END
+      WHERE category = 'general' OR category IS NULL
+    `);
+
+    const result = await client.query('SELECT COUNT(*) as count FROM permissions WHERE category IS NOT NULL');
+    const totalPermissions = result.rows[0].count;
+
+    res.status(200).json({
+      success: true,
+      message: 'Category column added and permissions categorized',
+      totalPermissions
+    });
+
+  } catch (error) {
+    console.error('Add category to permissions error:', error);
+    res.status(500).json({ error: 'Failed to add category column' });
+  } finally {
+    client.release();
+  }
+};
+
