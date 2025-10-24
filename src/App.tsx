@@ -23,11 +23,9 @@ interface TabConfig {
 }
 
 const TAB_CONFIGS: TabConfig[] = [
-  { id: 'dashboard', label: 'Dashboard', permission: 'dashboard.view' }, // special-cased below
+  { id: 'dashboard', label: 'Dashboard', permission: 'dashboard.view' },
   { id: 'athletes', label: 'Atleți', permission: 'athletes.view' },
   { id: 'events', label: 'Probe', permission: 'events.view' },
-  { id: 'results', label: 'Rezultate', permission: 'results.view' },
-  // Requests tab: show if user can view access requests; approval requests are handled in-panel
   { id: 'requests', label: 'Cereri', icon: Envelope, permission: 'access_requests.view' },
   { id: 'messages', label: 'Mesaje', icon: ChatCircleDots, permission: 'messages.view' },
   { id: 'users', label: 'Utilizatori', permission: 'users.edit' },
@@ -125,10 +123,10 @@ function AppContent() {
   }, [currentUser, authLoading, hasPermission, refetchAthletes, refetchResults, refetchAgeCategories, refetchProbes, refetchUsers, refetchRoles, refetchPermissions, refetchUserPermissions, refetchAccessRequests, refetchApprovalRequests])
 
   useEffect(() => {
-    if (activeTab === 'antrenori' && accessRequests.length === 0 && currentUser) {
+    if (activeTab === 'requests' && accessRequests.length === 0 && currentUser) {
       refetchAccessRequests()
     }
-  }, [activeTab, currentUser])
+  }, [activeTab, currentUser, accessRequests.length, refetchAccessRequests])
 
   useEffect(() => {
     if (activeTab === 'requests' && approvalRequests.length === 0 && currentUser) {
