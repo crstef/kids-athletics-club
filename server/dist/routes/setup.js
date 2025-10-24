@@ -1,11 +1,46 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.completeSetup = exports.populateRoleDashboards = exports.addCategoryToPermissions = exports.addModernDashboards = exports.fixUserRoles = exports.fixAdminRole = exports.addGenderColumn = exports.addSampleData = exports.createAdminUser = exports.initializeData = void 0;
+exports.resetDatabase = exports.completeSetup = exports.populateRoleDashboards = exports.addCategoryToPermissions = exports.addModernDashboards = exports.fixUserRoles = exports.fixAdminRole = exports.addGenderColumn = exports.addSampleData = exports.createAdminUser = exports.initializeData = void 0;
 const database_1 = __importDefault(require("../config/database"));
 const crypto_1 = __importDefault(require("crypto"));
+const fs = __importStar(require("fs"));
+const path = __importStar(require("path"));
 const hashPassword = (password) => {
     return crypto_1.default.createHash('sha256').update(password).digest('hex');
 };
@@ -265,7 +300,6 @@ const initializeData = async (req, res) => {
            OR (r.name = 'parent' AND d.name = 'ParentDashboard')
            OR (r.name = 'athlete' AND d.name = 'AthleteDashboard')
         ON CONFLICT (role_id, dashboard_id) DO NOTHING
-        RETURNING id
       `);
             results.roleDashboardsCreated = roleDashboardsResult.rowCount || 0;
         }
@@ -939,3 +973,83 @@ const completeSetup = async (req, res) => {
     }
 };
 exports.completeSetup = completeSetup;
+/**
+ * Full database reset - drops all tables and recreates schema from scratch
+ * DANGER: Deletes all data! Use only for development/testing
+ * GET /api/setup/reset-database
+ */
+const resetDatabase = async (req, res) => {
+    const client = await database_1.default.connect();
+    try {
+        await client.query('BEGIN');
+        console.log('Dropping all tables...');
+        // Drop all tables in reverse order of dependencies
+        const dropTablesSql = `
+      DROP TABLE IF EXISTS role_dashboards CASCADE;
+      DROP TABLE IF EXISTS dashboards CASCADE;
+      DROP TABLE IF EXISTS user_permissions CASCADE;
+      DROP TABLE IF EXISTS role_permissions CASCADE;
+      DROP TABLE IF EXISTS permissions CASCADE;
+      DROP TABLE IF EXISTS approval_requests CASCADE;
+      DROP TABLE IF EXISTS access_requests CASCADE;
+      DROP TABLE IF EXISTS messages CASCADE;
+      DROP TABLE IF EXISTS results CASCADE;
+      DROP TABLE IF EXISTS events CASCADE;
+      DROP TABLE IF EXISTS athletes CASCADE;
+      DROP TABLE IF EXISTS coach_probes CASCADE;
+      DROP TABLE IF EXISTS age_categories CASCADE;
+      DROP TABLE IF EXISTS users CASCADE;
+      DROP TABLE IF EXISTS roles CASCADE;
+    `;
+        for (const sql of dropTablesSql.split(';').filter(s => s.trim())) {
+            await client.query(sql);
+        }
+        console.log('All tables dropped');
+        // Read and execute schema.sql
+        console.log('Creating schema...');
+        const schemaPath = path.join(__dirname, '../../schema.sql');
+        const schemaSql = fs.readFileSync(schemaPath, 'utf-8');
+        // Split by ; and execute each statement
+        for (const statement of schemaSql.split(';').filter(s => s.trim())) {
+            try {
+                await client.query(statement);
+            }
+            catch (e) {
+                console.warn('Schema statement error (might be expected):', e.message);
+            }
+        }
+        console.log('Schema created');
+        // Read and execute init-data.sql
+        console.log('Initializing data...');
+        const initDataPath = path.join(__dirname, '../../init-data.sql');
+        const initDataSql = fs.readFileSync(initDataPath, 'utf-8');
+        for (const statement of initDataSql.split(';').filter(s => s.trim())) {
+            try {
+                await client.query(statement);
+            }
+            catch (e) {
+                console.warn('Init data statement error (might be expected):', e.message);
+            }
+        }
+        console.log('Data initialized');
+        await client.query('COMMIT');
+        res.status(200).json({
+            success: true,
+            message: 'Database reset and recreated successfully!',
+            warning: 'All data has been deleted and recreated'
+        });
+    }
+    catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Reset database error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to reset database',
+            details: error instanceof Error ? error.message : 'Unknown error'
+        });
+    }
+    finally {
+        client.release();
+    }
+};
+exports.resetDatabase = resetDatabase;
