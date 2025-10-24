@@ -18,6 +18,7 @@ import ageCategoriesRoutes from './routes/ageCategories';
 import probesRoutes from './routes/probes';
 import userPermissionsRoutes from './routes/userPermissions';
 import dashboardsRoutes from './routes/dashboards';
+import componentsRoutes from './routes/components';
 import { createAdminUser, initializeData, addSampleData, fixAdminRole, addGenderColumn, fixUserRoles, addModernDashboards, addCategoryToPermissions, populateRoleDashboards, completeSetup, resetDatabase, fixRoleDashboardsSchema } from './routes/setup';
 
 dotenv.config();
@@ -97,6 +98,7 @@ app.use('/api/age-categories', ageCategoriesRoutes);
 app.use('/api/probes', probesRoutes);
 app.use('/api/user-permissions', userPermissionsRoutes);
 app.use('/api/dashboards', dashboardsRoutes);
+app.use('/api/components', componentsRoutes);
 
 // Setup endpoints (for initial deployment)
 app.post('/api/setup/create-admin', createAdminUser);
