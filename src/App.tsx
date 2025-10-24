@@ -11,30 +11,9 @@ import { hashPassword } from './lib/auth';
 import { DEFAULT_PERMISSIONS, DEFAULT_ROLES } from './lib/defaults'
 import type { Athlete, Result, AgeCategory, User, AccessRequest, Message, EventTypeCustom, Permission, UserPermission, Role, AgeCategoryCustom } from '@/lib/types'
 import { getDashboardComponent } from '@/lib/dashboardRegistry';
+import { generateTabsFromPermissions, type TabConfig, getPermissionForTab } from '@/lib/permission-tab-mapping'
 
-
-// Definiție tab-uri dinamice bazate pe permisiuni
-interface TabConfig {
-  id: string
-  label: string
-  icon?: any
-  permission: string // Am eliminat 'roles' și am făcut 'permission' obligatoriu
-  showBadge?: (count: number) => boolean
-}
-
-const TAB_CONFIGS: TabConfig[] = [
-  { id: 'dashboard', label: 'Dashboard', permission: 'dashboard.view' },
-  { id: 'athletes', label: 'Atleți', permission: 'athletes.view' },
-  { id: 'events', label: 'Probe', permission: 'events.view' },
-  { id: 'requests', label: 'Cereri', icon: Envelope, permission: 'access_requests.view' },
-  { id: 'messages', label: 'Mesaje', icon: ChatCircleDots, permission: 'messages.view' },
-  { id: 'users', label: 'Utilizatori', permission: 'users.edit' },
-  { id: 'roles', label: 'Roluri', permission: 'roles.view' },
-  { id: 'permissions', label: 'Permisiuni', permission: 'permissions.view' },
-  { id: 'categories', label: 'Categorii', permission: 'age_categories.view' },
-]
-
-// Removed: DASHBOARD_COMPONENTS is now handled dynamically via user.dashboards
+// TAB_CONFIGS is now generated dynamically from user permissions via generateTabsFromPermissions()
 
 function AppContent() {
   const { 
@@ -68,7 +47,13 @@ function AppContent() {
   const [authDialogOpen, setAuthDialogOpen] = useState(false)
   
   const [activeTab, setActiveTab] = useState('dashboard')
-  const [superAdminActiveTab, setSuperAdminActiveTab] = useState('dashboard')
+
+  // Compute visible tabs from permissions
+  const visibleTabs = useMemo(() => {
+    if (!currentUser) return []
+    const userPermissions = currentUser.permissions || []
+    return generateTabsFromPermissions(userPermissions)
+  }, [currentUser])
 
   // Restore session state when user becomes available
   useEffect(() => {
@@ -77,11 +62,23 @@ function AppContent() {
       if (session?.activeTab) {
         setActiveTab(session.activeTab)
       }
-      if (session?.superAdminActiveTab) {
-        setSuperAdminActiveTab(session.superAdminActiveTab)
-      }
     }
   }, [currentUser, authLoading, getSessionState])
+
+  // Validate activeTab against visibleTabs - CRITICAL FIX
+  // If activeTab is not in visibleTabs, reset to first valid tab
+  useEffect(() => {
+    if (visibleTabs.length > 0) {
+      const validTabIds = new Set(visibleTabs.map(t => t.id))
+      
+      // If current activeTab is not valid, reset to first tab
+      if (!validTabIds.has(activeTab)) {
+        const firstValidTab = visibleTabs[0].id
+        console.warn(`[activeTab validation] Current tab '${activeTab}' not in visibleTabs, resetting to '${firstValidTab}'`)
+        setActiveTab(firstValidTab)
+      }
+    }
+  }, [visibleTabs, activeTab])
 
   // Auto-logout on inactivity (only if remember me is not checked)
   useInactivityLogout({
@@ -96,12 +93,9 @@ function AppContent() {
   // Save session state whenever tabs change
   useEffect(() => {
     if (currentUser) {
-      saveSessionState({
-        activeTab,
-        superAdminActiveTab
-      })
+      saveSessionState({ activeTab })
     }
-  }, [activeTab, superAdminActiveTab, currentUser, saveSessionState])
+  }, [activeTab, currentUser, saveSessionState])
 
   // Fetch data whenever the user is loaded or changes
   useEffect(() => {
@@ -122,43 +116,47 @@ function AppContent() {
     }
   }, [currentUser, authLoading, hasPermission, refetchAthletes, refetchResults, refetchAgeCategories, refetchProbes, refetchUsers, refetchRoles, refetchPermissions, refetchUserPermissions, refetchAccessRequests, refetchApprovalRequests])
 
+  // Universal data loading based on active tab - CRITICAL FIX
+  // Replaces 7 hardcoded useEffect-uri
   useEffect(() => {
-    if (activeTab === 'requests' && accessRequests.length === 0 && currentUser) {
-      refetchAccessRequests()
-    }
-  }, [activeTab, currentUser, accessRequests.length, refetchAccessRequests])
+    if (!currentUser || !activeTab || visibleTabs.length === 0) return
 
-  useEffect(() => {
-    if (activeTab === 'requests' && approvalRequests.length === 0 && currentUser) {
-      refetchApprovalRequests()
+    // Determine what data to fetch based on active tab
+    const loadData = () => {
+      switch (activeTab) {
+        case 'events':
+          if (probes.length === 0) refetchProbes()
+          break
+        case 'messages':
+          if (messages.length === 0) refetchMessages()
+          break
+        case 'users':
+          if (users.length === 0) refetchUsers()
+          break
+        case 'roles':
+          if (roles.length === 0) {
+            refetchRoles()
+            refetchUserPermissions()
+          }
+          break
+        case 'permissions':
+          if (permissions.length === 0) {
+            refetchPermissions()
+            refetchUserPermissions()
+          }
+          break
+        case 'categories':
+          if (ageCategories.length === 0) refetchAgeCategories()
+          break
+        case 'requests':
+          if (accessRequests.length === 0) refetchAccessRequests()
+          if (approvalRequests.length === 0) refetchApprovalRequests()
+          break
+      }
     }
-  }, [activeTab, currentUser, approvalRequests.length, refetchApprovalRequests])
 
-  useEffect(() => {
-    if (activeTab === 'events' && probes.length === 0 && currentUser) {
-      refetchProbes()
-    }
-  }, [activeTab, currentUser, probes.length, refetchProbes])
-
-  useEffect(() => {
-    if (activeTab === 'messages' && messages.length === 0 && currentUser) {
-      refetchMessages()
-    }
-  }, [activeTab, currentUser, messages.length, refetchMessages])
-
-  useEffect(() => {
-    if (activeTab === 'categories' && ageCategories.length === 0 && currentUser) {
-      refetchAgeCategories()
-    }
-  }, [activeTab, currentUser, ageCategories.length, refetchAgeCategories])
-
-  useEffect(() => {
-    if (superAdminActiveTab === 'permissions' || superAdminActiveTab === 'roles') {
-      if (permissions.length === 0) refetchPermissions()
-      if (roles.length === 0) refetchRoles()
-      if (userPermissions.length === 0) refetchUserPermissions()
-    }
-  }, [superAdminActiveTab, permissions.length, roles.length, userPermissions.length, refetchPermissions, refetchRoles, refetchUserPermissions])
+    loadData()
+  }, [activeTab, currentUser, visibleTabs.length, probes.length, messages.length, users.length, roles.length, permissions.length, ageCategories.length, accessRequests.length, approvalRequests.length, refetchProbes, refetchMessages, refetchUsers, refetchRoles, refetchPermissions, refetchUserPermissions, refetchAgeCategories, refetchAccessRequests, refetchApprovalRequests])
 
   useEffect(() => {
     const initSuperAdmin = async () => {
@@ -791,17 +789,6 @@ function AppContent() {
     return 0
   }, [accessRequests, approvalRequests, currentUser])
 
-  // Determină ce tab-uri să fie vizibile pentru utilizatorul curent
-  const visibleTabs = useMemo(() => {
-    if (!currentUser) return []
-    return TAB_CONFIGS.filter(tab => {
-      if (tab.id === 'dashboard') return true // always show dashboard tab for logged-in users
-      return hasPermission(tab.permission)
-    })
-  }, [currentUser, hasPermission])
-
-  
-
   const currentAthlete = useMemo(() => {
     if (!currentUser || currentUser.role !== 'athlete') return null
     return (athletes || []).find(a => a.id === (currentUser as any).athleteId) || null
@@ -875,8 +862,6 @@ function AppContent() {
         visibleTabs,
         pendingRequestsCount,
         unreadMessagesCount,
-        superAdminActiveTab,
-        setSuperAdminActiveTab,
         activeTab,
         setActiveTab,
         users: users || [],
@@ -962,7 +947,7 @@ function AppContent() {
         handleAddUser,
         handleUpdateUser,
         handleDeleteUser,
-        onNavigateToTab: setSuperAdminActiveTab,
+        onNavigateToTab: setActiveTab,
       };
       return <Component {...props} />;
     }

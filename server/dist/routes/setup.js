@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.addCategoryToPermissions = exports.addModernDashboards = exports.fixUserRoles = exports.fixAdminRole = exports.addGenderColumn = exports.addSampleData = exports.createAdminUser = exports.initializeData = void 0;
+exports.populateRoleDashboards = exports.addCategoryToPermissions = exports.addModernDashboards = exports.fixUserRoles = exports.fixAdminRole = exports.addGenderColumn = exports.addSampleData = exports.createAdminUser = exports.initializeData = void 0;
 const database_1 = __importDefault(require("../config/database"));
 const crypto_1 = __importDefault(require("crypto"));
 const hashPassword = (password) => {
@@ -674,3 +674,73 @@ const addCategoryToPermissions = async (req, res) => {
     }
 };
 exports.addCategoryToPermissions = addCategoryToPermissions;
+/**
+ * Populate role_dashboards with default assignments
+ * Assigns each role their corresponding default dashboard
+ * POST /api/setup/populate-role-dashboards
+ */
+const populateRoleDashboards = async (req, res) => {
+    const client = await database_1.default.connect();
+    try {
+        // Get all roles
+        const rolesResult = await client.query('SELECT id, name FROM roles WHERE name IN (\'superadmin\', \'coach\', \'parent\', \'athlete\')');
+        const roles = rolesResult.rows;
+        // Dashboard name mapping per role
+        const dashboardMapping = {
+            'superadmin': 'superadmin-dashboard',
+            'coach': 'coach-dashboard',
+            'parent': 'parent-dashboard',
+            'athlete': 'athlete-dashboard'
+        };
+        let assignedCount = 0;
+        const assignments = [];
+        // For each role, find and assign its default dashboard
+        for (const role of roles) {
+            const dashboardName = dashboardMapping[role.name];
+            if (!dashboardName)
+                continue;
+            // Find dashboard by name
+            const dashboardResult = await client.query('SELECT id FROM dashboards WHERE name = $1 AND is_active = true', [dashboardName]);
+            if (dashboardResult.rows.length === 0) {
+                console.warn(`Dashboard '${dashboardName}' not found for role '${role.name}'`);
+                continue;
+            }
+            const dashboardId = dashboardResult.rows[0].id;
+            // Check if assignment already exists
+            const existingResult = await client.query('SELECT id FROM role_dashboards WHERE role_id = $1 AND dashboard_id = $2', [role.id, dashboardId]);
+            if (existingResult.rows.length === 0) {
+                // Insert new assignment (is_default=true for the first dashboard per role)
+                await client.query(`INSERT INTO role_dashboards (role_id, dashboard_id, is_default, sort_order, created_at, updated_at)
+           VALUES ($1, $2, true, 0, NOW(), NOW())`, [role.id, dashboardId]);
+                assignedCount++;
+                assignments.push({
+                    role: role.name,
+                    dashboard: dashboardName,
+                    assigned: true
+                });
+            }
+            else {
+                assignments.push({
+                    role: role.name,
+                    dashboard: dashboardName,
+                    assigned: false,
+                    reason: 'Already assigned'
+                });
+            }
+        }
+        res.status(200).json({
+            success: true,
+            message: `Populated role_dashboards. Assigned ${assignedCount} dashboard(s) to role(s).`,
+            assignedCount,
+            assignments
+        });
+    }
+    catch (error) {
+        console.error('Populate role dashboards error:', error);
+        res.status(500).json({ error: 'Failed to populate role dashboards' });
+    }
+    finally {
+        client.release();
+    }
+};
+exports.populateRoleDashboards = populateRoleDashboards;
