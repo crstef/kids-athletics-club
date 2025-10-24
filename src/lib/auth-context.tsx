@@ -51,7 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (error) {
           console.error('[AuthContext] Failed to load user:', error)
           // Token is invalid, clear it
-          apiClient.setToken(null)
+          apiClient.setToken(null, false)
           setCurrentUserState(null)
         }
       }

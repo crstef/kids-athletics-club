@@ -265,6 +265,31 @@ const getCurrentUser = async (req, res) => {
         };
         const baseline2 = baselineByRole2[user.role] || [];
         permissions = [...new Set([...baseline2, ...permissions])];
+        // Get dashboards assigned to this role (same as login)
+        let dashboards = [];
+        let defaultDashboardId = null;
+        if (roleIdToUse) {
+            const dashboardsResult = await client.query(`
+        SELECT 
+          d.id, d.name, d.display_name, d.component_name, d.icon,
+          rd.is_default, rd.sort_order
+        FROM role_dashboards rd
+        JOIN dashboards d ON d.id = rd.dashboard_id
+        WHERE rd.role_id = $1 AND d.is_active = true
+        ORDER BY rd.sort_order, d.name
+      `, [roleIdToUse]);
+            dashboards = dashboardsResult.rows.map(d => ({
+                id: d.id,
+                name: d.name,
+                displayName: d.display_name,
+                componentName: d.component_name,
+                icon: d.icon,
+                isDefault: d.is_default,
+                sortOrder: d.sort_order
+            }));
+            const defaultDashboard = dashboards.find(d => d.isDefault);
+            defaultDashboardId = defaultDashboard?.id || dashboards[0]?.id || null;
+        }
         res.json({
             id: user.id,
             email: user.email,
@@ -277,7 +302,9 @@ const getCurrentUser = async (req, res) => {
             probeId: user.probe_id,
             athleteId: user.athlete_id,
             createdAt: user.created_at,
-            permissions
+            permissions,
+            dashboards,
+            defaultDashboardId
         });
     }
     catch (error) {
