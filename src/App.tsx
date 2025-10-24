@@ -155,12 +155,12 @@ function AppContent() {
   }, [activeTab, currentUser, ageCategories.length, refetchAgeCategories])
 
   useEffect(() => {
-    if (superAdminActiveTab === 'permisiuni' || superAdminActiveTab === 'roluri') {
+    if (superAdminActiveTab === 'permissions' || superAdminActiveTab === 'roles') {
       if (permissions.length === 0) refetchPermissions()
       if (roles.length === 0) refetchRoles()
       if (userPermissions.length === 0) refetchUserPermissions()
     }
-  }, [superAdminActiveTab])
+  }, [superAdminActiveTab, permissions.length, roles.length, userPermissions.length, refetchPermissions, refetchRoles, refetchUserPermissions])
 
   useEffect(() => {
     const initSuperAdmin = async () => {
