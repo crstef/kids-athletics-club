@@ -1224,19 +1224,27 @@ const resetDatabase = async (req, res) => {
                 role: 'athlete'
             }
         ];
-        for (const user of sampleUsers) {
-            await client.query(`INSERT INTO users (email, password, first_name, last_name, role, is_active, needs_approval)
-         VALUES ($1, $2, $3, $4, $5, true, false)
-         ON CONFLICT DO NOTHING`, [user.email, user.password, user.firstName, user.lastName, user.role]);
+        try {
+            for (const user of sampleUsers) {
+                await client.query(`INSERT INTO users (email, password, first_name, last_name, role, is_active, needs_approval)
+           VALUES ($1, $2, $3, $4, $5, true, false)
+           ON CONFLICT DO NOTHING`, [user.email, user.password, user.firstName, user.lastName, user.role]);
+            }
+            console.log('Sample users inserted successfully');
         }
-        console.log('Sample users inserted');
+        catch (userError) {
+            console.error('Error inserting sample users:', userError);
+            throw userError;
+        }
         // Get user IDs for linking
+        console.log('Getting user IDs for linking...');
         const adminUser = await client.query('SELECT id FROM users WHERE role = $1 LIMIT 1', ['superadmin']);
         const coach1 = await client.query('SELECT id FROM users WHERE email = $1', ['coach1@kidsathletics.ro']);
         const parent1 = await client.query('SELECT id FROM users WHERE email = $1', ['parent1@kidsathletics.ro']);
         const parent2 = await client.query('SELECT id FROM users WHERE email = $1', ['parent2@kidsathletics.ro']);
         const athlete1 = await client.query('SELECT id FROM users WHERE email = $1', ['athlete1@kidsathletics.ro']);
         const athlete2 = await client.query('SELECT id FROM users WHERE email = $1', ['athlete2@kidsathletics.ro']);
+        console.log(`Found users - coach1: ${coach1.rows.length}, parent1: ${parent1.rows.length}, athlete1: ${athlete1.rows.length}`);
         if (coach1.rows.length > 0 && parent1.rows.length > 0 && athlete1.rows.length > 0) {
             // Create sample athletes linked to parents and coaches
             await client.query(`INSERT INTO athletes (first_name, last_name, age, category, gender, date_of_birth, date_joined, coach_id, parent_id)
