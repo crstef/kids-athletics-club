@@ -263,14 +263,13 @@ export const initializeData = async (req: Request, res: Response) => {
     // 9. Populate role_dashboards - assign each role their default dashboard
     if (dashboardsResult.rowCount && dashboardsResult.rowCount > 0) {
       const roleDashboardsResult = await client.query(`
-        INSERT INTO role_dashboards (role_id, dashboard_id, is_default, sort_order, created_at, updated_at)
+        INSERT INTO role_dashboards (role_id, dashboard_id, is_default, sort_order, created_at)
         SELECT 
           r.id as role_id,
           d.id as dashboard_id,
           true as is_default,
-          d.sort_order as sort_order,
-          NOW() as created_at,
-          NOW() as updated_at
+          0 as sort_order,
+          NOW() as created_at
         FROM roles r
         CROSS JOIN dashboards d
         WHERE (r.name = 'superadmin' AND d.name = 'SuperAdminDashboard')
@@ -977,13 +976,13 @@ export const completeSetup = async (req: Request, res: Response) => {
 
     // 4. Insert role_dashboards assignments
     const roleDashboardsResult = await client.query(`
-      INSERT INTO role_dashboards (role_id, dashboard_id, is_default, created_at, updated_at)
+      INSERT INTO role_dashboards (role_id, dashboard_id, is_default, sort_order, created_at)
       SELECT 
         r.id as role_id,
         d.id as dashboard_id,
         true as is_default,
-        NOW() as created_at,
-        NOW() as updated_at
+        0 as sort_order,
+        NOW() as created_at
       FROM roles r
       CROSS JOIN dashboards d
       WHERE (r.name = 'superadmin' AND d.name = 'SuperAdminDashboard')
