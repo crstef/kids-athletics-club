@@ -74,7 +74,7 @@ function AppContent() {
     if (currentUser && !authLoading) {
       fetchComponents()
     }
-  }, [currentUser, authLoading, fetchComponents])
+  }, [currentUser, authLoading])
 
   // Restore session state when user becomes available
   useEffect(() => {

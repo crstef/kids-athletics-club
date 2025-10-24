@@ -23,7 +23,7 @@ export const getMyComponents = async (req: AuthRequest, res: Response) => {
         c.icon,
         c.order_index,
         c.is_system,
-        COALESCE(cp.can_view, false) as can_view,
+        COALESCE(cp.can_view, true) as can_view,
         COALESCE(cp.can_create, false) as can_create,
         COALESCE(cp.can_edit, false) as can_edit,
         COALESCE(cp.can_delete, false) as can_delete,
@@ -36,7 +36,6 @@ export const getMyComponents = async (req: AuthRequest, res: Response) => {
       LEFT JOIN component_permissions cp ON 
         cp.role_id = r.id AND cp.component_id = c.id
       WHERE u.id = $1
-        AND COALESCE(cp.can_view, false) = true
       ORDER BY c.order_index ASC, c.display_name ASC
     `, [req.user.userId]);
 

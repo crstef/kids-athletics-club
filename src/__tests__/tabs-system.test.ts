@@ -14,7 +14,8 @@ import { generateTabsFromPermissions, PERMISSION_TO_TAB_MAP, getPermissionForTab
 describe('Permission to Tab Mapping System', () => {
   describe('PERMISSION_TO_TAB_MAP completeness', () => {
     it('should have all required tabs mapped', () => {
-      const requiredTabs = ['dashboard', 'athletes', 'events', 'requests', 'messages', 'users', 'roles', 'permissions', 'categories']
+      // NOTE: 'permissions' tab removed - permissions now managed via Roluri modal
+      const requiredTabs = ['dashboard', 'athletes', 'events', 'requests', 'messages', 'users', 'roles', 'categories']
       
       for (const tabId of requiredTabs) {
         const found = Object.values(PERMISSION_TO_TAB_MAP).some(tab => tab.id === tabId)
@@ -64,8 +65,8 @@ describe('Permission to Tab Mapping System', () => {
       const permissions = ['*'] // Superadmin has all permissions
       const tabs = generateTabsFromPermissions(permissions)
       
-      // Should include all mapped tabs
-      const expectedTabs = ['dashboard', 'athletes', 'events', 'requests', 'messages', 'users', 'roles', 'permissions', 'categories']
+      // Should include all mapped tabs (excluding permissions tab which was removed)
+      const expectedTabs = ['dashboard', 'athletes', 'events', 'requests', 'messages', 'users', 'roles', 'categories']
       for (const tabId of expectedTabs) {
         expect(tabs.some(t => t.id === tabId)).toBe(true)
       }
@@ -167,7 +168,6 @@ describe('Permission to Tab Mapping System', () => {
         { tabId: 'events', expectedPermission: 'events.view' },
         { tabId: 'users', expectedPermission: 'users.view' },
         { tabId: 'roles', expectedPermission: 'roles.view' },
-        { tabId: 'permissions', expectedPermission: 'permissions.view' },
         { tabId: 'categories', expectedPermission: 'age_categories.view' },
         { tabId: 'messages', expectedPermission: 'messages.view' },
         { tabId: 'requests', expectedPermission: 'access_requests.view' }
@@ -411,7 +411,7 @@ describe('Integration: Tab System Flow', () => {
     visibleTabs = generateTabsFromPermissions(userPermissions)
     expect(visibleTabs.map(t => t.id)).toContain('users')
     expect(visibleTabs.map(t => t.id)).toContain('roles')
-    expect(visibleTabs.map(t => t.id)).toContain('permissions')
+    // NOTE: 'permissions' tab removed - permissions managed via Roluri modal now
     
     // 3. User accesses new tabs
     const userTabIds = new Set(visibleTabs.map(t => t.id))
