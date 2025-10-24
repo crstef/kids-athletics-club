@@ -8,20 +8,20 @@ const database_1 = __importDefault(require("../config/database"));
 const getAllPermissions = async (req, res) => {
     const client = await database_1.default.connect();
     try {
-        const result = await client.query('SELECT * FROM permissions ORDER BY category, name');
+        const result = await client.query('SELECT id, name, description, is_active, created_by, created_at, updated_at FROM permissions ORDER BY name');
         res.json(result.rows.map(p => ({
             id: p.id,
             name: p.name,
             description: p.description,
-            category: p.category,
             isActive: p.is_active,
             createdBy: p.created_by,
             createdAt: p.created_at,
             updatedAt: p.updated_at
         })));
     }
-    catch (_error) {
-        res.status(500).json({ error: 'Internal server error' });
+    catch (error) {
+        console.error('Get permissions error:', error);
+        res.status(500).json({ error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown' });
     }
     finally {
         client.release();
