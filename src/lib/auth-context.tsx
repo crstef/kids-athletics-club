@@ -3,19 +3,36 @@ import { apiClient } from './api-client'
 import { DEFAULT_ROLES } from './defaults'
 import type { User } from './types'
 
+interface SessionState {
+  activeTab?: string
+  superAdminActiveTab?: string
+  lastActivity?: number
+}
+
 interface AuthContextType {
   currentUser: User | null
   setCurrentUser: (user: User | null) => void
   hasPermission: (permission: string) => boolean
   logout: () => void
   loading: boolean
+  rememberMe: boolean
+  setRememberMe: (value: boolean) => void
+  saveSessionState: (state: SessionState) => void
+  getSessionState: () => SessionState | null
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+const SESSION_STATE_KEY = 'app_session_state'
+const REMEMBER_ME_KEY = 'app_remember_me'
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUserState] = useState<User | null>(null)
   const [loading, setLoading] = useState<boolean>(true)
+  const [rememberMe, setRememberMeState] = useState<boolean>(() => {
+    const saved = localStorage.getItem(REMEMBER_ME_KEY)
+    return saved === 'true'
+  })
 
   useEffect(() => {
     // Check if user is logged in on mount
@@ -48,6 +65,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setCurrentUserState(user)
   }
 
+  const setRememberMe = (value: boolean) => {
+    setRememberMeState(value)
+    localStorage.setItem(REMEMBER_ME_KEY, value.toString())
+  }
+
+  const saveSessionState = useCallback((state: SessionState) => {
+    const sessionState = {
+      ...state,
+      lastActivity: Date.now()
+    }
+    sessionStorage.setItem(SESSION_STATE_KEY, JSON.stringify(sessionState))
+  }, [])
+
+  const getSessionState = useCallback((): SessionState | null => {
+    try {
+      const saved = sessionStorage.getItem(SESSION_STATE_KEY)
+      return saved ? JSON.parse(saved) : null
+    } catch {
+      return null
+    }
+  }, [])
+
   const logout = async () => {
     try {
       await apiClient.logout()
@@ -55,6 +94,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Ignore errors on logout
     }
     setCurrentUserState(null)
+    // Clear session state on logout
+    sessionStorage.removeItem(SESSION_STATE_KEY)
+    // Don't clear rememberMe - it persists across sessions
   }
 
   const hasPermission = useCallback((permission: string) => {
@@ -91,7 +133,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [currentUser])
 
   return (
-    <AuthContext.Provider value={{ currentUser, setCurrentUser, hasPermission, logout, loading }}>
+    <AuthContext.Provider value={{ 
+      currentUser, 
+      setCurrentUser, 
+      hasPermission, 
+      logout, 
+      loading,
+      rememberMe,
+      setRememberMe,
+      saveSessionState,
+      getSessionState
+    }}>
       {children}
     </AuthContext.Provider>
   )

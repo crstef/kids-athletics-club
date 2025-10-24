@@ -5,10 +5,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
 import { toast } from 'sonner'
 import { Eye, EyeSlash } from '@phosphor-icons/react'
 import { apiClient } from '@/lib/api-client'
 import { useUsers, useAthletes, usePublicCoaches } from '@/hooks/use-api'
+import { useAuth } from '@/lib/auth-context'
 import type { User, UserRole } from '@/lib/types'
 
 interface AuthDialogProps {
@@ -18,12 +20,14 @@ interface AuthDialogProps {
 }
 
 export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
-  const [_users, _setUsers, _usersLoading] = useUsers({ autoFetch: false });
+  const { rememberMe, setRememberMe } = useAuth()
+  const [_users, _setUsers, _usersLoading] = useUsers({ autoFetch: false});
   const [athletes, _setAthletes, _athletesLoading] = useAthletes({ autoFetch: false });
   const [coaches, _setCoaches, _coachesLoading, _coachesError, refetchCoaches] = usePublicCoaches();
   
   const [loginEmail, setLoginEmail] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
+  const [loginRememberMe, setLoginRememberMe] = useState(rememberMe)
   const [signupEmail, setSignupEmail] = useState('')
   const [signupPassword, setSignupPassword] = useState('')
   const [signupConfirmPassword, setSignupConfirmPassword] = useState('')
@@ -54,6 +58,8 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
 
     try {
       const user = await apiClient.login(loginEmail.trim(), loginPassword)
+      // Save remember me preference
+      setRememberMe(loginRememberMe)
       onLogin(user)
       toast.success(`Bine ai revenit, ${user.firstName}!`)
       onClose()
@@ -207,6 +213,21 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
                   </Button>
                 </div>
               </div>
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="remember-me" 
+                  checked={loginRememberMe}
+                  onCheckedChange={(checked) => setLoginRememberMe(checked === true)}
+                />
+                <Label 
+                  htmlFor="remember-me" 
+                  className="text-sm font-normal cursor-pointer"
+                >
+                  Ține-mă minte (fără auto-logout)
+                </Label>
+              </div>
+              
               <Button type="submit" className="w-full">
                 Autentificare
               </Button>

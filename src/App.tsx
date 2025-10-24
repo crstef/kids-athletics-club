@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './lib/auth-context'
 import { AuthDialog } from '@/components/AuthDialog'
 import { apiClient } from '@/lib/api-client'
 import { useAthletes, useResults, useUsers, useAccessRequests, useMessages, useEvents, usePermissions, useUserPermissions, useApprovalRequests, useRoles, useAgeCategories } from '@/hooks/use-api'
+import { useInactivityLogout } from '@/hooks/use-inactivity-logout'
 import { hashPassword } from './lib/auth';
 import { DEFAULT_PERMISSIONS, DEFAULT_ROLES } from './lib/defaults'
 import type { Athlete, Result, AgeCategory, User, AccessRequest, Message, EventTypeCustom, Permission, UserPermission, Role, AgeCategoryCustom } from '@/lib/types'
@@ -38,7 +39,17 @@ const TAB_CONFIGS: TabConfig[] = [
 // Removed: DASHBOARD_COMPONENTS is now handled dynamically via user.dashboards
 
 function AppContent() {
-  const { currentUser, setCurrentUser, hasPermission, logout, loading: authLoading } = useAuth()
+  const { 
+    currentUser, 
+    setCurrentUser, 
+    hasPermission, 
+    logout, 
+    loading: authLoading,
+    rememberMe,
+    saveSessionState,
+    getSessionState
+  } = useAuth()
+  
   const [athletes, _setAthletes, _athletesLoading, _athletesError, refetchAthletes] = useAthletes()
   const [results, _setResults, _resultsLoading, _resultsError, refetchResults] = useResults()
   const [users, setUsers, _usersLoading, _usersError, refetchUsers] = useUsers()
@@ -58,8 +69,35 @@ function AppContent() {
   const [sortBy, setSortBy] = useState<'name' | 'age' | 'results'>('name')
   const [authDialogOpen, setAuthDialogOpen] = useState(false)
   
-  const [activeTab, setActiveTab] = useState('dashboard')
-  const [superAdminActiveTab, setSuperAdminActiveTab] = useState('dashboard')
+  const [activeTab, setActiveTab] = useState(() => {
+    // Restore session state on mount
+    const session = getSessionState()
+    return session?.activeTab || 'dashboard'
+  })
+  const [superAdminActiveTab, setSuperAdminActiveTab] = useState(() => {
+    const session = getSessionState()
+    return session?.superAdminActiveTab || 'dashboard'
+  })
+
+  // Auto-logout on inactivity (only if remember me is not checked)
+  useInactivityLogout({
+    timeout: 30 * 60 * 1000, // 30 minutes
+    onLogout: () => {
+      toast.info('Sesiune expirată din cauza inactivității')
+      logout()
+    },
+    rememberMe
+  })
+
+  // Save session state whenever tabs change
+  useEffect(() => {
+    if (currentUser) {
+      saveSessionState({
+        activeTab,
+        superAdminActiveTab
+      })
+    }
+  }, [activeTab, superAdminActiveTab, currentUser, saveSessionState])
 
   // Fetch data whenever the user is loaded or changes
   useEffect(() => {
@@ -784,6 +822,25 @@ function AppContent() {
     // Get user's dashboards from auth context
     const userDashboards = currentUser?.dashboards || [];
     
+    // If no dashboards assigned, show error and logout
+    if (userDashboards.length === 0) {
+      console.error('User has no dashboards assigned');
+      return (
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="text-center p-8 max-w-md">
+            <h2 className="text-2xl font-bold mb-2">Acces restricționat</h2>
+            <p className="text-muted-foreground mb-4">
+              Nu aveți permisiunile necesare pentru a vizualiza un dashboard.
+            </p>
+            <p className="text-sm text-muted-foreground mb-4">
+              Contactați administratorul pentru a vă asigna un rol și dashboards corespunzătoare.
+            </p>
+            <Button onClick={logout}>Deconectare</Button>
+          </div>
+        </div>
+      );
+    }
+    
     // Use default dashboard or first available
     const dashboardToRender = userDashboards.find(d => d.isDefault) || userDashboards[0];
     
@@ -794,10 +851,15 @@ function AppContent() {
         console.error(`Dashboard component not found: ${dashboardToRender.componentName}`);
         return (
           <div className="min-h-screen bg-background flex items-center justify-center">
-            <div className="text-center p-8">
+            <div className="text-center p-8 max-w-md">
               <h2 className="text-2xl font-bold mb-2">Eroare Dashboard</h2>
-              <p className="text-muted-foreground">Componentă dashboard nu a fost găsită: {dashboardToRender.componentName}</p>
-              <Button onClick={logout} className="mt-4">Deconectare</Button>
+              <p className="text-muted-foreground mb-2">
+                Componentă dashboard nu a fost găsită: <code>{dashboardToRender.componentName}</code>
+              </p>
+              <p className="text-sm text-muted-foreground mb-4">
+                Această problemă poate apărea după actualizări. Vă rugăm să vă deconectați și să vă reconectați.
+              </p>
+              <Button onClick={logout}>Deconectare</Button>
             </div>
           </div>
         );
