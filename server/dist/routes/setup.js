@@ -250,13 +250,14 @@ const initializeData = async (req, res) => {
         // 9. Populate role_dashboards - assign each role their default dashboard
         if (dashboardsResult.rowCount && dashboardsResult.rowCount > 0) {
             const roleDashboardsResult = await client.query(`
-        INSERT INTO role_dashboards (role_id, dashboard_id, is_default, sort_order, created_at)
+        INSERT INTO role_dashboards (role_id, dashboard_id, is_default, sort_order, created_at, updated_at)
         SELECT 
           r.id as role_id,
           d.id as dashboard_id,
           true as is_default,
           0 as sort_order,
-          NOW() as created_at
+          NOW() as created_at,
+          NOW() as updated_at
         FROM roles r
         CROSS JOIN dashboards d
         WHERE (r.name = 'superadmin' AND d.name = 'SuperAdminDashboard')
@@ -859,6 +860,17 @@ const completeSetup = async (req, res) => {
       )
     `);
         results.tablesCreated++;
+        // 2b. Add updated_at column to role_dashboards if it doesn't exist
+        try {
+            await client.query(`
+        ALTER TABLE role_dashboards 
+        ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      `);
+        }
+        catch (e) {
+            // Column already exists, ignore error
+            console.log('updated_at column already exists in role_dashboards');
+        }
         // 3. Clean up and recreate dashboards with proper data
         // First, delete any dashboards that have NULL component_name to avoid constraint violations
         await client.query(`
@@ -888,13 +900,14 @@ const completeSetup = async (req, res) => {
         results.dashboardsInserted = dashboardsResult.rowCount || 0;
         // 4. Insert role_dashboards assignments
         const roleDashboardsResult = await client.query(`
-      INSERT INTO role_dashboards (role_id, dashboard_id, is_default, sort_order, created_at)
+      INSERT INTO role_dashboards (role_id, dashboard_id, is_default, sort_order, created_at, updated_at)
       SELECT 
         r.id as role_id,
         d.id as dashboard_id,
         true as is_default,
         0 as sort_order,
-        NOW() as created_at
+        NOW() as created_at,
+        NOW() as updated_at
       FROM roles r
       CROSS JOIN dashboards d
       WHERE (r.name = 'superadmin' AND d.name = 'SuperAdminDashboard')
