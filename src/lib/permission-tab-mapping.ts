@@ -74,13 +74,6 @@ export const PERMISSION_TO_TAB_MAP: Record<string, TabConfig> = {
     category: 'admin',
     order: 110
   },
-  'permissions.view': {
-    id: 'permissions',
-    label: 'Permisiuni',
-    permission: 'permissions.view',
-    category: 'admin',
-    order: 120
-  },
 
   // Management tabs
   'age_categories.view': {
