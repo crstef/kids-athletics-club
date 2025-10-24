@@ -248,6 +248,41 @@ export const initializeData = async (req: Request, res: Response) => {
     `);
     results.probes = 15;
 
+    // 8. Insert Dashboards
+    const dashboardsResult = await client.query(`
+      INSERT INTO dashboards (name, display_name, description, route, is_active, sort_order, created_at, updated_at) VALUES
+      ('SuperAdminDashboard', 'Admin Dashboard', 'Panoul de control pentru administrator', '/dashboard', true, 0, NOW(), NOW()),
+      ('CoachDashboard', 'Coach Dashboard', 'Panoul de control pentru antrenor', '/dashboard', true, 1, NOW(), NOW()),
+      ('ParentDashboard', 'Parent Dashboard', 'Panoul de control pentru părinte', '/dashboard', true, 2, NOW(), NOW()),
+      ('AthleteDashboard', 'Athlete Dashboard', 'Panoul de control pentru atlet', '/dashboard', true, 3, NOW(), NOW())
+      ON CONFLICT (name) DO NOTHING
+      RETURNING id
+    `);
+    results.dashboardsCreated = dashboardsResult.rowCount || 0;
+
+    // 9. Populate role_dashboards - assign each role their default dashboard
+    if (dashboardsResult.rowCount && dashboardsResult.rowCount > 0) {
+      const roleDashboardsResult = await client.query(`
+        INSERT INTO role_dashboards (role_id, dashboard_id, is_default, sort_order, created_at, updated_at)
+        SELECT 
+          r.id as role_id,
+          d.id as dashboard_id,
+          true as is_default,
+          d.sort_order as sort_order,
+          NOW() as created_at,
+          NOW() as updated_at
+        FROM roles r
+        CROSS JOIN dashboards d
+        WHERE (r.name = 'superadmin' AND d.name = 'SuperAdminDashboard')
+           OR (r.name = 'coach' AND d.name = 'CoachDashboard')
+           OR (r.name = 'parent' AND d.name = 'ParentDashboard')
+           OR (r.name = 'athlete' AND d.name = 'AthleteDashboard')
+        ON CONFLICT (role_id, dashboard_id) DO NOTHING
+        RETURNING id
+      `);
+      results.roleDashboardsCreated = roleDashboardsResult.rowCount || 0;
+    }
+
     res.status(200).json({
       success: true,
       message: 'Database initialized successfully!',
