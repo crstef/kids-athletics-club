@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Layout, Users } from '@phosphor-icons/react'
+import { Users } from '@phosphor-icons/react'
 import { apiClient } from '@/lib/api-client'
 import type { Role, Dashboard } from '@/lib/types'
-import DashboardManagement from './DashboardManagement'
 import RoleManagementEnhanced from './RoleManagementEnhanced'
 import { toast } from 'sonner'
 
@@ -49,37 +47,15 @@ export default function SystemManagement() {
       <div>
         <h1 className="text-3xl font-bold">Management Sistem</h1>
         <p className="text-muted-foreground">
-          Administrează roluri și dashboards în mod dinamic
+          Administrează roluri și vizibilitatea componentelor din dashboard
         </p>
       </div>
 
-      <Tabs defaultValue="roles" className="w-full">
-        <TabsList className="grid w-full max-w-2xl grid-cols-2">
-          <TabsTrigger value="roles" className="gap-2">
-            <Users className="w-4 h-4" />
-            Roluri & Dashboards
-          </TabsTrigger>
-          <TabsTrigger value="dashboards" className="gap-2">
-            <Layout className="w-4 h-4" />
-            Dashboards Disponibile
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="roles" className="mt-6">
-          <RoleManagementEnhanced
-            roles={roles}
-            dashboards={dashboards}
-            onRefresh={fetchData}
-          />
-        </TabsContent>
-
-        <TabsContent value="dashboards" className="mt-6">
-          <DashboardManagement
-            dashboards={dashboards}
-            onRefresh={fetchData}
-          />
-        </TabsContent>
-      </Tabs>
+      <RoleManagementEnhanced
+        roles={roles}
+        dashboards={dashboards}
+        onRefresh={fetchData}
+      />
     </div>
   )
 }

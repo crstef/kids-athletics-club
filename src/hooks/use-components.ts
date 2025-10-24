@@ -46,7 +46,7 @@ export function useComponents() {
         setComponents(response.components)
         // Filter only tabs for main navigation
         const tabComponents = response.components.filter(
-          (c: Component) => c.componentType === 'tab'
+          (c: Component) => c.componentType === 'tab' && c.name !== 'permissions'
         ) as TabComponent[]
         setTabs(tabComponents)
       } else {

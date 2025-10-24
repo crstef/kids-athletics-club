@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { Plus, Pencil, Trash, Shield, Layout, Check, LockKey } from '@phosphor-icons/react'
 import { toast } from 'sonner'
@@ -22,15 +21,12 @@ interface RoleManagementEnhancedProps {
 
 export default function RoleManagementEnhanced({ roles, dashboards, onRefresh }: RoleManagementEnhancedProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [isDashboardDialogOpen, setIsDashboardDialogOpen] = useState(false)
   const [isPermissionsDialogOpen, setIsPermissionsDialogOpen] = useState(false)
   const [isPermissionsModalOpen, setIsPermissionsModalOpen] = useState(false)
   const [isWidgetsModalOpen, setIsWidgetsModalOpen] = useState(false)
   const [editingRole, setEditingRole] = useState<Role | null>(null)
   const [selectedRole, setSelectedRole] = useState<Role | null>(null)
-  const [roleDashboards, setRoleDashboards] = useState<Dashboard[]>([])
-  const [selectedDashboards, setSelectedDashboards] = useState<Set<string>>(new Set())
-  const [defaultDashboardId, setDefaultDashboardId] = useState<string>('')
+  
   
   const [formData, setFormData] = useState({
     name: '',
@@ -93,64 +89,7 @@ export default function RoleManagementEnhanced({ roles, dashboards, onRefresh }:
     }
   }
 
-  const handleManageDashboards = async (role: Role) => {
-    setSelectedRole(role)
-    try {
-      const response = await apiClient.getRoleDashboards(role.id) as Dashboard[]
-      setRoleDashboards(response)
-      setSelectedDashboards(new Set(response.map((d: Dashboard) => d.id)))
-      const defaultDash = response.find((d: Dashboard) => d.isDefault)
-      setDefaultDashboardId(defaultDash?.id || '')
-      setIsDashboardDialogOpen(true)
-    } catch (error: any) {
-      toast.error('Eroare la încărcarea dashboards')
-    }
-  }
-
-  const handleToggleDashboard = (dashboardId: string) => {
-    const newSelected = new Set(selectedDashboards)
-    if (newSelected.has(dashboardId)) {
-      newSelected.delete(dashboardId)
-      if (defaultDashboardId === dashboardId) {
-        setDefaultDashboardId('')
-      }
-    } else {
-      newSelected.add(dashboardId)
-      if (newSelected.size === 1) {
-        setDefaultDashboardId(dashboardId)
-      }
-    }
-    setSelectedDashboards(newSelected)
-  }
-
-  const handleSaveDashboards = async () => {
-    if (!selectedRole) return
-
-    try {
-      // Remove old assignments
-      for (const dash of roleDashboards) {
-        if (!selectedDashboards.has(dash.id)) {
-          await apiClient.removeDashboardFromRole(selectedRole.id, dash.id)
-        }
-      }
-
-      // Add new assignments
-      for (const dashId of selectedDashboards) {
-        await apiClient.assignDashboardToRole({
-          roleId: selectedRole.id,
-          dashboardId: dashId,
-          isDefault: dashId === defaultDashboardId,
-          sortOrder: 0,
-        })
-      }
-
-      toast.success('Dashboards actualizate cu succes!')
-      setIsDashboardDialogOpen(false)
-      onRefresh()
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Eroare la salvare')
-    }
-  }
+  // Removed per-role dashboards assignment UI (kept permission and widgets controls)
 
   return (
     <div className="space-y-4">
@@ -211,14 +150,7 @@ export default function RoleManagementEnhanced({ roles, dashboards, onRefresh }:
                   <Layout className="w-3 h-3 mr-1" />
                   Widgets Dashboard
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleManageDashboards(role)}
-                >
-                  <Layout className="w-3 h-3 mr-1" />
-                  Dashboards
-                </Button>
+                {/* Dashboards assignment removed per request */}
                 <Button
                   variant="outline"
                   size="sm"
@@ -301,78 +233,7 @@ export default function RoleManagementEnhanced({ roles, dashboards, onRefresh }:
         </DialogContent>
       </Dialog>
 
-      {/* Dashboard Assignment Dialog */}
-      <Dialog open={isDashboardDialogOpen} onOpenChange={setIsDashboardDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>
-              Gestionează Dashboards - {selectedRole?.displayName}
-            </DialogTitle>
-            <DialogDescription>
-              Selectează dashboards-urile disponibile pentru acest rol
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 max-h-[60vh] overflow-y-auto">
-            {dashboards.map((dashboard) => (
-              <div
-                key={dashboard.id}
-                className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    checked={selectedDashboards.has(dashboard.id)}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        const newSelected = new Set(selectedDashboards)
-                        newSelected.add(dashboard.id)
-                        setSelectedDashboards(newSelected)
-                        if (newSelected.size === 1) {
-                          setDefaultDashboardId(dashboard.id)
-                        }
-                      } else {
-                        const newSelected = new Set(selectedDashboards)
-                        newSelected.delete(dashboard.id)
-                        if (defaultDashboardId === dashboard.id) {
-                          setDefaultDashboardId('')
-                        }
-                        setSelectedDashboards(newSelected)
-                      }
-                    }}
-                  />
-                  <div>
-                    <p className="font-medium">{dashboard.displayName}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {dashboard.componentName}
-                    </p>
-                  </div>
-                </div>
-                {selectedDashboards.has(dashboard.id) && (
-                  <Button
-                    variant={defaultDashboardId === dashboard.id ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setDefaultDashboardId(dashboard.id)}
-                  >
-                    {defaultDashboardId === dashboard.id && (
-                      <Check className="w-3 h-3 mr-1" />
-                    )}
-                    Default
-                  </Button>
-                )}
-              </div>
-            ))}
-          </div>
-
-          <div className="flex justify-end gap-2 pt-4 border-t">
-            <Button variant="outline" onClick={() => setIsDashboardDialogOpen(false)}>
-              Anulează
-            </Button>
-            <Button onClick={handleSaveDashboards}>
-              Salvează
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Per-role Dashboards assignment dialog removed */}
 
       {/* Role Permissions Modal */}
       {selectedRole && (
