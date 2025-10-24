@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './lib/auth-context'
 import { AuthDialog } from '@/components/AuthDialog'
 import { apiClient } from '@/lib/api-client'
 import { useAthletes, useResults, useUsers, useAccessRequests, useMessages, useEvents, usePermissions, useUserPermissions, useApprovalRequests, useRoles, useAgeCategories } from '@/hooks/use-api'
+import { useComponents, type TabComponent } from '@/hooks/use-components'
 import { useInactivityLogout } from '@/hooks/use-inactivity-logout'
 import { hashPassword } from './lib/auth';
 import { DEFAULT_PERMISSIONS, DEFAULT_ROLES } from './lib/defaults'
@@ -38,6 +39,7 @@ function AppContent() {
   const [approvalRequests, setApprovalRequests, _approvalRequestsLoading, _approvalRequestsError, refetchApprovalRequests] = useApprovalRequests()
   const [roles, setRoles, _rolesLoading, _rolesError, refetchRoles] = useRoles()
   const [ageCategories, setAgeCategories, _ageCategoriesLoading, _ageCategoriesError, refetchAgeCategories] = useAgeCategories()
+  const { tabs: apiTabs, loading: componentsLoading, fetchComponents } = useComponents()
   const [selectedAthlete, setSelectedAthlete] = useState<Athlete | null>(null)
   const [selectedAthleteTab, setSelectedAthleteTab] = useState<'results' | 'evolution'>('results')
   const [deleteAthleteId, setDeleteAthleteId] = useState<string | null>(null)
@@ -48,12 +50,31 @@ function AppContent() {
   
   const [activeTab, setActiveTab] = useState('dashboard')
 
-  // Compute visible tabs from permissions
+  // Compute visible tabs from components API (fallback to permission-based if needed)
   const visibleTabs = useMemo(() => {
     if (!currentUser) return []
+    
+    // Use API tabs if available
+    if (apiTabs && apiTabs.length > 0) {
+      return apiTabs.map(tab => ({
+        id: tab.name,
+        label: tab.displayName,
+        icon: tab.icon || 'LayoutDashboard',
+        permission: `${tab.name}.view`
+      }))
+    }
+    
+    // Fallback to permission-based tabs if API not ready
     const userPermissions = currentUser.permissions || []
     return generateTabsFromPermissions(userPermissions)
-  }, [currentUser])
+  }, [currentUser, apiTabs])
+
+  // Fetch components when user logs in
+  useEffect(() => {
+    if (currentUser && !authLoading) {
+      fetchComponents()
+    }
+  }, [currentUser, authLoading, fetchComponents])
 
   // Restore session state when user becomes available
   useEffect(() => {

@@ -429,6 +429,33 @@ class ApiClient {
       method: 'DELETE',
     });
   }
+
+  // Components API
+  async getMyComponents() {
+    return this.request('/components/me');
+  }
+
+  async getAllComponents() {
+    return this.request('/components/all');
+  }
+
+  async getRoleComponentPermissions(roleId: string) {
+    return this.request(`/components/role/${roleId}`);
+  }
+
+  async updateRoleComponentPermission(roleId: string, componentId: string, permissions: any) {
+    return this.request(`/components/role/${roleId}/permission/${componentId}`, {
+      method: 'PUT',
+      body: JSON.stringify(permissions),
+    });
+  }
+
+  async updateRoleComponentPermissions(roleId: string, permissions: any[]) {
+    return this.request(`/components/role/${roleId}/permissions`, {
+      method: 'PUT',
+      body: JSON.stringify({ permissions }),
+    });
+  }
 }
 
 export const apiClient = new ApiClient();
