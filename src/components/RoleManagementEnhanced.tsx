@@ -10,6 +10,8 @@ import { Plus, Pencil, Trash, Shield, Layout, Check, LockKey } from '@phosphor-i
 import { toast } from 'sonner'
 import { apiClient } from '@/lib/api-client'
 import RolePermissionsDialog from './RolePermissionsDialog'
+import { RolePermissionsModal } from './RolePermissionsModal'
+import { RoleDashboardWidgetsModal } from './RoleDashboardWidgetsModal'
 import type { Role, Dashboard } from '@/lib/types'
 
 interface RoleManagementEnhancedProps {
@@ -22,6 +24,8 @@ export default function RoleManagementEnhanced({ roles, dashboards, onRefresh }:
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isDashboardDialogOpen, setIsDashboardDialogOpen] = useState(false)
   const [isPermissionsDialogOpen, setIsPermissionsDialogOpen] = useState(false)
+  const [isPermissionsModalOpen, setIsPermissionsModalOpen] = useState(false)
+  const [isWidgetsModalOpen, setIsWidgetsModalOpen] = useState(false)
   const [editingRole, setEditingRole] = useState<Role | null>(null)
   const [selectedRole, setSelectedRole] = useState<Role | null>(null)
   const [roleDashboards, setRoleDashboards] = useState<Dashboard[]>([])
@@ -190,11 +194,22 @@ export default function RoleManagementEnhanced({ roles, dashboards, onRefresh }:
                   size="sm"
                   onClick={() => {
                     setSelectedRole(role)
-                    setIsPermissionsDialogOpen(true)
+                    setIsPermissionsModalOpen(true)
                   }}
                 >
                   <LockKey className="w-3 h-3 mr-1" />
                   Permisiuni
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedRole(role)
+                    setIsWidgetsModalOpen(true)
+                  }}
+                >
+                  <Layout className="w-3 h-3 mr-1" />
+                  Widgets Dashboard
                 </Button>
                 <Button
                   variant="outline"
@@ -359,7 +374,27 @@ export default function RoleManagementEnhanced({ roles, dashboards, onRefresh }:
         </DialogContent>
       </Dialog>
 
-      {/* Role Permissions Dialog */}
+      {/* Role Permissions Modal */}
+      {selectedRole && (
+        <RolePermissionsModal
+          role={selectedRole}
+          open={isPermissionsModalOpen}
+          onClose={() => setIsPermissionsModalOpen(false)}
+          onSave={onRefresh}
+        />
+      )}
+
+      {/* Role Widgets Modal */}
+      {selectedRole && (
+        <RoleDashboardWidgetsModal
+          role={selectedRole}
+          open={isWidgetsModalOpen}
+          onClose={() => setIsWidgetsModalOpen(false)}
+          onSave={onRefresh}
+        />
+      )}
+
+      {/* Role Permissions Dialog (Legacy) */}
       {selectedRole && (
         <RolePermissionsDialog
           role={selectedRole}

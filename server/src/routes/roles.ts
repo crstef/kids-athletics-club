@@ -17,11 +17,11 @@ router.get('/:roleId/permissions', requireRole('superadmin'), async (req, res) =
     const { roleId } = req.params;
     
     const result = await pool.query(
-      `SELECT p.id, p.name, p.description, p.category
+      `SELECT p.id, p.name, p.description, p.is_active
        FROM permissions p
        INNER JOIN role_permissions rp ON p.id = rp.permission_id
        WHERE rp.role_id = $1
-       ORDER BY p.category, p.name`,
+       ORDER BY p.name`,
       [roleId]
     );
     
