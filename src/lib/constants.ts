@@ -45,7 +45,7 @@ export function formatResult(value: number, unit: 'seconds' | 'meters' | 'points
     }
     const minutes = Math.floor(value / 60)
     const seconds = (value % 60).toFixed(2)
-    return `${minutes}:${seconds.padStart(5, '0')}`
+    return `${minutes}min ${seconds}s`
   }
   if (unit === 'points') {
     return `${value.toFixed(0)} puncte`

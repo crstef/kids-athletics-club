@@ -142,24 +142,12 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
       .y(d => y(d.value))
       .curve(d3.curveMonotoneX)
 
-    // Add area under the line (gradient effect)
-    const area = d3.area<PerformanceData>()
-      .x(d => x(new Date(d.date)))
-      .y0(height)
-      .y1(d => y(d.value))
-      .curve(d3.curveMonotoneX)
-
-    g.append('path')
-      .datum(sortedData)
-      .attr('fill', 'hsl(var(--primary) / 0.1)')
-      .attr('d', area)
-
     // Draw the line
     g.append('path')
       .datum(sortedData)
       .attr('fill', 'none')
-      .attr('stroke', 'hsl(var(--primary))')
-      .attr('stroke-width', 3)
+      .attr('stroke', 'hsl(217 91% 60%)')
+      .attr('stroke-width', 2.5)
       .attr('d', line)
 
     // Create tooltip
@@ -198,10 +186,10 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
       .append('circle')
       .attr('cx', d => x(new Date(d.date)))
       .attr('cy', d => y(d.value))
-      .attr('r', 6)
-      .attr('fill', 'hsl(var(--background))')
-      .attr('stroke', 'hsl(var(--primary))')
-      .attr('stroke-width', 3)
+      .attr('r', 5)
+      .attr('fill', 'hsl(217 91% 60%)')
+      .attr('stroke', 'hsl(var(--background))')
+      .attr('stroke-width', 2)
       .style('cursor', 'pointer')
 
     // Add interaction overlay
@@ -238,20 +226,22 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
 
           // Highlight circle
           circles
-            .attr('r', (dataPoint: PerformanceData) => dataPoint === d ? 8 : 6)
-            .attr('stroke-width', (dataPoint: PerformanceData) => dataPoint === d ? 4 : 3)
+            .attr('r', (dataPoint: PerformanceData) => dataPoint === d ? 7 : 5)
+            .attr('stroke-width', (dataPoint: PerformanceData) => dataPoint === d ? 3 : 2)
 
           // Show tooltip
           tooltip
             .style('visibility', 'visible')
             .html(`
-              <div style="font-weight: 600; margin-bottom: 4px;">${eventType}</div>
-              <div style="margin-bottom: 2px;"><strong>Rezultat:</strong> ${formatResult(d.value, unit)}</div>
-              <div style="color: hsl(var(--muted-foreground));"><strong>Data:</strong> ${new Date(d.date).toLocaleDateString('ro-RO', { 
-                day: '2-digit', 
-                month: 'long', 
-                year: 'numeric' 
-              })}</div>
+              <div style="margin-bottom: 8px;">
+                <div style="font-size: 0.75rem; color: hsl(var(--muted-foreground));">
+                  ${new Date(d.date).toLocaleDateString('ro-RO', { day: 'numeric', month: 'short' })}
+                </div>
+                <div style="font-weight: 600; font-size: 1rem; margin-top: 2px;">
+                  ${formatResult(d.value, unit)}
+                </div>
+              </div>
+              ${d.notes ? `<div style="font-size: 0.75rem; color: hsl(var(--muted-foreground)); margin-top: 4px;">${d.notes}</div>` : ''}
             `)
             .style('left', `${event.pageX + 15}px`)
             .style('top', `${event.pageY - 10}px`)
@@ -259,7 +249,7 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
       })
       .on('mouseout', () => {
         hoverLine.style('opacity', 0)
-        circles.attr('r', 6).attr('stroke-width', 3)
+        circles.attr('r', 5).attr('stroke-width', 2)
         tooltip.style('visibility', 'hidden')
       })
 

@@ -58,7 +58,8 @@ export function AthleteDetailsDialog({
       .filter(r => r.eventType === selectedEvent)
       .map(r => ({
         date: r.date,
-        value: r.value
+        value: r.value,
+        notes: r.notes
       }))
   }, [athleteResults, selectedEvent])
 

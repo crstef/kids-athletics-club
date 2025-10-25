@@ -182,6 +182,7 @@ export interface Result {
 export interface PerformanceData {
   date: string
   value: number
+  notes?: string
 }
 
 export interface AccessRequest {
