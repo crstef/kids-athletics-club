@@ -19,7 +19,7 @@ import probesRoutes from './routes/probes';
 import userPermissionsRoutes from './routes/userPermissions';
 import dashboardsRoutes from './routes/dashboards';
 import componentsRoutes from './routes/components';
-import { createAdminUser, initializeData, addSampleData, fixAdminRole, addGenderColumn, fixUserRoles, addModernDashboards, addCategoryToPermissions, populateRoleDashboards, completeSetup, resetDatabase, fixRoleDashboardsSchema } from './routes/setup';
+import { createAdminUser, initializeData, addSampleData, fixAdminRole, addGenderColumn, fixUserRoles, addModernDashboards, addCategoryToPermissions, populateRoleDashboards, completeSetup, resetDatabase, fixRoleDashboardsSchema, createUserWidgetsTable } from './routes/setup';
 
 dotenv.config();
 
@@ -113,6 +113,7 @@ app.post('/api/setup/populate-role-dashboards', populateRoleDashboards);
 app.get('/api/setup/complete', completeSetup);
 app.get('/api/setup/reset-database', resetDatabase);
 app.get('/api/setup/fix-role-dashboards-schema', fixRoleDashboardsSchema);
+app.get('/api/setup/create-user-widgets-table', createUserWidgetsTable);
 
 // Health check
 app.get('/health', (req: Request, res: Response) => {
