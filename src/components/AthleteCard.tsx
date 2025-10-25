@@ -49,10 +49,18 @@ export function AthleteCard({ athlete, resultsCount, parents, coaches, onViewDet
               <CardTitle className="text-base group-hover:text-primary transition-colors">
                 {athlete.firstName} {athlete.lastName}
               </CardTitle>
-              <div className="flex items-center gap-2 mt-1">
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
                 <span className="text-xs text-muted-foreground">{athlete.age} ani</span>
                 <span className="text-xs text-muted-foreground">•</span>
                 <Badge variant="secondary" className="text-xs px-2 py-0">{athlete.category}</Badge>
+                <Badge variant={athlete.gender === 'M' ? 'default' : 'outline'} className="text-xs px-2 py-0">
+                  {athlete.gender === 'M' ? 'Băiat' : 'Fată'}
+                </Badge>
+                {athlete.coachId && coaches && coaches.length > 0 && (
+                  <Badge variant="outline" className="text-xs px-2 py-0">
+                    {coaches.find(c => c.id === athlete.coachId)?.firstName || 'Antrenor'}
+                  </Badge>
+                )}
               </div>
             </div>
           </div>

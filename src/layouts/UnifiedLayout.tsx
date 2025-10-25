@@ -98,6 +98,10 @@ interface UnifiedLayoutProps {
   setSearchQuery: (query: string) => void
   categoryFilter: string | 'all'
   setCategoryFilter: (filter: string | 'all') => void
+  genderFilter: 'all' | 'M' | 'F'
+  setGenderFilter: (filter: 'all' | 'M' | 'F') => void
+  sortBy: 'name' | 'age' | 'results'
+  setSortBy: (sort: 'name' | 'age' | 'results') => void
   filteredAndSortedAthletes: Athlete[]
   getAthleteResultsCount: (athleteId: string) => number
   
@@ -143,6 +147,8 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
     setSearchQuery,
     categoryFilter,
     setCategoryFilter,
+    genderFilter,
+    setGenderFilter,
     filteredAndSortedAthletes,
     getAthleteResultsCount,
     selectedAthlete,
@@ -331,6 +337,16 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
                       ))}
                     </SelectContent>
                   </Select>
+                  <Select value={genderFilter} onValueChange={(v) => setGenderFilter(v as 'all' | 'M' | 'F')}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="Gen" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Toate</SelectItem>
+                      <SelectItem value="M">Băieți</SelectItem>
+                      <SelectItem value="F">Fete</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -339,6 +355,8 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
                       key={athlete.id}
                       athlete={athlete}
                       resultsCount={getAthleteResultsCount(athlete.id)}
+                      coaches={coaches}
+                      parents={parents}
                       onViewDetails={props.handleViewAthleteDetails}
                       onViewChart={props.handleViewAthleteChart}
                       onEdit={hasPermission('athletes.edit') ? props.handleEditAthlete : undefined}

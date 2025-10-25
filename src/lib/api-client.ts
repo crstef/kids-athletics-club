@@ -91,6 +91,10 @@ class ApiClient {
     return this.request<any[]>('/public/coaches');
   }
 
+  async getPublicAthletes(coachId: string) {
+    return this.request<any[]>(`/public/athletes/${coachId}`);
+  }
+
   // Users
   async getUsers() {
     return this.request<any[]>('/users');

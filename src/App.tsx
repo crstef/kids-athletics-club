@@ -45,6 +45,7 @@ function AppContent() {
   const [deleteAthleteId, setDeleteAthleteId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<AgeCategory | 'all'>('all')
+  const [genderFilter, setGenderFilter] = useState<'all' | 'M' | 'F'>('all')
   const [sortBy, setSortBy] = useState<'name' | 'age' | 'results'>('name')
   const [authDialogOpen, setAuthDialogOpen] = useState(false)
   
@@ -792,6 +793,10 @@ function AppContent() {
       filtered = filtered.filter(a => a.category === categoryFilter)
     }
 
+    if (genderFilter !== 'all') {
+      filtered = filtered.filter(a => a.gender === genderFilter)
+    }
+
     const sorted = [...filtered].sort((a, b) => {
       switch (sortBy) {
         case 'name':
@@ -806,7 +811,7 @@ function AppContent() {
     })
 
     return sorted
-  }, [myAthletes, searchQuery, categoryFilter, sortBy, results])
+  }, [myAthletes, searchQuery, categoryFilter, genderFilter, sortBy, results])
 
   const deleteAthleteName = useMemo(() => {
     const athlete = (athletes || []).find(a => a.id === deleteAthleteId)
@@ -952,6 +957,8 @@ function AppContent() {
         setSearchQuery,
         categoryFilter,
         setCategoryFilter,
+        genderFilter,
+        setGenderFilter,
         sortBy,
         setSortBy,
         selectedAthlete,

@@ -25,4 +25,32 @@ router.get('/coaches', async (req, res) => {
   }
 });
 
+// GET /api/public/athletes/:coachId
+router.get('/athletes/:coachId', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { coachId } = req.params;
+    const result = await client.query(
+      `SELECT id, first_name, last_name, category, age, gender 
+       FROM athletes 
+       WHERE coach_id = $1 
+       ORDER BY last_name, first_name`,
+      [coachId]
+    );
+    res.json(result.rows.map(a => ({
+        id: a.id,
+        firstName: a.first_name,
+        lastName: a.last_name,
+        category: a.category,
+        age: a.age,
+        gender: a.gender
+    })));
+  } catch (error) {
+    console.error('Get public athletes by coach error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  } finally {
+    client.release();
+  }
+});
+
 export default router;

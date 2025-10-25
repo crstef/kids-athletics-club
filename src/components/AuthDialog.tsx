@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -22,7 +22,7 @@ interface AuthDialogProps {
 export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
   const { rememberMe, setRememberMe } = useAuth()
   const [_users, _setUsers, _usersLoading] = useUsers({ autoFetch: false});
-  const [athletes, _setAthletes, _athletesLoading] = useAthletes({ autoFetch: false });
+  const [athletes, setAthletes, _athletesLoading, _athletesError, _refetchAthletes] = useAthletes({ autoFetch: false });
   const [coaches, _setCoaches, _coachesLoading, _coachesError, refetchCoaches] = usePublicCoaches();
   
   const [loginEmail, setLoginEmail] = useState('')
@@ -42,6 +42,20 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
   const [showLoginPassword, setShowLoginPassword] = useState(false)
   const [showSignupPassword, setShowSignupPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  
+  // Fetch athletes when coach is selected
+  useEffect(() => {
+    if (selectedCoachId) {
+      apiClient.getPublicAthletes(selectedCoachId)
+        .then((data: any) => setAthletes(data))
+        .catch((err) => {
+          console.error('Failed to fetch athletes:', err)
+          setAthletes([])
+        })
+    } else {
+      setAthletes([])
+    }
+  }, [selectedCoachId, setAthletes])
   
   const athletesByCoach = useMemo(() => {
     if (!selectedCoachId) return []
