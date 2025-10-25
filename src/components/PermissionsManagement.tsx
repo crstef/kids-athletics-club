@@ -82,10 +82,7 @@ export function PermissionsManagement({ permissions, onRefresh }: PermissionsMan
     }
 
     try {
-      await apiClient.request('/permissions', {
-        method: 'POST',
-        body: JSON.stringify({ name, description, isActive })
-      })
+      await apiClient.createPermission({ name, description, isActive })
       toast.success('Permisiune adăugată cu succes')
       setAddDialogOpen(false)
       resetForm()
@@ -103,10 +100,7 @@ export function PermissionsManagement({ permissions, onRefresh }: PermissionsMan
     }
 
     try {
-      await apiClient.request(`/permissions/${selectedPermission.id}`, {
-        method: 'PUT',
-        body: JSON.stringify({ description, isActive })
-      })
+      await apiClient.updatePermission(selectedPermission.id, { description, isActive })
       toast.success('Permisiune actualizată cu succes')
       setEditDialogOpen(false)
       setSelectedPermission(null)
@@ -122,9 +116,7 @@ export function PermissionsManagement({ permissions, onRefresh }: PermissionsMan
     if (!selectedPermission) return
 
     try {
-      await apiClient.request(`/permissions/${selectedPermission.id}`, {
-        method: 'DELETE'
-      })
+      await apiClient.deletePermission(selectedPermission.id)
       toast.success('Permisiune ștearsă cu succes')
       setDeleteDialogOpen(false)
       setSelectedPermission(null)
