@@ -2,7 +2,7 @@ import React from 'react';
 import { Toaster } from '@/components/ui/sonner';
 import { Button } from '@/components/ui/button';
 import { SignOut, Trophy } from '@phosphor-icons/react';
-import { AthleteDashboard } from '@/components/AthleteDashboard';
+import { DynamicDashboard } from '@/components/DynamicDashboard';
 import { User, Athlete, Result } from '@/lib/types';
 
 interface AthleteLayoutProps {
@@ -56,10 +56,10 @@ const AthleteLayout: React.FC<AthleteLayoutProps> = ({
       </header>
 
       <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
-        <AthleteDashboard
-          athlete={currentAthlete}
+        <DynamicDashboard
+          currentUser={currentUser}
+          athletes={currentAthlete ? [currentAthlete] : []}
           results={results}
-          coaches={coaches}
         />
       </main>
     </div>

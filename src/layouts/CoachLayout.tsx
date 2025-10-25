@@ -5,7 +5,7 @@ import { SignOut, Trophy } from '@phosphor-icons/react';
 import { MyPermissionsDialog } from '@/components/MyPermissionsDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { CoachDashboard } from '@/components/CoachDashboard';
+import { DynamicDashboard } from '@/components/DynamicDashboard';
 import { Input } from '@/components/ui/input';
 import { MagnifyingGlass, SortAscending } from '@phosphor-icons/react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -206,15 +206,11 @@ const CoachLayout = ({
           </div>
 
           <TabsContent value="dashboard" className="space-y-6">
-            <CoachDashboard 
-              myAthletes={myAthletes}
-              myResults={myResults}
-              approvalRequests={approvalRequests}
-              onAddResult={onAddResult}
-              onUpdateResult={onUpdateResult}
-              onDeleteResult={onDeleteResult}
-              onApproveRequest={onApproveRequest}
-              onRejectRequest={onRejectRequest}
+            <DynamicDashboard
+              currentUser={currentUser}
+              athletes={myAthletes}
+              results={myResults}
+              onNavigateToTab={setActiveTab}
             />
           </TabsContent>
 

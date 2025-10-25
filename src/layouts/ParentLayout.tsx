@@ -2,7 +2,7 @@ import React from 'react';
 import { Toaster } from '@/components/ui/sonner';
 import { Button } from '@/components/ui/button';
 import { SignOut, Trophy } from '@phosphor-icons/react';
-import { ParentDashboard } from '@/components/ParentDashboard';
+import { DynamicDashboard } from '@/components/DynamicDashboard';
 import { AthleteDetailsDialog } from '@/components/AthleteDetailsDialog';
 import { User, Athlete, Result, AccessRequest, Message } from '@/lib/types';
 
@@ -83,16 +83,12 @@ const ParentLayout: React.FC<ParentLayoutProps> = ({
       </header>
 
       <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
-        <ParentDashboard
-          parentId={currentUser.id}
+        <DynamicDashboard
+          currentUser={currentUser}
           athletes={athletes}
           results={results}
           accessRequests={accessRequests}
-          coaches={coaches}
           messages={messages}
-          onCreateRequest={handleCreateAccessRequest}
-          onSendMessage={handleSendMessage}
-          onMarkAsRead={handleMarkAsRead}
           onViewAthleteDetails={setSelectedAthlete}
         />
       </main>
