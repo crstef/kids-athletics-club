@@ -122,8 +122,6 @@ export const initializeData = async (req: Request, res: Response) => {
       ('roles.manage', 'Poate gestiona roluri', NOW(), NOW()),
       ('age_categories.view', 'Poate vizualiza categorii de vârstă', NOW(), NOW()),
       ('age_categories.manage', 'Poate gestiona categorii de vârstă', NOW(), NOW()),
-      ('probes.view', 'Poate vizualiza probe atletice', NOW(), NOW()),
-      ('probes.manage', 'Poate gestiona probe atletice', NOW(), NOW()),
       ('athletes.avatar.view', 'Poate vizualiza avatar atleți', NOW(), NOW()),
       ('athletes.avatar.upload', 'Poate încărca avatar atleți', NOW(), NOW()),
       ('dashboards.view', 'Poate vizualiza dashboards', NOW(), NOW()),
@@ -166,7 +164,6 @@ export const initializeData = async (req: Request, res: Response) => {
         'messages.view', 'messages.create',
         'access_requests.view', 'access_requests.approve',
         'requests.view.own',
-        'probes.view', 'probes.manage',
         'age_categories.view', 'age_categories.manage'
       )
       ON CONFLICT DO NOTHING

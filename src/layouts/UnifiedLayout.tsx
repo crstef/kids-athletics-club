@@ -165,21 +165,37 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
   const { hasPermission } = useAuth()
   const [customizeOpen, setCustomizeOpen] = useState(false)
   const [enabledWidgets, setEnabledWidgets] = useState<string[]>([])
+  const [widgetsLoaded, setWidgetsLoaded] = useState(false)
 
-  // Initialize enabled widgets from userWidgets prop
+  // Load widgets from database on mount
   useEffect(() => {
-    if (userWidgets && userWidgets.length > 0) {
-      const enabled = userWidgets
-        .filter(w => w.enabled)
-        .sort((a, b) => a.sort_order - b.sort_order)
-        .map(w => w.widget_id)
-      setEnabledWidgets(enabled)
+    const loadWidgets = async () => {
+      try {
+        const savedWidgets = await apiClient.getUserWidgets()
+        if (savedWidgets && savedWidgets.length > 0) {
+          const widgetNames = savedWidgets
+            .filter((w: any) => w.isEnabled)
+            .sort((a: any, b: any) => a.sortOrder - b.sortOrder)
+            .map((w: any) => w.widgetName)
+          setEnabledWidgets(widgetNames)
+        } else {
+          // Default widgets if none saved
+          setEnabledWidgets(['statistics', 'events', 'messages'])
+        }
+      } catch (error) {
+        console.error('Failed to load widgets:', error)
+        // Fallback to default widgets
+        setEnabledWidgets(['statistics', 'events', 'messages'])
+      } finally {
+        setWidgetsLoaded(true)
+      }
     }
-  }, [userWidgets])
+    loadWidgets()
+  }, [])
 
-  // Save widgets to backend when they change
+  // Save widgets when changed (but only after initial load)
   useEffect(() => {
-    if (enabledWidgets.length > 0) {
+    if (widgetsLoaded && enabledWidgets.length > 0) {
       const saveWidgets = async () => {
         try {
           await apiClient.saveUserWidgets(
@@ -196,7 +212,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
       }
       saveWidgets()
     }
-  }, [enabledWidgets])
+  }, [enabledWidgets, widgetsLoaded])
 
   const toggleWidget = (widgetId: string) => {
     setEnabledWidgets(prev => 
