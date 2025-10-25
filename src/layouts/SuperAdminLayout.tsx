@@ -11,6 +11,8 @@ import SystemManagement from '@/components/SystemManagement';
 import { PermissionsSystem } from '@/components/PermissionsSystem';
 import { AgeCategoryManagement } from '@/components/AgeCategoryManagement';
 import { ProbeManagement } from '@/components/ProbeManagement';
+import { MessagingPanel } from '@/components/MessagingPanel';
+import { CoachAccessRequests } from '@/components/CoachAccessRequests';
 import { Input } from '@/components/ui/input';
 import { MagnifyingGlass } from '@phosphor-icons/react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -18,7 +20,7 @@ import { AddAthleteDialog } from '@/components/AddAthleteDialog';
 import { AthleteCard } from '@/components/AthleteCard';
 import { AthleteDetailsDialog } from '@/components/AthleteDetailsDialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { User, Role, Permission, AgeCategoryCustom, EventTypeCustom, Result, Athlete } from '@/lib/types';
+import { User, Role, Permission, AgeCategoryCustom, EventTypeCustom, Result, Athlete, AccessRequest, Message } from '@/lib/types';
 
 interface SuperAdminLayoutProps {
   currentUser: User;
@@ -34,6 +36,8 @@ interface SuperAdminLayoutProps {
   permissions: Permission[];
   roles: Role[];
   ageCategories: AgeCategoryCustom[];
+  accessRequests: AccessRequest[];
+  messages: Message[];
   handleAddUser: (userData: Omit<User, 'id' | 'createdAt'>) => Promise<void>;
   handleUpdateUser: (userId: string, userData: Partial<User>) => Promise<void>;
   handleDeleteUser: (userId: string) => Promise<void>;
@@ -75,6 +79,10 @@ interface SuperAdminLayoutProps {
   deleteAthleteName: string;
   athleteResultsCount: number;
   confirmDeleteAthlete: () => Promise<void>;
+  handleCreateAccessRequest: (requestData: Omit<AccessRequest, 'id' | 'requestDate'>) => Promise<void>;
+  handleUpdateAccessRequest: (id: string, status: 'approved' | 'rejected') => Promise<void>;
+  handleSendMessage: (messageData: Omit<Message, 'id' | 'timestamp'>) => Promise<void>;
+  handleMarkAsRead: (messageIds: string[]) => Promise<void>;
 }
 
 const SuperAdminLayout: React.FC<SuperAdminLayoutProps> = ({
@@ -91,6 +99,8 @@ const SuperAdminLayout: React.FC<SuperAdminLayoutProps> = ({
   permissions,
   roles,
   ageCategories,
+  accessRequests,
+  messages,
   handleAddUser,
   handleUpdateUser,
   handleDeleteUser,
@@ -132,6 +142,10 @@ const SuperAdminLayout: React.FC<SuperAdminLayoutProps> = ({
   deleteAthleteName,
   athleteResultsCount,
   confirmDeleteAthlete,
+  handleCreateAccessRequest,
+  handleUpdateAccessRequest,
+  handleSendMessage,
+  handleMarkAsRead,
 }) => {
   return (
     <div className="min-h-screen bg-background">
@@ -314,6 +328,26 @@ const SuperAdminLayout: React.FC<SuperAdminLayoutProps> = ({
                 ))}
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="messages">
+            <MessagingPanel
+              currentUserId={currentUser.id}
+              users={users}
+              messages={messages}
+              onSendMessage={handleSendMessage}
+              onMarkAsRead={handleMarkAsRead}
+            />
+          </TabsContent>
+
+          <TabsContent value="requests">
+            <CoachAccessRequests
+              coachId={currentUser.id}
+              athletes={athletes}
+              parents={parents}
+              accessRequests={accessRequests}
+              onUpdateRequest={handleUpdateAccessRequest}
+            />
           </TabsContent>
         </Tabs>
       </main>
