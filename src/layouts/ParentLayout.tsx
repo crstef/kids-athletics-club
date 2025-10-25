@@ -88,8 +88,6 @@ const ParentLayout: React.FC<ParentLayoutProps> = ({
           athletes={athletes}
           results={results}
           accessRequests={accessRequests}
-          messages={messages}
-          onViewAthleteDetails={setSelectedAthlete}
         />
       </main>
 

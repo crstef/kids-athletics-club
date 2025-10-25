@@ -206,11 +206,14 @@ const CoachLayout = ({
           </div>
 
           <TabsContent value="dashboard" className="space-y-6">
-            <DynamicDashboard
+            <DynamicDashboard 
               currentUser={currentUser}
               athletes={myAthletes}
               results={myResults}
-              onNavigateToTab={setActiveTab}
+              approvalRequests={approvalRequests}
+              onAddResult={onAddResult}
+              onUpdateResult={onUpdateResult}
+              onDeleteResult={onDeleteResult}
             />
           </TabsContent>
 
