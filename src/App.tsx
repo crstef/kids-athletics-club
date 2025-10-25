@@ -87,11 +87,15 @@ function AppContent() {
     return () => window.removeEventListener('components:refresh', handler)
   }, [currentUser, authLoading, fetchComponents])
 
-  // Restore session state when user becomes available
+  // Restore session state when user becomes available, default to dashboard
   useEffect(() => {
     if (currentUser && !authLoading) {
       const session = getSessionState()
-      if (session?.activeTab) {
+      // On fresh login (no session), always default to dashboard
+      // On page refresh with existing session, restore the previous tab
+      if (!session || !session.activeTab) {
+        setActiveTab('dashboard')
+      } else {
         setActiveTab(session.activeTab)
       }
     }
@@ -841,6 +845,14 @@ function AppContent() {
     setSelectedAthleteTab('results')
   }
 
+  // Handle login - clear session state and start at dashboard
+  const handleLogin = (user: User) => {
+    setCurrentUser(user)
+    // Clear old session state on new login to always start fresh at dashboard
+    sessionStorage.removeItem('app_session_state')
+    setActiveTab('dashboard')
+  }
+
   const renderDashboard = () => {
     // Get user's dashboards from auth context
     const userDashboards = currentUser?.dashboards || [];
@@ -1028,7 +1040,7 @@ function AppContent() {
         <AuthDialog
           open={authDialogOpen}
           onClose={() => setAuthDialogOpen(false)}
-          onLogin={setCurrentUser}
+          onLogin={handleLogin}
         />
       </div>
     )

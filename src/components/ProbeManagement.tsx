@@ -93,8 +93,8 @@ export function ProbeManagement({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Probe Antrenori</h2>
-          <p className="text-muted-foreground">Gestionează probele de specializare pentru antrenori</p>
+          <h2 className="text-2xl font-bold">Probe</h2>
+          <p className="text-muted-foreground">Gestionează probele atletice</p>
         </div>
         <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
           <DialogTrigger asChild>
