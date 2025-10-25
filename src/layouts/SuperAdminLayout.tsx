@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { ShieldCheck, SignOut } from '@phosphor-icons/react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { SuperAdminDashboard } from '@/components/SuperAdminDashboard';
+import { DynamicDashboard } from '@/components/DynamicDashboard';
 import { UserManagement } from '@/components/UserManagement';
 import { RoleManagement } from '@/components/RoleManagement';
 import SystemManagement from '@/components/SystemManagement';
@@ -222,11 +222,15 @@ const SuperAdminLayout: React.FC<SuperAdminLayoutProps> = ({
           </div>
 
           <TabsContent value="dashboard">
-            <SuperAdminDashboard
+            <DynamicDashboard
+              currentUser={currentUser}
               users={users}
               athletes={athletes}
               events={probes}
               permissions={permissions}
+              results={results}
+              accessRequests={accessRequests}
+              messages={messages}
               onNavigateToTab={setSuperAdminActiveTab}
               onViewAthleteDetails={(athlete) => {
                 handleViewAthleteDetails(athlete)
