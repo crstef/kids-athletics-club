@@ -191,24 +191,45 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
 
           <PermissionGate perm="athletes.avatar.upload">
             <div className="space-y-2">
-              <Label htmlFor="avatar">Poza (opțional)</Label>
-              <input
-                id="avatar"
-                type="file"
-                accept="image/*"
-                onChange={(e) => {
-                  const f = e.target.files && e.target.files[0]
-                  if (f) setAvatarFile(f)
-                }}
-              />
-              {avatarPreview && (
-                <div className="pt-2 flex items-center gap-2">
-                  <img src={avatarPreview} alt="preview" className="w-16 h-16 rounded-full object-cover" />
-                  <Button variant="outline" size="sm" onClick={() => { setAvatarFile(null); setAvatarPreview(null) }}>
-                    Șterge
-                  </Button>
+              <Label htmlFor="avatar">Poză (opțional)</Label>
+              <div className="flex items-center gap-4">
+                {avatarPreview && (
+                  <img src={avatarPreview} alt="preview" className="w-20 h-20 rounded-full object-cover border-2 border-primary" />
+                )}
+                <div className="flex-1">
+                  <div className="relative">
+                    <input
+                      id="avatar"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const f = e.target.files && e.target.files[0]
+                        if (f) setAvatarFile(f)
+                      }}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => document.getElementById('avatar')?.click()}
+                      className="w-full"
+                    >
+                      📷 {avatarPreview ? 'Schimbă Poza' : 'Încarcă Poză'}
+                    </Button>
+                  </div>
+                  {avatarPreview && (
+                    <Button 
+                      type="button"
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => { setAvatarFile(null); setAvatarPreview(null) }}
+                      className="mt-2 w-full text-destructive hover:text-destructive"
+                    >
+                      Șterge Poza
+                    </Button>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
           </PermissionGate>
           {coaches.length > 0 && (

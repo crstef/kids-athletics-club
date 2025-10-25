@@ -118,32 +118,48 @@ export function ProbeManagement({
                 <Label htmlFor="unit" className="text-right">
                   Unitate
                 </Label>
-                <Select value={newProbeUnit} onValueChange={(value) => setNewProbeUnit(value as 'seconds' | 'meters' | 'points')}>
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Selectează unitatea" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="seconds">Secunde</SelectItem>
-                    <SelectItem value="meters">Metri</SelectItem>
-                    <SelectItem value="points">Puncte</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="col-span-3 space-y-2">
+                  <Select value={newProbeUnit} onValueChange={(value) => setNewProbeUnit(value as 'seconds' | 'meters' | 'points')}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selectează unitatea" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="seconds">Secunde</SelectItem>
+                      <SelectItem value="meters">Metri</SelectItem>
+                      <SelectItem value="points">Puncte</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Input 
+                    placeholder="sau scrie unitate personalizată..." 
+                    value={newProbeUnit}
+                    onChange={(e) => setNewProbeUnit(e.target.value)}
+                    className="text-sm"
+                  />
+                </div>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="category" className="text-right">
                   Categorie
                 </Label>
-                <Select value={newProbeCategory} onValueChange={(value) => setNewProbeCategory(value as 'running' | 'jumping' | 'throwing' | 'other')}>
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Selectează categoria" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="running">Alergare</SelectItem>
-                    <SelectItem value="jumping">Sărituri</SelectItem>
-                    <SelectItem value="throwing">Aruncări</SelectItem>
-                    <SelectItem value="other">Altele</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="col-span-3 space-y-2">
+                  <Select value={newProbeCategory} onValueChange={(value) => setNewProbeCategory(value as 'running' | 'jumping' | 'throwing' | 'other')}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selectează categoria" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="running">Alergare</SelectItem>
+                      <SelectItem value="jumping">Sărituri</SelectItem>
+                      <SelectItem value="throwing">Aruncări</SelectItem>
+                      <SelectItem value="other">Altele</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Input 
+                    placeholder="sau scrie categorie personalizată..." 
+                    value={newProbeCategory}
+                    onChange={(e) => setNewProbeCategory(e.target.value)}
+                    className="text-sm"
+                  />
+                </div>
               </div>
             </div>
             <DialogFooter>

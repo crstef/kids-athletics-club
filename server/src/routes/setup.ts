@@ -1327,10 +1327,8 @@ export const resetDatabase = async (req: Request, res: Response) => {
       ['results-delete', 'Ștergere Rezultat', 'Delete result', 'action', 'Trash2', 3],
       ['messages', 'Mesaje', 'Messaging tab', 'tab', 'MessageSquare', 3],
       ['messages-send', 'Trimitere Mesaj', 'Send message', 'action', 'Send', 1],
-      ['events', 'Tipuri Probe', 'Event types management tab', 'tab', 'Calendar', 4],
-      ['events-create', 'Creare Tip Probă', 'Create event type', 'action', 'Plus', 1],
-      ['probes', 'Probe Atletice', 'Athletic probes tab', 'tab', 'Zap', 5],
-      ['probes-manage', 'Gestionare Probe', 'Manage probes', 'action', 'Settings', 1],
+      ['events', 'Probe', 'Event types management tab', 'tab', 'Calendar', 4],
+      ['events-create', 'Creare Probă', 'Create event type', 'action', 'Plus', 1],
       ['access-requests', 'Cereri de Acces', 'Access requests tab', 'tab', 'Lock', 6],
       ['access-requests-approve', 'Aprobare Cereri', 'Approve/reject requests', 'action', 'CheckCircle', 1],
       ['categories', 'Categorii', 'Age categories tab', 'tab', 'Grid', 7],
@@ -1367,7 +1365,7 @@ export const resetDatabase = async (req: Request, res: Response) => {
       ON CONFLICT DO NOTHING
     `);
 
-    // Coach - Athletes, Results, Messages, Probes, Access Requests
+    // Coach - Athletes, Results, Messages, Events, Access Requests
     await client.query(`
       INSERT INTO component_permissions (role_id, component_id, can_view, can_create, can_edit, can_delete, created_at, updated_at)
       SELECT r.id, c.id, true, true, true, false, NOW(), NOW()
@@ -1375,7 +1373,7 @@ export const resetDatabase = async (req: Request, res: Response) => {
       WHERE r.name = 'coach'
         AND c.name IN ('dashboard', 'athletes', 'athletes-create', 'athletes-edit', 
                        'results', 'results-create', 'results-edit', 'messages', 'messages-send',
-                       'probes', 'access-requests', 'access-requests-approve')
+                       'events', 'events-create', 'access-requests', 'access-requests-approve')
       ON CONFLICT DO NOTHING
     `);
 

@@ -24,6 +24,10 @@ interface AthleteCardProps {
 export function AthleteCard({ athlete, resultsCount, parents, coaches, onViewDetails, onViewChart, onEdit, onUploadAvatar, onDelete, hideDelete, hideEdit }: AthleteCardProps) {
   const avatarColor = getAvatarColor(athlete.id)
   
+  const coachName = athlete.coachId && coaches && coaches.length > 0 
+    ? `${coaches.find(c => c.id === athlete.coachId)?.firstName || ''} ${coaches.find(c => c.id === athlete.coachId)?.lastName || ''}`.trim()
+    : null
+
   return (
     <Card className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-primary/50 cursor-pointer" onClick={() => onViewDetails(athlete)}>
       <CardHeader className="pb-3">
@@ -56,14 +60,15 @@ export function AthleteCard({ athlete, resultsCount, parents, coaches, onViewDet
                 <Badge variant={athlete.gender === 'M' ? 'default' : 'outline'} className="text-xs px-2 py-0">
                   {athlete.gender === 'M' ? 'Băiat' : 'Fată'}
                 </Badge>
-                {athlete.coachId && coaches && coaches.length > 0 && (
-                  <Badge variant="outline" className="text-xs px-2 py-0">
-                    {coaches.find(c => c.id === athlete.coachId)?.firstName || 'Antrenor'}
-                  </Badge>
-                )}
               </div>
             </div>
           </div>
+          {coachName && (
+            <div className="flex flex-col items-end ml-2">
+              <span className="text-[10px] text-muted-foreground text-right">Antrenor:</span>
+              <span className="text-xs font-medium text-right">{coachName}</span>
+            </div>
+          )}
         </div>
       </CardHeader>
       <CardContent>
