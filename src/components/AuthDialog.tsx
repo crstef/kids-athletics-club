@@ -57,10 +57,10 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
     }
   }, [selectedCoachId, setAthletes])
   
+  // Athletes are already filtered by coach from the API
   const athletesByCoach = useMemo(() => {
-    if (!selectedCoachId) return []
-    return (athletes || []).filter(a => a.coachId === selectedCoachId)
-  }, [athletes, selectedCoachId])
+    return athletes || []
+  }, [athletes])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
