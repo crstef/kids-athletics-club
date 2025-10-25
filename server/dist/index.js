@@ -78,6 +78,8 @@ const corsOptions = {
 app.use((0, cors_1.default)(corsOptions));
 app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ extended: true, limit: '10mb' }));
+// Serve uploaded files statically
+app.use('/uploads', express_1.default.static(uploadsDir));
 // API Routes
 app.use('/api/auth', auth_1.default);
 app.use('/api/public', public_1.default);
