@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Toaster } from '@/components/ui/sonner'
+import { Toaster, toast } from '@/components/ui/sonner'
 import { Button } from '@/components/ui/button'
 import { ShieldCheck, SignOut, Gear } from '@phosphor-icons/react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -21,6 +21,7 @@ import { AgeCategoryManagement } from '@/components/AgeCategoryManagement'
 import { ProbeManagement } from '@/components/ProbeManagement'
 import { MessagingPanel } from '@/components/MessagingPanel'
 import { CoachAccessRequests } from '@/components/CoachAccessRequests'
+import { CoachApprovalRequests } from '@/components/CoachApprovalRequests'
 import { AddAthleteDialog } from '@/components/AddAthleteDialog'
 import { AthleteCard } from '@/components/AthleteCard'
 import { AthleteDetailsDialog } from '@/components/AthleteDetailsDialog'
@@ -31,7 +32,7 @@ import { useAuth } from '@/lib/auth-context'
 import { apiClient } from '@/lib/api-client'
 
 // Types
-import { User, Role, Permission, AgeCategoryCustom, EventTypeCustom, Result, Athlete, AccessRequest, Message } from '@/lib/types'
+import { User, Role, Permission, AgeCategoryCustom, EventTypeCustom, Result, Athlete, AccessRequest, Message, AccountApprovalRequest } from '@/lib/types'
 
 interface DashboardWidget {
   id: string
@@ -58,6 +59,7 @@ interface UnifiedLayoutProps {
   roles: Role[]
   ageCategories: AgeCategoryCustom[]
   accessRequests: AccessRequest[]
+  approvalRequests: AccountApprovalRequest[]
   messages: Message[]
   results: Result[]
   
@@ -489,14 +491,34 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
           )}
 
           {/* Requests Tab */}
-          {hasPermission('access_requests.view') && (
+          {hasPermission('approval_requests.view') && (
             <TabsContent value="requests" className="mt-6">
-              <CoachAccessRequests
+              <CoachApprovalRequests
                 coachId={currentUser.id}
-                accessRequests={accessRequests}
+                users={users}
                 athletes={athletes}
-                parents={parents}
-                onUpdateRequest={props.handleUpdateAccessRequest}
+                approvalRequests={props.approvalRequests}
+                onApproveAccount={async (requestId: string) => {
+                  try {
+                    await apiClient.request(`/approval-requests/${requestId}/approve`, { method: 'POST' })
+                    toast.success('Cerere aprobată cu succes')
+                    window.location.reload()
+                  } catch (error) {
+                    toast.error('Eroare la aprobarea cererii')
+                  }
+                }}
+                onRejectAccount={async (requestId: string, reason?: string) => {
+                  try {
+                    await apiClient.request(`/approval-requests/${requestId}/reject`, {
+                      method: 'POST',
+                      body: JSON.stringify({ reason })
+                    })
+                    toast.error('Cerere respinsă')
+                    window.location.reload()
+                  } catch (error) {
+                    toast.error('Eroare la respingerea cererii')
+                  }
+                }}
               />
             </TabsContent>
           )}

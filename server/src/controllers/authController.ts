@@ -46,15 +46,26 @@ export const register = async (req: Request, res: Response) => {
 
     const user = result.rows[0];
 
-    // Create approval request
-    await client.query(
-      `INSERT INTO approval_requests (user_id, coach_id, athlete_id, requested_role, status)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [user.id, coachId || null, athleteId || null, role, 'pending']
-    );
+    // If parent role and athlete selected, create access request for coach approval
+    if (role === 'parent' && athleteId && coachId) {
+      await client.query(
+        `INSERT INTO access_requests (parent_id, athlete_id, coach_id, status, message)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [user.id, athleteId, coachId, 'pending', `${firstName} ${lastName} requesting access`]
+      );
+    }
+    
+    // If coach role, create approval request for superadmin
+    if (role === 'coach') {
+      await client.query(
+        `INSERT INTO approval_requests (user_id, requested_role, status)
+         VALUES ($1, $2, $3)`,
+        [user.id, role, 'pending']
+      );
+    }
 
     res.status(201).json({
-      message: 'Registration successful. Waiting for approval.',
+      message: role === 'parent' ? 'Registration successful. Waiting for coach approval.' : 'Registration successful. Waiting for admin approval.',
       user: {
         id: user.id,
         email: user.email,

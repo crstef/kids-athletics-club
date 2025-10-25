@@ -162,7 +162,7 @@ export const initializeData = async (req: Request, res: Response) => {
         'results.view', 'results.view.own', 'results.create', 'results.edit', 'results.delete',
         'events.view', 'events.create', 'events.edit', 'events.delete',
         'messages.view', 'messages.create',
-        'access_requests.view', 'access_requests.approve',
+        'approval_requests.view', 'approval_requests.approve',
         'requests.view.own',
         'age_categories.view', 'age_categories.manage'
       )

@@ -44,10 +44,10 @@ export const PERMISSION_TO_TAB_MAP: Record<string, TabConfig> = {
   },
 
   // Communication tabs
-  'access_requests.view': {
+  'approval_requests.view': {
     id: 'requests',
     label: 'Cereri',
-    permission: 'access_requests.view',
+    permission: 'approval_requests.view',
     category: 'data',
     order: 30
   },

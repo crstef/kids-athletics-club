@@ -39,6 +39,7 @@ export function EditAthleteDialog({ athlete, parents, coaches, onEdit, onUploadA
   const [parentId, setParentId] = useState(athlete.parentId || '')
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(athlete.avatar || null)
+  const [deleteAvatar, setDeleteAvatar] = useState(false)
 
   // Calculate age and category from date of birth
   const calculatedAge = useMemo(() => {
@@ -71,6 +72,7 @@ export function EditAthleteDialog({ athlete, parents, coaches, onEdit, onUploadA
       setCoachId(athlete.coachId || '')
       setParentId(athlete.parentId || '')
       setAvatarPreview(athlete.avatar || null)
+      setDeleteAvatar(false)
     }
   }, [open, athlete])
 
@@ -88,7 +90,7 @@ export function EditAthleteDialog({ athlete, parents, coaches, onEdit, onUploadA
       return
     }
 
-    onEdit(athlete.id, {
+    const updateData: Partial<Athlete> = {
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       dateOfBirth,
@@ -97,7 +99,13 @@ export function EditAthleteDialog({ athlete, parents, coaches, onEdit, onUploadA
       gender,
       coachId: coachId || undefined,
       parentId: parentId || undefined
-    })
+    };
+    
+    if (deleteAvatar) {
+      updateData.avatar = null as any; // Set to null to delete avatar
+    }
+    
+    onEdit(athlete.id, updateData)
 
     if (avatarFile && onUploadAvatar && hasPermission('athletes.avatar.upload')) {
       await onUploadAvatar(athlete.id, avatarFile)
@@ -119,16 +127,6 @@ export function EditAthleteDialog({ athlete, parents, coaches, onEdit, onUploadA
           <DialogTitle>Editează Sportiv</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-4">
-          <div className="space-y-2">
-            <Label htmlFor="edit-firstName">Prenume</Label>
-            <Input
-              id="edit-firstName"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              placeholder="Prenume"
-              required
-            />
-          </div>
           <PermissionGate perm="athletes.avatar.upload">
             <div className="space-y-2">
               <Label htmlFor="edit-avatar">Poză (opțional)</Label>
@@ -170,7 +168,11 @@ export function EditAthleteDialog({ athlete, parents, coaches, onEdit, onUploadA
                       type="button"
                       variant="ghost" 
                       size="sm" 
-                      onClick={() => { setAvatarFile(null); setAvatarPreview(null) }}
+                      onClick={() => { 
+                        setAvatarFile(null); 
+                        setAvatarPreview(null);
+                        setDeleteAvatar(true);
+                      }}
                       className="mt-2 w-full text-destructive hover:text-destructive"
                     >
                       Șterge Poza
@@ -180,6 +182,16 @@ export function EditAthleteDialog({ athlete, parents, coaches, onEdit, onUploadA
               </div>
             </div>
           </PermissionGate>
+          <div className="space-y-2">
+            <Label htmlFor="edit-firstName">Prenume</Label>
+            <Input
+              id="edit-firstName"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              placeholder="Prenume"
+              required
+            />
+          </div>
           <div className="space-y-2">
             <Label htmlFor="edit-lastName">Nume</Label>
             <Input
