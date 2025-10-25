@@ -64,9 +64,9 @@ export function AthleteCard({ athlete, resultsCount, parents, coaches, onViewDet
             </div>
           </div>
           {coachName && (
-            <div className="flex flex-col items-end ml-2">
-              <span className="text-[10px] text-muted-foreground text-right">Antrenor:</span>
-              <span className="text-xs font-medium text-right">{coachName}</span>
+            <div className="flex items-center gap-1 ml-2 whitespace-nowrap">
+              <span className="text-[10px] text-muted-foreground">Antrenor:</span>
+              <span className="text-xs font-medium">{coachName}</span>
             </div>
           )}
         </div>
