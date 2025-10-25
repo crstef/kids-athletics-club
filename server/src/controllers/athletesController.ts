@@ -220,11 +220,12 @@ export const uploadAthleteAvatar = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'No file uploaded' });
     }
     const fileName = file.filename;
-    const publicUrl = `${req.protocol}://${req.get('host')}/uploads/athletes/${fileName}`;
+    // Use relative path instead of absolute URL for portability across domains
+    const avatarPath = `/uploads/athletes/${fileName}`;
 
     const result = await client.query(
       `UPDATE athletes SET avatar = $1 WHERE id = $2 RETURNING id, first_name, last_name, age, category, gender, date_of_birth, date_joined, avatar, coach_id, created_at`,
-      [publicUrl, id]
+      [avatarPath, id]
     );
 
     if (result.rows.length === 0) {
