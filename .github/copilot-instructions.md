@@ -267,6 +267,12 @@ NODE_ENV=development
 
 5. **Session storage**: `rememberMe=true` uses `localStorage`, `false` uses `sessionStorage` (clears on tab close).
 
+6. **SuperAdminLayout tabs**: SuperAdminLayout uses internal Tabs component with tab state managed by `superAdminActiveTab` prop. When adding new tabs:
+   - Add permission to `permission-tab-mapping.ts` in `PERMISSION_TO_TAB_MAP`
+   - Add corresponding `<TabsContent value="tab-id">` section in SuperAdminLayout
+   - Ensure backend has the permission seeded (check `server/src/routes/setup.ts`)
+   - Import any new components needed for the tab content
+
 ## Testing Guidelines
 
 - **Unit tests**: Pure functions (crypto, utils)
