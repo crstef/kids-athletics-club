@@ -305,12 +305,20 @@ function AppContent() {
   }, [])
 
   const coaches = useMemo(() => {
-    return (users || []).filter(u => u.role === 'coach')
-  }, [users])
+    // Find the 'coach' role from the roles list
+    const coachRole = (roles || []).find(r => r.name === 'coach')
+    if (!coachRole) return []
+    // Filter users who have the coach role ID
+    return (users || []).filter(u => u.roleId === coachRole.id || u.role === 'coach')
+  }, [users, roles])
 
   const parents = useMemo(() => {
-    return (users || []).filter(u => u.role === 'parent')
-  }, [users])
+    // Find the 'parent' role from the roles list
+    const parentRole = (roles || []).find(r => r.name === 'parent')
+    if (!parentRole) return []
+    // Filter users who have the parent role ID
+    return (users || []).filter(u => u.roleId === parentRole.id || u.role === 'parent')
+  }, [users, roles])
 
   const handleAddAthlete = async (athleteData: Omit<Athlete, 'id' | 'avatar'>, file?: File | null) => {
     try {
@@ -742,22 +750,25 @@ function AppContent() {
 
   const myAthletes = useMemo(() => {
     if (!currentUser || !athletes) return []
-    // SuperAdmin vede toți atleții
-    if (currentUser.role === 'superadmin') {
+    
+    // Check if user has permission to view athletes
+    if (!hasPermission('athletes.view')) return []
+    
+    // Check if user can view ALL athletes (typically superadmin or custom admin roles)
+    if (hasPermission('athletes.view.all')) {
       return athletes
     }
-    // Pentru ceilalți, dacă au permisiunea de a vedea atleți, afișăm doar cei aferenți
-    if (hasPermission('athletes.view')) {
-      if (currentUser.role === 'coach') {
-        return athletes.filter(a => a.coachId === currentUser.id)
-      }
-      if (currentUser.role === 'parent') {
-        return athletes.filter(a => a.parentId === currentUser.id)
-      }
-      if (currentUser.role === 'athlete') {
-        return athletes.filter(a => a.id === (currentUser as any).athleteId)
-      }
+    
+    // Otherwise, filter by relationship (athletes.view.own permission)
+    // This applies to coaches, parents, and athletes themselves
+    if (hasPermission('athletes.view.own')) {
+      return athletes.filter(a => 
+        a.coachId === currentUser.id ||       // Coach's athletes
+        a.parentId === currentUser.id ||      // Parent's children
+        a.id === (currentUser as any).athleteId  // Athlete viewing themselves
+      )
     }
+    
     return []
   }, [athletes, currentUser, hasPermission])
 
@@ -814,20 +825,32 @@ function AppContent() {
 
   const pendingRequestsCount = useMemo(() => {
     if (!currentUser) return 0
-    if (currentUser.role === 'coach') {
-      const coachApprovals = (approvalRequests || []).filter(r => r.coachId === currentUser.id && r.status === 'pending').length
-      const coachAccessRequests = (accessRequests || []).filter(r => r.coachId === currentUser.id && r.status === 'pending').length
-      return coachApprovals + coachAccessRequests
-    }
-    if (currentUser.role === 'superadmin') {
+    
+    // Check if user can view ALL requests (typically superadmin)
+    if (hasPermission('requests.view.all')) {
       return (approvalRequests || []).filter(r => r.status === 'pending').length
     }
+    
+    // Check if user can view their OWN requests (typically coach)
+    if (hasPermission('requests.view.own')) {
+      const coachApprovals = (approvalRequests || []).filter(
+        r => r.coachId === currentUser.id && r.status === 'pending'
+      ).length
+      const coachAccessRequests = (accessRequests || []).filter(
+        r => r.coachId === currentUser.id && r.status === 'pending'
+      ).length
+      return coachApprovals + coachAccessRequests
+    }
+    
     return 0
-  }, [accessRequests, approvalRequests, currentUser])
+  }, [accessRequests, approvalRequests, currentUser, hasPermission])
 
   const currentAthlete = useMemo(() => {
-    if (!currentUser || currentUser.role !== 'athlete') return null
-    return (athletes || []).find(a => a.id === (currentUser as any).athleteId) || null
+    if (!currentUser) return null
+    // Check if user has an athleteId property (indicates they are an athlete)
+    const athleteId = (currentUser as any).athleteId
+    if (!athleteId) return null
+    return (athletes || []).find(a => a.id === athleteId) || null
   }, [currentUser, athletes])
 
   const handleViewAthleteDetails = (athlete: Athlete) => {
