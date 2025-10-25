@@ -89,10 +89,14 @@ const initializeData = async (req, res) => {
       ('users.edit', 'Poate edita utilizatori existenți', NOW(), NOW()),
       ('users.delete', 'Poate șterge utilizatori', NOW(), NOW()),
       ('athletes.view', 'Poate vizualiza atleți', NOW(), NOW()),
+      ('athletes.view.all', 'Poate vizualiza toți atleții din sistem', NOW(), NOW()),
+      ('athletes.view.own', 'Poate vizualiza doar atleții proprii (antrenor/părinte)', NOW(), NOW()),
       ('athletes.create', 'Poate adăuga atleți noi', NOW(), NOW()),
       ('athletes.edit', 'Poate edita datele atleților', NOW(), NOW()),
       ('athletes.delete', 'Poate șterge atleți', NOW(), NOW()),
       ('results.view', 'Poate vizualiza rezultate', NOW(), NOW()),
+      ('results.view.all', 'Poate vizualiza toate rezultatele din sistem', NOW(), NOW()),
+      ('results.view.own', 'Poate vizualiza doar rezultatele atleților proprii', NOW(), NOW()),
       ('results.create', 'Poate adăuga rezultate noi', NOW(), NOW()),
       ('results.edit', 'Poate edita rezultate', NOW(), NOW()),
       ('results.delete', 'Poate șterge rezultate', NOW(), NOW()),
@@ -121,10 +125,13 @@ const initializeData = async (req, res) => {
       ('dashboards.create', 'Poate crea dashboards noi', NOW(), NOW()),
       ('dashboards.edit', 'Poate edita dashboards', NOW(), NOW()),
       ('dashboards.delete', 'Poate șterge dashboards', NOW(), NOW()),
-      ('dashboards.assign', 'Poate atribui dashboards la roluri', NOW(), NOW())
+      ('dashboards.assign', 'Poate atribui dashboards la roluri', NOW(), NOW()),
+      ('users.view.all', 'Poate vizualiza toți utilizatorii', NOW(), NOW()),
+      ('requests.view.all', 'Poate vizualiza toate cererile', NOW(), NOW()),
+      ('requests.view.own', 'Poate vizualiza doar cererile proprii', NOW(), NOW())
       ON CONFLICT (name) DO NOTHING
     `);
-        results.permissions = 43;
+        results.permissions = 48;
         // 3. Associate all permissions to superadmin role
         const superadminPerms = await client.query(`
       INSERT INTO role_permissions (role_id, permission_id, granted_at)
@@ -145,12 +152,13 @@ const initializeData = async (req, res) => {
       AND p.name IN (
         'dashboard.view', 'dashboard.view.coach',
         'users.view',
-        'athletes.view', 'athletes.create', 'athletes.edit', 'athletes.delete',
+        'athletes.view', 'athletes.view.own', 'athletes.create', 'athletes.edit', 'athletes.delete',
         'athletes.avatar.view', 'athletes.avatar.upload',
-        'results.view', 'results.create', 'results.edit', 'results.delete',
+        'results.view', 'results.view.own', 'results.create', 'results.edit', 'results.delete',
         'events.view', 'events.create', 'events.edit', 'events.delete',
         'messages.view', 'messages.create',
         'access_requests.view', 'access_requests.approve',
+        'requests.view.own',
         'probes.view', 'probes.manage',
         'age_categories.view', 'age_categories.manage'
       )
@@ -165,9 +173,9 @@ const initializeData = async (req, res) => {
       WHERE r.name = 'parent'
       AND p.name IN (
         'dashboard.view', 'dashboard.view.parent',
-        'athletes.view',
+        'athletes.view', 'athletes.view.own',
         'athletes.avatar.view',
-        'results.view',
+        'results.view', 'results.view.own',
         'events.view',
         'messages.view', 'messages.create',
         'access_requests.view'
@@ -236,18 +244,15 @@ const initializeData = async (req, res) => {
       ('100m garduri', 'Alergare 100m cu garduri', NOW(), NOW())
     `);
         results.probes = 15;
-        // 3. Insert dashboards
+        // 3. Insert dashboards - UNIFIED SYSTEM: One layout for all roles
         const dashboardsResult = await client.query(`
       INSERT INTO dashboards (name, display_name, description, component_name, icon, is_active, is_system, created_at, updated_at) VALUES
-      ('SuperAdminDashboard', 'Admin Dashboard', 'Panoul de control pentru administrator', 'SuperAdminDashboard', 'LayoutDashboard', true, true, NOW(), NOW()),
-      ('CoachDashboard', 'Coach Dashboard', 'Panoul de control pentru antrenor', 'CoachDashboard', 'Users', true, true, NOW(), NOW()),
-      ('ParentDashboard', 'Parent Dashboard', 'Panoul de control pentru părinte', 'ParentDashboard', 'UserCircle', true, true, NOW(), NOW()),
-      ('AthleteDashboard', 'Athlete Dashboard', 'Panoul de control pentru atlet', 'AthleteDashboard', 'Trophy', true, true, NOW(), NOW())
+      ('UnifiedDashboard', 'Dashboard', 'Panoul de control universal - afișarea este controlată de permisiuni', 'UnifiedLayout', 'LayoutDashboard', true, true, NOW(), NOW())
       ON CONFLICT (name) DO NOTHING
       RETURNING id
     `);
         results.dashboardsInserted = dashboardsResult.rowCount || 0;
-        // 9. Populate role_dashboards - assign each role their default dashboard
+        // 9. Populate role_dashboards - assign UnifiedLayout to ALL roles
         if (dashboardsResult.rowCount && dashboardsResult.rowCount > 0) {
             const roleDashboardsResult = await client.query(`
         INSERT INTO role_dashboards (role_id, dashboard_id, is_default, sort_order, created_at, updated_at)
@@ -260,10 +265,7 @@ const initializeData = async (req, res) => {
           NOW() as updated_at
         FROM roles r
         CROSS JOIN dashboards d
-        WHERE (r.name = 'superadmin' AND d.name = 'SuperAdminDashboard')
-           OR (r.name = 'coach' AND d.name = 'CoachDashboard')
-           OR (r.name = 'parent' AND d.name = 'ParentDashboard')
-           OR (r.name = 'athlete' AND d.name = 'AthleteDashboard')
+        WHERE d.name = 'UnifiedDashboard'
         ON CONFLICT (role_id, dashboard_id) DO NOTHING
       `);
             results.roleDashboardsCreated = roleDashboardsResult.rowCount || 0;
@@ -1214,10 +1216,8 @@ const resetDatabase = async (req, res) => {
             ['results-delete', 'Ștergere Rezultat', 'Delete result', 'action', 'Trash2', 3],
             ['messages', 'Mesaje', 'Messaging tab', 'tab', 'MessageSquare', 3],
             ['messages-send', 'Trimitere Mesaj', 'Send message', 'action', 'Send', 1],
-            ['events', 'Evenimente', 'Events tab', 'tab', 'Calendar', 4],
-            ['events-create', 'Creare Eveniment', 'Create event', 'action', 'Plus', 1],
-            ['probes', 'Probe', 'Specializations/probes tab', 'tab', 'Zap', 5],
-            ['probes-manage', 'Gestionare Probe', 'Manage probes', 'action', 'Settings', 1],
+            ['events', 'Probe', 'Event types management tab', 'tab', 'Calendar', 4],
+            ['events-create', 'Creare Probă', 'Create event type', 'action', 'Plus', 1],
             ['access-requests', 'Cereri de Acces', 'Access requests tab', 'tab', 'Lock', 6],
             ['access-requests-approve', 'Aprobare Cereri', 'Approve/reject requests', 'action', 'CheckCircle', 1],
             ['categories', 'Categorii', 'Age categories tab', 'tab', 'Grid', 7],
@@ -1247,7 +1247,7 @@ const resetDatabase = async (req, res) => {
       WHERE r.name = 'superadmin'
       ON CONFLICT DO NOTHING
     `);
-        // Coach - Athletes, Results, Messages, Probes, Access Requests
+        // Coach - Athletes, Results, Messages, Events, Access Requests
         await client.query(`
       INSERT INTO component_permissions (role_id, component_id, can_view, can_create, can_edit, can_delete, created_at, updated_at)
       SELECT r.id, c.id, true, true, true, false, NOW(), NOW()
@@ -1255,7 +1255,7 @@ const resetDatabase = async (req, res) => {
       WHERE r.name = 'coach'
         AND c.name IN ('dashboard', 'athletes', 'athletes-create', 'athletes-edit', 
                        'results', 'results-create', 'results-edit', 'messages', 'messages-send',
-                       'probes', 'access-requests', 'access-requests-approve')
+                       'events', 'events-create', 'access-requests', 'access-requests-approve')
       ON CONFLICT DO NOTHING
     `);
         // Parent - Athletes, Results, Messages (view only, can send messages)

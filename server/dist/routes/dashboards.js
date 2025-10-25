@@ -22,4 +22,7 @@ router.get('/role/:roleId', dashboardsController_1.getRoleDashboards);
 router.post('/assign', (0, auth_1.requireRole)('superadmin'), dashboardsController_1.assignDashboardToRole);
 // Remove dashboard from role (superadmin only)
 router.delete('/role/:roleId/dashboard/:dashboardId', (0, auth_1.requireRole)('superadmin'), dashboardsController_1.removeDashboardFromRole);
+// User widget preferences
+router.get('/widgets/my', dashboardsController_1.getUserWidgets);
+router.post('/widgets/my', dashboardsController_1.saveUserWidgets);
 exports.default = router;

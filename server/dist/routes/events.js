@@ -8,5 +8,6 @@ const router = (0, express_1.Router)();
 router.use(auth_1.authenticate);
 router.get('/', (0, authorizeDb_1.authorizeDb)('events.view'), eventsController_1.getAllEvents);
 router.post('/', (0, authorizeDb_1.authorizeDb)('events.create'), eventsController_1.createEvent);
+router.put('/:id', (0, authorizeDb_1.authorizeDb)('events.edit'), eventsController_1.updateEvent);
 router.delete('/:id', (0, authorizeDb_1.authorizeDb)('events.delete'), eventsController_1.deleteEvent);
 exports.default = router;
