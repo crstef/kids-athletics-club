@@ -38,7 +38,7 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
       if (containerRef.current) {
         const { width } = containerRef.current.getBoundingClientRect()
         if (width > 0) {
-          setDimensions({ width, height: 400 })
+          setDimensions({ width, height: 250 })
         }
       }
     }
@@ -51,7 +51,7 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
       for (const entry of entries) {
         const { width } = entry.contentRect
         if (width > 0) {
-          setDimensions({ width, height: 400 })
+          setDimensions({ width, height: 250 })
         }
       }
     })
@@ -120,7 +120,15 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
     g.append('g')
       .call(d3.axisLeft(y)
         .ticks(8)
-        .tickFormat(d => formatResult(d as number, unit)))
+        .tickFormat(d => {
+          const val = d as number
+          if (unit === 'seconds') {
+            const mins = Math.floor(val / 60)
+            const secs = Math.floor(val % 60)
+            return `${mins}:${secs.toString().padStart(2, '0')}`
+          }
+          return formatResult(val, unit)
+        }))
       .selectAll('text')
       .style('font-size', '12px')
 
@@ -146,9 +154,23 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
     g.append('path')
       .datum(sortedData)
       .attr('fill', 'none')
-      .attr('stroke', 'hsl(217 91% 60%)')
+      .attr('stroke', 'hsl(var(--primary))')
       .attr('stroke-width', 2.5)
       .attr('d', line)
+
+    // Add dots on data points
+    g.selectAll('.dot')
+      .data(sortedData)
+      .enter()
+      .append('circle')
+      .attr('class', 'dot')
+      .attr('cx', d => x(new Date(d.date)))
+      .attr('cy', d => y(d.value))
+      .attr('r', 4)
+      .attr('fill', 'hsl(var(--primary))')
+      .attr('stroke', 'white')
+      .attr('stroke-width', 2)
+      .style('cursor', 'pointer')
 
     // Create tooltip
     const tooltipContainer = d3.select(containerRef.current)

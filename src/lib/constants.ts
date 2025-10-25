@@ -40,12 +40,18 @@ export function getAvatarColor(id: string): string {
 
 export function formatResult(value: number, unit: 'seconds' | 'meters' | 'points'): string {
   if (unit === 'seconds') {
-    if (value < 60) {
-      return `${value.toFixed(2)}s`
+    const totalSeconds = Math.floor(value);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}min ${seconds}s`;
+    } else if (minutes > 0) {
+      return `${minutes}min ${seconds}s`;
+    } else {
+      return `${value.toFixed(2)}s`;
     }
-    const minutes = Math.floor(value / 60)
-    const seconds = (value % 60).toFixed(2)
-    return `${minutes}min ${seconds}s`
   }
   if (unit === 'points') {
     return `${value.toFixed(0)} puncte`
