@@ -28,6 +28,7 @@ import { AthleteDetailsDialog } from '@/components/AthleteDetailsDialog'
 // Widget system
 import { WIDGET_REGISTRY, userCanAccessWidget } from '@/lib/widgetRegistry'
 import { useAuth } from '@/lib/auth-context'
+import { apiClient } from '@/lib/api-client'
 
 // Types
 import { User, Role, Permission, AgeCategoryCustom, EventTypeCustom, Result, Athlete, AccessRequest, Message } from '@/lib/types'
@@ -175,6 +176,30 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
       setEnabledWidgets(enabled)
     }
   }, [userWidgets])
+
+  // Save widgets to backend when they change
+  useEffect(() => {
+    if (enabledWidgets.length > 0) {
+      const saveWidgets = async () => {
+        try {
+          await apiClient.request('/dashboards/widgets/my', {
+            method: 'POST',
+            body: JSON.stringify({
+              widgets: enabledWidgets.map((widgetName, index) => ({
+                widgetName,
+                isEnabled: true,
+                sortOrder: index,
+                config: {}
+              }))
+            })
+          })
+        } catch (err) {
+          console.error('Failed to save widgets:', err)
+        }
+      }
+      saveWidgets()
+    }
+  }, [enabledWidgets])
 
   const toggleWidget = (widgetId: string) => {
     setEnabledWidgets(prev => 

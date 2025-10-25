@@ -7,7 +7,9 @@ import {
   deleteDashboard,
   getRoleDashboards,
   assignDashboardToRole,
-  removeDashboardFromRole
+  removeDashboardFromRole,
+  getUserWidgets,
+  saveUserWidgets
 } from '../controllers/dashboardsController';
 import { authenticate, requireRole } from '../middleware/auth';
 
@@ -39,5 +41,9 @@ router.post('/assign', requireRole('superadmin'), assignDashboardToRole);
 
 // Remove dashboard from role (superadmin only)
 router.delete('/role/:roleId/dashboard/:dashboardId', requireRole('superadmin'), removeDashboardFromRole);
+
+// User widget preferences
+router.get('/widgets/my', getUserWidgets);
+router.post('/widgets/my', saveUserWidgets);
 
 export default router;

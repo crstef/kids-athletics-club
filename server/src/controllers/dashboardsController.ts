@@ -313,3 +313,66 @@ export const removeDashboardFromRole = async (req: AuthRequest, res: Response) =
     client.release();
   }
 };
+
+// User widget preferences
+export const getUserWidgets = async (req: AuthRequest, res: Response) => {
+  const client = await pool.connect();
+  try {
+    const userId = req.user?.userId;
+    
+    const result = await client.query(`
+      SELECT widget_name, is_enabled, sort_order, config
+      FROM user_widgets
+      WHERE user_id = $1
+      ORDER BY sort_order, widget_name
+    `, [userId]);
+    
+    res.json(result.rows.map(w => ({
+      widgetName: w.widget_name,
+      isEnabled: w.is_enabled,
+      sortOrder: w.sort_order,
+      config: w.config
+    })));
+  } catch (error) {
+    console.error('Get user widgets error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  } finally {
+    client.release();
+  }
+};
+
+export const saveUserWidgets = async (req: AuthRequest, res: Response) => {
+  const client = await pool.connect();
+  try {
+    const userId = req.user?.userId;
+    const { widgets } = req.body;
+    
+    if (!Array.isArray(widgets)) {
+      return res.status(400).json({ error: 'Widgets must be an array' });
+    }
+    
+    await client.query('BEGIN');
+    
+    // Delete existing widgets for user
+    await client.query('DELETE FROM user_widgets WHERE user_id = $1', [userId]);
+    
+    // Insert new widget preferences
+    for (const widget of widgets) {
+      await client.query(
+        `INSERT INTO user_widgets (user_id, widget_name, is_enabled, sort_order, config)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [userId, widget.widgetName, widget.isEnabled ?? true, widget.sortOrder ?? 0, widget.config ?? {}]
+      );
+    }
+    
+    await client.query('COMMIT');
+    
+    res.json({ message: 'Widget preferences saved successfully' });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Save user widgets error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  } finally {
+    client.release();
+  }
+};
