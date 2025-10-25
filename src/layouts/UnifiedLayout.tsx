@@ -182,19 +182,16 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
     if (enabledWidgets.length > 0) {
       const saveWidgets = async () => {
         try {
-          await apiClient.request('/dashboards/widgets/my', {
-            method: 'POST',
-            body: JSON.stringify({
-              widgets: enabledWidgets.map((widgetName, index) => ({
-                widgetName,
-                isEnabled: true,
-                sortOrder: index,
-                config: {}
-              }))
-            })
-          })
-        } catch (err) {
-          console.error('Failed to save widgets:', err)
+          await apiClient.saveUserWidgets(
+            enabledWidgets.map((widgetName, index) => ({
+              widgetName,
+              isEnabled: true,
+              sortOrder: index,
+              config: {}
+            }))
+          )
+        } catch (error) {
+          console.error('Failed to save widgets:', error)
         }
       }
       saveWidgets()

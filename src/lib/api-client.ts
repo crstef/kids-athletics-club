@@ -416,6 +416,17 @@ class ApiClient {
     });
   }
 
+  async getUserWidgets() {
+    return this.request<any[]>('/dashboards/widgets/my');
+  }
+
+  async saveUserWidgets(widgets: any[]) {
+    return this.request('/dashboards/widgets/my', {
+      method: 'POST',
+      body: JSON.stringify({ widgets }),
+    });
+  }
+
   // Role Permissions
   async getRolePermissions(roleId: string) {
     return this.request(`/roles/${roleId}/permissions`);

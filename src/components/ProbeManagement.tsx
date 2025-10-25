@@ -8,7 +8,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Plus, PencilSimple, Trash, Target } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { EventTypeCustom } from '../lib/types'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table'
 
 interface ProbeManagementProps {
@@ -33,8 +32,8 @@ export function ProbeManagement({
   
   const [newProbeName, setNewProbeName] = useState('')
   const [newProbeDescription, setNewProbeDescription] = useState('')
-  const [newProbeUnit, setNewProbeUnit] = useState<'seconds' | 'meters' | 'points'>('points')
-  const [newProbeCategory, setNewProbeCategory] = useState<'running' | 'jumping' | 'throwing' | 'other'>('other');
+  const [newProbeUnit, setNewProbeUnit] = useState<string>('points')
+  const [newProbeCategory, setNewProbeCategory] = useState<string>('other')
 
 
   const handleAdd = () => {
@@ -45,8 +44,8 @@ export function ProbeManagement({
     onAddProbe({
       name: newProbeName.trim(),
       description: newProbeDescription.trim() || undefined,
-      unit: newProbeUnit,
-      category: newProbeCategory
+      unit: newProbeUnit as 'seconds' | 'meters' | 'points',
+      category: newProbeCategory as 'running' | 'jumping' | 'throwing' | 'other'
     })
     setAddDialogOpen(false)
   }
@@ -59,8 +58,8 @@ export function ProbeManagement({
     onUpdateProbe(selectedProbe.id, {
       name: newProbeName.trim(),
       description: newProbeDescription.trim() || undefined,
-      unit: newProbeUnit,
-      category: newProbeCategory
+      unit: newProbeUnit as 'seconds' | 'meters' | 'points',
+      category: newProbeCategory as 'running' | 'jumping' | 'throwing' | 'other'
     })
     setEditDialogOpen(false)
     setSelectedProbe(null)
@@ -118,48 +117,25 @@ export function ProbeManagement({
                 <Label htmlFor="unit" className="text-right">
                   Unitate
                 </Label>
-                <div className="col-span-3 space-y-2">
-                  <Select value={newProbeUnit} onValueChange={(value) => setNewProbeUnit(value as 'seconds' | 'meters' | 'points')}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selectează unitatea" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="seconds">Secunde</SelectItem>
-                      <SelectItem value="meters">Metri</SelectItem>
-                      <SelectItem value="points">Puncte</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Input 
-                    placeholder="sau scrie unitate personalizată..." 
-                    value={newProbeUnit}
-                    onChange={(e) => setNewProbeUnit(e.target.value)}
-                    className="text-sm"
-                  />
-                </div>
+                <Input 
+                  id="unit"
+                  placeholder="ex: minute, seconds, meters, points" 
+                  value={newProbeUnit}
+                  onChange={(e) => setNewProbeUnit(e.target.value)}
+                  className="col-span-3"
+                />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="category" className="text-right">
                   Categorie
                 </Label>
-                <div className="col-span-3 space-y-2">
-                  <Select value={newProbeCategory} onValueChange={(value) => setNewProbeCategory(value as 'running' | 'jumping' | 'throwing' | 'other')}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selectează categoria" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="running">Alergare</SelectItem>
-                      <SelectItem value="jumping">Sărituri</SelectItem>
-                      <SelectItem value="throwing">Aruncări</SelectItem>
-                      <SelectItem value="other">Altele</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Input 
-                    placeholder="sau scrie categorie personalizată..." 
-                    value={newProbeCategory}
-                    onChange={(e) => setNewProbeCategory(e.target.value)}
-                    className="text-sm"
-                  />
-                </div>
+                <Input 
+                  id="category"
+                  placeholder="ex: short track, long distance, speed" 
+                  value={newProbeCategory}
+                  onChange={(e) => setNewProbeCategory(e.target.value)}
+                  className="col-span-3"
+                />
               </div>
             </div>
             <DialogFooter>
@@ -224,32 +200,25 @@ export function ProbeManagement({
               <Label htmlFor="unit-edit" className="text-right">
                 Unitate
               </Label>
-              <Select value={newProbeUnit} onValueChange={(value) => setNewProbeUnit(value as 'seconds' | 'meters' | 'points')}>
-                <SelectTrigger className="col-span-3">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="seconds">Secunde</SelectItem>
-                  <SelectItem value="meters">Metri</SelectItem>
-                  <SelectItem value="points">Puncte</SelectItem>
-                </SelectContent>
-              </Select>
+              <Input 
+                id="unit-edit"
+                placeholder="ex: minute, seconds, meters, points" 
+                value={newProbeUnit}
+                onChange={(e) => setNewProbeUnit(e.target.value)}
+                className="col-span-3"
+              />
             </div>
              <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="category-edit" className="text-right">
                 Categorie
               </Label>
-              <Select value={newProbeCategory} onValueChange={(value) => setNewProbeCategory(value as 'running' | 'jumping' | 'throwing' | 'other')}>
-                <SelectTrigger className="col-span-3">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="running">Alergare</SelectItem>
-                  <SelectItem value="jumping">Sărituri</SelectItem>
-                  <SelectItem value="throwing">Aruncări</SelectItem>
-                  <SelectItem value="other">Altele</SelectItem>
-                </SelectContent>
-              </Select>
+              <Input 
+                id="category-edit"
+                placeholder="ex: short track, long distance, speed" 
+                value={newProbeCategory}
+                onChange={(e) => setNewProbeCategory(e.target.value)}
+                className="col-span-3"
+              />
             </div>
           </div>
           <DialogFooter>
