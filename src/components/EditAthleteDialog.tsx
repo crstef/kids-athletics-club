@@ -133,8 +133,16 @@ export function EditAthleteDialog({ athlete, parents, coaches, onEdit, onUploadA
             <div className="space-y-2">
               <Label htmlFor="edit-avatar">Poză (opțional)</Label>
               <div className="flex items-center gap-4">
-                {avatarPreview && (
-                  <img src={avatarPreview} alt="preview" className="w-20 h-20 rounded-full object-cover border-2 border-primary" />
+                {(avatarPreview || athlete.avatar) && (
+                  <img 
+                    src={avatarPreview || athlete.avatar || ''} 
+                    alt="preview" 
+                    className="w-20 h-20 rounded-full object-cover border-2 border-primary" 
+                    onError={(e) => {
+                      console.error('Image load error:', e);
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
                 )}
                 <div className="flex-1">
                   <div className="relative">
