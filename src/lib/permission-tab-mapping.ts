@@ -102,17 +102,15 @@ export function generateTabsFromPermissions(userPermissions: string[]): TabConfi
   const hasAllPermissions = userPermissions.includes('*')
   
   if (hasAllPermissions) {
-    // Include all tabs for superadmin
-    for (const tabConfig of Object.values(PERMISSION_TO_TAB_MAP)) {
+    // SuperAdmin gets all tabs
+    return Object.values(PERMISSION_TO_TAB_MAP).sort((a, b) => a.order - b.order)
+  }
+  
+  // For non-superadmin users, add tabs for each specific permission they have
+  for (const permission of userPermissions) {
+    if (PERMISSION_TO_TAB_MAP[permission]) {
+      const tabConfig = PERMISSION_TO_TAB_MAP[permission]
       tabs.set(tabConfig.id, tabConfig)
-    }
-  } else {
-    // Add tabs for each specific permission the user has
-    for (const permission of userPermissions) {
-      if (PERMISSION_TO_TAB_MAP[permission]) {
-        const tabConfig = PERMISSION_TO_TAB_MAP[permission]
-        tabs.set(tabConfig.id, tabConfig)
-      }
     }
   }
 
