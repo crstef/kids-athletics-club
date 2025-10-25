@@ -1,7 +1,7 @@
 {
-    "name": "spark-template",
+    "name": "kids-athletics-club",
     "private": true,
-    "version": "0.0.0",
+    "version": "1.0.0",
     "type": "module",
     "scripts": {
         "prebuild": "node scripts/ensure-dev-index.cjs",

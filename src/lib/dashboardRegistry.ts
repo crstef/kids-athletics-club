@@ -1,32 +1,34 @@
 /**
  * Dashboard Component Registry
  * Maps component names from database to actual React components
+ * 
+ * UNIFIED SYSTEM: All users now use UnifiedLayout regardless of role.
+ * Permissions control what they see, not separate layouts.
  */
 
-import SuperAdminLayout from '@/layouts/SuperAdminLayout'
-import CoachLayout from '@/layouts/CoachLayout'
-import ParentLayout from '@/layouts/ParentLayout'
-import AthleteLayout from '@/layouts/AthleteLayout'
+import UnifiedLayout from '@/layouts/UnifiedLayout'
 import AthletePerformanceDashboard from '@/components/dashboards/AthletePerformanceDashboard'
 import CoachTeamDashboard from '@/components/dashboards/CoachTeamDashboard'
 import ParentProgressDashboard from '@/components/dashboards/ParentProgressDashboard'
 
 export const DASHBOARD_REGISTRY: Record<string, React.ComponentType<any>> = {
-  'SuperAdminLayout': SuperAdminLayout,
-  'CoachLayout': CoachLayout,
-  'ParentLayout': ParentLayout,
-  'AthleteLayout': AthleteLayout,
+  // Unified layout for ALL users (permission-based visibility)
+  'UnifiedLayout': UnifiedLayout,
   
-  // New modern dashboards
+  // Legacy names - all map to UnifiedLayout now
+  'SuperAdminLayout': UnifiedLayout,
+  'CoachLayout': UnifiedLayout,
+  'ParentLayout': UnifiedLayout,
+  'AthleteLayout': UnifiedLayout,
+  'SuperAdminDashboard': UnifiedLayout,
+  'CoachDashboard': UnifiedLayout,
+  'ParentDashboard': UnifiedLayout,
+  'AthleteDashboard': UnifiedLayout,
+  
+  // Alternative dashboards (can still be assigned)
   'AthletePerformanceDashboard': AthletePerformanceDashboard,
   'CoachTeamDashboard': CoachTeamDashboard,
   'ParentProgressDashboard': ParentProgressDashboard,
-  
-  // Legacy names support (from migration)
-  'SuperAdminDashboard': SuperAdminLayout,
-  'CoachDashboard': CoachLayout,
-  'ParentDashboard': ParentLayout,
-  'AthleteDashboard': AthleteLayout,
 }
 
 /**

@@ -200,13 +200,11 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
     return (
       <div className="space-y-6">
         <div className="relative">
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-primary/5 to-accent/10 blur-3xl -z-10" />
+          <div className="absolute inset-0 bg-linear-to-r from-primary/10 via-primary/5 to-accent/10 blur-3xl -z-10" />
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-3xl font-bold mb-2 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent" style={{ fontFamily: 'Outfit', letterSpacing: '-0.02em' }}>
-                Dashboard {currentUser.role === 'superadmin' ? 'SuperAdmin' : 
-                          currentUser.role === 'coach' ? 'Antrenor' : 
-                          currentUser.role === 'parent' ? 'Părinte' : 'Atlet'}
+              <h2 className="text-3xl font-bold mb-2 bg-linear-to-r from-primary to-accent bg-clip-text text-transparent" style={{ fontFamily: 'Outfit', letterSpacing: '-0.02em' }}>
+                Dashboard
               </h2>
               <p className="text-muted-foreground">
                 Bine ai revenit, {currentUser.firstName}!
@@ -246,7 +244,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+    <div className="flex flex-col min-h-screen bg-linear-to-br from-background via-background to-muted/20">
       <Toaster />
       
       {/* Header */}
@@ -305,10 +303,8 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
                   <h2 className="text-2xl font-bold">Atleți</h2>
                   {hasPermission('athletes.create') && (
                     <AddAthleteDialog
-                      onAddAthlete={props.handleAddAthlete}
+                      onAdd={props.handleAddAthlete}
                       coaches={coaches}
-                      parents={parents}
-                      ageCategories={ageCategories}
                     />
                   )}
                 </div>
@@ -343,10 +339,11 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
                       key={athlete.id}
                       athlete={athlete}
                       resultsCount={getAthleteResultsCount(athlete.id)}
-                      onView={props.handleViewAthleteDetails}
+                      onViewDetails={props.handleViewAthleteDetails}
                       onViewChart={props.handleViewAthleteChart}
                       onEdit={hasPermission('athletes.edit') ? props.handleEditAthlete : undefined}
-                      onDelete={hasPermission('athletes.delete') ? () => setDeleteAthleteId(athlete.id) : undefined}
+                      onDelete={(id: string) => setDeleteAthleteId(id)}
+                      hideDelete={!hasPermission('athletes.delete')}
                       onUploadAvatar={hasPermission('athletes.avatar.upload') ? props.handleUploadAthleteAvatar : undefined}
                     />
                   ))}
@@ -361,6 +358,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
               <UserManagement
                 users={users}
                 roles={roles}
+                currentUserId={currentUser.id}
                 onAddUser={props.handleAddUser}
                 onUpdateUser={props.handleUpdateUser}
                 onDeleteUser={props.handleDeleteUser}
@@ -371,9 +369,10 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
           {/* Roles Tab */}
           {hasPermission('roles.view') && (
             <TabsContent value="roles" className="mt-6">
-              <SystemManagement
+              <RoleManagement
                 roles={roles}
                 permissions={permissions}
+                currentUserId={currentUser.id}
                 onAddRole={props.handleAddRole}
                 onUpdateRole={props.handleUpdateRole}
                 onDeleteRole={props.handleDeleteRole}
@@ -386,6 +385,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
             <TabsContent value="permissions" className="mt-6">
               <PermissionsSystem
                 permissions={permissions}
+                currentUserId={currentUser.id}
                 onAddPermission={props.handleAddPermission}
                 onUpdatePermission={props.handleUpdatePermission}
                 onDeletePermission={props.handleDeletePermission}
@@ -398,9 +398,10 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
             <TabsContent value="categories" className="mt-6">
               <AgeCategoryManagement
                 ageCategories={ageCategories}
-                onAddAgeCategory={props.handleAddAgeCategory}
-                onUpdateAgeCategory={props.handleUpdateAgeCategory}
-                onDeleteAgeCategory={props.handleDeleteAgeCategory}
+                currentUserId={currentUser.id}
+                onAddCategory={props.handleAddAgeCategory}
+                onUpdateCategory={props.handleUpdateAgeCategory}
+                onDeleteCategory={props.handleDeleteAgeCategory}
               />
             </TabsContent>
           )}
@@ -410,8 +411,9 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
             <TabsContent value="events" className="mt-6">
               <ProbeManagement
                 probes={probes}
+                currentUserId={currentUser.id}
                 onAddProbe={props.handleAddProbe}
-                onEditProbe={props.handleEditProbe}
+                onUpdateProbe={props.handleEditProbe}
                 onDeleteProbe={props.handleDeleteProbe}
               />
             </TabsContent>
@@ -421,7 +423,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
           {hasPermission('messages.view') && (
             <TabsContent value="messages" className="mt-6">
               <MessagingPanel
-                currentUser={currentUser}
+                currentUserId={currentUser.id}
                 messages={messages}
                 users={users}
                 onSendMessage={props.handleSendMessage}
@@ -434,11 +436,10 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
           {hasPermission('access_requests.view') && (
             <TabsContent value="requests" className="mt-6">
               <CoachAccessRequests
-                currentUser={currentUser}
+                coachId={currentUser.id}
                 accessRequests={accessRequests}
                 athletes={athletes}
-                coaches={coaches}
-                onCreateRequest={props.handleCreateAccessRequest}
+                parents={parents}
                 onUpdateRequest={props.handleUpdateAccessRequest}
               />
             </TabsContent>
@@ -489,8 +490,8 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
           onAddResult={props.handleAddResult}
           onUpdateResult={props.handleUpdateResult}
           onDeleteResult={props.handleDeleteResult}
-          probes={probes}
-          activeTab={selectedAthleteTab}
+          onUploadAvatar={props.handleUploadAthleteAvatar}
+          defaultTab={selectedAthleteTab}
         />
       )}
 

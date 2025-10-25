@@ -258,19 +258,16 @@ export const initializeData = async (req: Request, res: Response) => {
     `);
     results.probes = 15;
 
-    // 3. Insert dashboards
+    // 3. Insert dashboards - UNIFIED SYSTEM: One layout for all roles
     const dashboardsResult = await client.query(`
       INSERT INTO dashboards (name, display_name, description, component_name, icon, is_active, is_system, created_at, updated_at) VALUES
-      ('SuperAdminDashboard', 'Admin Dashboard', 'Panoul de control pentru administrator', 'SuperAdminDashboard', 'LayoutDashboard', true, true, NOW(), NOW()),
-      ('CoachDashboard', 'Coach Dashboard', 'Panoul de control pentru antrenor', 'CoachDashboard', 'Users', true, true, NOW(), NOW()),
-      ('ParentDashboard', 'Parent Dashboard', 'Panoul de control pentru părinte', 'ParentDashboard', 'UserCircle', true, true, NOW(), NOW()),
-      ('AthleteDashboard', 'Athlete Dashboard', 'Panoul de control pentru atlet', 'AthleteDashboard', 'Trophy', true, true, NOW(), NOW())
+      ('UnifiedDashboard', 'Dashboard', 'Panoul de control universal - afișarea este controlată de permisiuni', 'UnifiedLayout', 'LayoutDashboard', true, true, NOW(), NOW())
       ON CONFLICT (name) DO NOTHING
       RETURNING id
     `);
     results.dashboardsInserted = dashboardsResult.rowCount || 0;
 
-    // 9. Populate role_dashboards - assign each role their default dashboard
+    // 9. Populate role_dashboards - assign UnifiedLayout to ALL roles
     if (dashboardsResult.rowCount && dashboardsResult.rowCount > 0) {
       const roleDashboardsResult = await client.query(`
         INSERT INTO role_dashboards (role_id, dashboard_id, is_default, sort_order, created_at, updated_at)
@@ -283,10 +280,7 @@ export const initializeData = async (req: Request, res: Response) => {
           NOW() as updated_at
         FROM roles r
         CROSS JOIN dashboards d
-        WHERE (r.name = 'superadmin' AND d.name = 'SuperAdminDashboard')
-           OR (r.name = 'coach' AND d.name = 'CoachDashboard')
-           OR (r.name = 'parent' AND d.name = 'ParentDashboard')
-           OR (r.name = 'athlete' AND d.name = 'AthleteDashboard')
+        WHERE d.name = 'UnifiedDashboard'
         ON CONFLICT (role_id, dashboard_id) DO NOTHING
       `);
       results.roleDashboardsCreated = roleDashboardsResult.rowCount || 0;
