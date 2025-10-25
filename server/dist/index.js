@@ -108,6 +108,7 @@ app.post('/api/setup/populate-role-dashboards', setup_1.populateRoleDashboards);
 app.get('/api/setup/complete', setup_1.completeSetup);
 app.get('/api/setup/reset-database', setup_1.resetDatabase);
 app.get('/api/setup/fix-role-dashboards-schema', setup_1.fixRoleDashboardsSchema);
+app.get('/api/setup/create-user-widgets-table', setup_1.createUserWidgetsTable);
 // Health check
 app.get('/health', (req, res) => {
     res.json({
