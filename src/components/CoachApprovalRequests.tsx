@@ -11,6 +11,7 @@ import type { User, Athlete, AccountApprovalRequest } from '@/lib/types'
 
 interface CoachApprovalRequestsProps {
   coachId: string
+  mode?: 'coach' | 'admin'
   users: User[]
   athletes: Athlete[]
   approvalRequests: AccountApprovalRequest[]
@@ -20,6 +21,7 @@ interface CoachApprovalRequestsProps {
 
 export function CoachApprovalRequests({
   coachId,
+  mode = 'coach',
   users,
   athletes,
   approvalRequests,
@@ -31,15 +33,28 @@ export function CoachApprovalRequests({
   const [selectedRequestId, setSelectedRequestId] = useState<string>('')
 
   const pendingRequests = useMemo(() => {
-    return approvalRequests.filter(
-      r => r.status === 'pending' && r.coachId === coachId && r.requestedRole === 'parent'
-    )
-  }, [approvalRequests, coachId])
+    return approvalRequests.filter((request) => {
+      if (request.status !== 'pending') return false
+
+      if (mode === 'admin') {
+        return true
+      }
+
+      return request.coachId === coachId && request.requestedRole === 'parent'
+    })
+  }, [approvalRequests, coachId, mode])
 
   const getAthleteName = (athleteId?: string) => {
     if (!athleteId) return null
     const athlete = athletes.find(a => a.id === athleteId)
     return athlete ? `${athlete.firstName} ${athlete.lastName}` : null
+  }
+
+  const getCoachName = (coachIdValue?: string) => {
+    if (!coachIdValue) return null
+    const coach = users.find(u => u.id === coachIdValue)
+    if (!coach) return null
+    return `${coach.firstName} ${coach.lastName}`
   }
 
   const handleApprove = (requestId: string) => {
@@ -108,7 +123,9 @@ export function CoachApprovalRequests({
             Cereri de Aprobare
           </CardTitle>
           <CardDescription>
-            Cereri de acces de la părinți pentru copiii lor
+            {mode === 'admin'
+              ? 'Nu există cereri de aprobare în așteptare'
+              : 'Cereri de acces de la părinți pentru copiii lor'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -133,7 +150,9 @@ export function CoachApprovalRequests({
             </Badge>
           </CardTitle>
           <CardDescription>
-            Părinți care solicită acces la datele copiilor lor
+            {mode === 'admin'
+              ? 'Cereri de aprobare trimise de utilizatori în așteptarea procesării'
+              : 'Părinți care solicită acces la datele copiilor lor'}
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
@@ -141,6 +160,7 @@ export function CoachApprovalRequests({
             {pendingRequests.map((request) => {
               const user = users.find(u => u.id === request.userId)
               const athleteName = getAthleteName(request.athleteId)
+              const coachName = getCoachName(request.coachId)
               
               if (!user) return null
 
@@ -156,6 +176,11 @@ export function CoachApprovalRequests({
                     {athleteName && (
                       <div className="text-sm font-medium bg-primary/10 px-3 py-1.5 rounded-full inline-block mt-2">
                         👤 Solicită acces pentru: <strong>{athleteName}</strong>
+                      </div>
+                    )}
+                    {mode === 'admin' && coachName && (
+                      <div className="text-sm text-muted-foreground">
+                        🧑‍🏫 Antrenor: <strong>{coachName}</strong>
                       </div>
                     )}
                     {request.approvalNotes && (

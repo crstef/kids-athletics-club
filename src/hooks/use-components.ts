@@ -43,13 +43,64 @@ export function useComponents() {
       const response = await apiClient.getMyComponents() as any
       
       if (response?.success && Array.isArray(response?.components)) {
-        const normalizedComponents = (response.components as Component[])
-          .filter((component) => component.name !== 'probes')
+        type NormalizedComponent = Component & { originalName?: string }
+
+        const mergeBoolean = (a?: boolean, b?: boolean) => Boolean(a) || Boolean(b)
+
+        const mergedByName = new Map<string, NormalizedComponent>()
+
+        for (const component of response.components as Component[]) {
+          const originalName = component.name
+          const canonicalName = originalName === 'probes' ? 'events' : originalName
+          const canonicalDisplayName = canonicalName === 'events' ? 'Probe' : component.displayName
+
+          const transformed: NormalizedComponent = {
+            ...component,
+            name: canonicalName,
+            displayName: canonicalDisplayName,
+            originalName,
+            permissions: {
+              canView: component.permissions?.canView ?? false,
+              canCreate: component.permissions?.canCreate ?? false,
+              canEdit: component.permissions?.canEdit ?? false,
+              canDelete: component.permissions?.canDelete ?? false,
+              canExport: component.permissions?.canExport ?? false
+            }
+          }
+
+          const existing = mergedByName.get(canonicalName)
+
+          if (!existing) {
+            mergedByName.set(canonicalName, transformed)
+            continue
+          }
+
+          const shouldPreferCurrent = existing.originalName === 'probes' && originalName !== 'probes'
+          const base = shouldPreferCurrent ? transformed : existing
+          const other = shouldPreferCurrent ? existing : transformed
+
+          mergedByName.set(canonicalName, {
+            ...base,
+            permissions: {
+              canView: mergeBoolean(base.permissions?.canView, other.permissions?.canView),
+              canCreate: mergeBoolean(base.permissions?.canCreate, other.permissions?.canCreate),
+              canEdit: mergeBoolean(base.permissions?.canEdit, other.permissions?.canEdit),
+              canDelete: mergeBoolean(base.permissions?.canDelete, other.permissions?.canDelete),
+              canExport: mergeBoolean(base.permissions?.canExport, other.permissions?.canExport)
+            },
+            icon: base.icon || other.icon,
+            description: base.description || other.description,
+            originalName: base.originalName ?? other.originalName
+          })
+        }
+
+        const normalizedComponents = Array.from(mergedByName.values())
+
         setComponents(normalizedComponents)
 
         // Filter only tabs for main navigation
         const tabComponents = normalizedComponents.filter(
-          (component: Component) =>
+          (component: NormalizedComponent) =>
             component.componentType === 'tab' &&
             component.name !== 'permissions' &&
             component.permissions?.canView !== false

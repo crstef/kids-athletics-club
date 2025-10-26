@@ -496,6 +496,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
             <TabsContent value="requests" className="mt-6">
               <CoachApprovalRequests
                 coachId={currentUser.id}
+                mode={currentUser.role === 'superadmin' ? 'admin' : 'coach'}
                 users={users}
                 athletes={athletes}
                 approvalRequests={props.approvalRequests}
@@ -639,7 +640,18 @@ function buildWidgetProps(widgetId: string, props: UnifiedLayoutProps): any {
       }
     
     case 'pending-requests':
-      return { requests: props.accessRequests }
+      return {
+        ...baseProps,
+        requests: (props.approvalRequests || []).filter((request) => {
+          if (request.status !== 'pending') return false
+
+          if (props.currentUser.role === 'superadmin') {
+            return true
+          }
+
+          return request.coachId === props.currentUser.id
+        })
+      }
     
     default:
       return baseProps
