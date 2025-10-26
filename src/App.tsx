@@ -58,6 +58,13 @@ function AppContent() {
   
   const [activeTab, setActiveTab] = useState('dashboard')
 
+  const isSuperAdminUser = currentUser?.role === 'superadmin'
+  const canViewAccessRequests = currentUser ? hasPermission('access_requests.view') : false
+  const canViewOwnRequests = currentUser ? hasPermission('requests.view.own') : false
+  const canViewAllRequests = currentUser ? hasPermission('requests.view.all') : false
+  const showApprovalRequests = Boolean(isSuperAdminUser)
+  const showAccessRequests = !isSuperAdminUser && (canViewAccessRequests || canViewOwnRequests)
+
   // Compute visible tabs from components API (fallback to permission-based if needed)
   const visibleTabs = useMemo(() => {
     if (!currentUser) return []
@@ -864,32 +871,25 @@ function AppContent() {
 
   const pendingRequestsCount = useMemo(() => {
     if (!currentUser) return 0
-    
-    const canViewAllApprovals = hasPermission('approval_requests.view') || hasPermission('requests.view.all')
-    const canViewOwnApprovals = hasPermission('approval_requests.view.own') || hasPermission('requests.view.own')
-    const canViewAllAccess = hasPermission('access_requests.view') && hasPermission('requests.view.all')
-    const canViewOwnAccess = hasPermission('access_requests.view') && (hasPermission('approval_requests.view.own') || hasPermission('requests.view.own'))
 
     let pending = 0
 
-    if (canViewAllApprovals) {
+    if (showApprovalRequests) {
       pending += (approvalRequests || []).filter(r => r.status === 'pending').length
-    } else if (canViewOwnApprovals) {
-      pending += (approvalRequests || []).filter(
-        r => r.coachId === currentUser.id && r.status === 'pending'
-      ).length
     }
 
-    if (canViewAllAccess) {
-      pending += (accessRequests || []).filter(r => r.status === 'pending').length
-    } else if (canViewOwnAccess) {
-      pending += (accessRequests || []).filter(
-        r => r.coachId === currentUser.id && r.status === 'pending'
-      ).length
+    if (showAccessRequests) {
+      if (canViewAllRequests) {
+        pending += (accessRequests || []).filter(r => r.status === 'pending').length
+      } else if (canViewOwnRequests) {
+        pending += (accessRequests || []).filter(
+          r => r.coachId === currentUser.id && r.status === 'pending'
+        ).length
+      }
     }
 
     return pending
-  }, [accessRequests, approvalRequests, currentUser, hasPermission])
+  }, [accessRequests, approvalRequests, currentUser, showApprovalRequests, showAccessRequests, canViewAllRequests, canViewOwnRequests])
 
   const currentAthlete = useMemo(() => {
     if (!currentUser) return null

@@ -173,6 +173,12 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
   const visibleTabIds = useMemo(() => new Set(visibleTabs.map(tab => tab.id)), [visibleTabs])
   const isTabVisible = (tabId: string) => visibleTabIds.has(tabId)
 
+  const isSuperAdminUser = currentUser.role === 'superadmin'
+  const canViewAccessRequests = hasPermission('access_requests.view')
+  const canViewOwnRequests = hasPermission('requests.view.own')
+  const showApprovalRequests = isSuperAdminUser
+  const showAccessRequests = !isSuperAdminUser && (canViewAccessRequests || canViewOwnRequests)
+
   // Load widgets from database on mount
   useEffect(() => {
     const loadWidgets = async () => {
@@ -497,36 +503,38 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
           {/* Approvals Tab */}
           {isTabVisible('approvals') && (
             <TabsContent value="approvals" className="mt-6 space-y-6">
-              <CoachApprovalRequests
-                coachId={currentUser.id}
-                mode={currentUser.role === 'superadmin' ? 'admin' : 'coach'}
-                users={users}
-                athletes={athletes}
-                approvalRequests={props.approvalRequests}
-                onApproveAccount={async (requestId: string) => {
-                  try {
-                    await apiClient.approveRequest(requestId)
-                    toast.success('Cerere aprobată cu succes')
-                    window.location.reload()
-                  } catch (error) {
-                    toast.error('Eroare la aprobarea cererii')
-                  }
-                }}
-                onRejectAccount={async (requestId: string, reason?: string) => {
-                  try {
-                    await apiClient.rejectRequest(requestId, reason)
-                    toast.error('Cerere respinsă')
-                    window.location.reload()
-                  } catch (error) {
-                    toast.error('Eroare la respingerea cererii')
-                  }
-                }}
-              />
+              {showApprovalRequests && (
+                <CoachApprovalRequests
+                  coachId={currentUser.id}
+                  mode="admin"
+                  users={users}
+                  athletes={athletes}
+                  approvalRequests={props.approvalRequests}
+                  onApproveAccount={async (requestId: string) => {
+                    try {
+                      await apiClient.approveRequest(requestId)
+                      toast.success('Cerere aprobată cu succes')
+                      window.location.reload()
+                    } catch (error) {
+                      toast.error('Eroare la aprobarea cererii')
+                    }
+                  }}
+                  onRejectAccount={async (requestId: string, reason?: string) => {
+                    try {
+                      await apiClient.rejectRequest(requestId, reason)
+                      toast.error('Cerere respinsă')
+                      window.location.reload()
+                    } catch (error) {
+                      toast.error('Eroare la respingerea cererii')
+                    }
+                  }}
+                />
+              )}
 
-              {(hasPermission('access_requests.view') || hasPermission('requests.view.own')) && (
+              {showAccessRequests && (
                 <CoachAccessRequests
                   coachId={currentUser.id}
-                  mode={currentUser.role === 'superadmin' ? 'admin' : 'coach'}
+                  mode="coach"
                   users={users}
                   athletes={athletes}
                   parents={parents}
