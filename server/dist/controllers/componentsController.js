@@ -15,32 +15,32 @@ const getMyComponents = async (req, res) => {
         if (!req.user?.userId) {
             return res.status(401).json({ error: 'User not authenticated' });
         }
-                const result = await client.query(`
-            SELECT DISTINCT
-                c.id,
-                c.name,
-                c.display_name,
-                c.description,
-                c.component_type,
-                c.icon,
-                c.order_index,
-                c.is_system,
-                CASE WHEN r.name = 'superadmin' THEN true ELSE COALESCE(cp.can_view, false) END AS can_view,
-                COALESCE(cp.can_create, false) as can_create,
-                COALESCE(cp.can_edit, false) as can_edit,
-                COALESCE(cp.can_delete, false) as can_delete,
-                COALESCE(cp.can_export, false) as can_export,
-                c.created_at,
-                c.updated_at
-            FROM users u
-            JOIN roles r ON u.role_id = r.id
-            JOIN components c ON true
-            LEFT JOIN component_permissions cp ON 
-                cp.role_id = r.id AND cp.component_id = c.id
-            WHERE u.id = $1
-                AND (r.name = 'superadmin' OR COALESCE(cp.can_view, false) = true)
-            ORDER BY c.order_index ASC, c.display_name ASC
-        `, [req.user.userId]);
+        const result = await client.query(`
+      SELECT DISTINCT
+        c.id,
+        c.name,
+        c.display_name,
+        c.description,
+        c.component_type,
+        c.icon,
+        c.order_index,
+        c.is_system,
+        CASE WHEN r.name = 'superadmin' THEN true ELSE COALESCE(cp.can_view, false) END as can_view,
+        COALESCE(cp.can_create, false) as can_create,
+        COALESCE(cp.can_edit, false) as can_edit,
+        COALESCE(cp.can_delete, false) as can_delete,
+        COALESCE(cp.can_export, false) as can_export,
+        c.created_at,
+        c.updated_at
+      FROM users u
+      JOIN roles r ON u.role_id = r.id
+      JOIN components c ON true
+      LEFT JOIN component_permissions cp ON 
+        cp.role_id = r.id AND cp.component_id = c.id
+      WHERE u.id = $1
+        AND (r.name = 'superadmin' OR COALESCE(cp.can_view, false) = true)
+      ORDER BY c.order_index ASC, c.display_name ASC
+    `, [req.user.userId]);
         res.json({
             success: true,
             components: result.rows.map(c => ({
