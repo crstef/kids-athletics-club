@@ -1438,7 +1438,7 @@ const resetDatabase = async (req, res) => {
         const parent1 = await client.query('SELECT id FROM users WHERE email = $1', ['parent1@kidsathletics.ro']);
         const parent2 = await client.query('SELECT id FROM users WHERE email = $1', ['parent2@kidsathletics.ro']);
         const athlete1 = await client.query('SELECT id FROM users WHERE email = $1', ['athlete1@kidsathletics.ro']);
-        const athlete2 = await client.query('SELECT id FROM users WHERE email = $1', ['athlete2@kidsathletics.ro']);
+        const _athlete2 = await client.query('SELECT id FROM users WHERE email = $1', ['athlete2@kidsathletics.ro']);
         console.log(`Found users - coach1: ${coach1.rows.length}, parent1: ${parent1.rows.length}, athlete1: ${athlete1.rows.length}`);
         if (coach1.rows.length > 0 && parent1.rows.length > 0 && athlete1.rows.length > 0) {
             // Create sample athletes linked to parents and coaches
@@ -1530,7 +1530,7 @@ const fixRoleDashboardsSchema = async (req, res) => {
         DROP CONSTRAINT role_dashboards_pkey
       `);
         }
-        catch (e) {
+        catch (_e) {
             // Constraint might not exist or have different name, ignore
         }
         // Add unique constraint on (role_id, dashboard_id)
@@ -1540,7 +1540,7 @@ const fixRoleDashboardsSchema = async (req, res) => {
         ADD CONSTRAINT role_dashboards_role_id_dashboard_id_key UNIQUE(role_id, dashboard_id)
       `);
         }
-        catch (e) {
+        catch (_e) {
             // Constraint might already exist, ignore
         }
         res.status(200).json({

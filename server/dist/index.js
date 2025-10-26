@@ -36,9 +36,9 @@ if (isPassenger && process.env.NODE_ENV !== 'production') {
     process.env.NODE_ENV = resolvedEnv;
 }
 const NODE_ENV = resolvedEnv;
-const IS_PRODUCTION = NODE_ENV === 'production';
+const _IS_PRODUCTION = NODE_ENV === 'production';
 const distDir = path_1.default.join(__dirname, '../../dist');
-const rootDir = path_1.default.join(__dirname, '../..');
+const _rootDir = path_1.default.join(__dirname, '../..');
 const uploadsDir = path_1.default.join(__dirname, '../uploads');
 console.log('[server] boot', {
     isPassenger,
