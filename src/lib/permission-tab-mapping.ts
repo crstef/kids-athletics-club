@@ -96,6 +96,11 @@ const PERMISSION_ALIASES: Record<string, string> = {
   'approval_requests.view': 'access_requests.view',
   'approval_requests.approve': 'access_requests.view',
   'requests.view.own': 'access_requests.view',
+  'probes.view': 'events.view',
+  'probes.manage': 'events.view',
+  'probes.create': 'events.view',
+  'probes.edit': 'events.view',
+  'probes.delete': 'events.view'
 }
 
 /**

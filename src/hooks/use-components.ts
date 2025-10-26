@@ -43,15 +43,25 @@ export function useComponents() {
       const response = await apiClient.getMyComponents() as any
       
       if (response?.success && Array.isArray(response?.components)) {
-        setComponents(response.components)
+        const normalizedComponents = (response.components as Component[])
+          .filter((component) => component.name !== 'probes')
+        setComponents(normalizedComponents)
+
         // Filter only tabs for main navigation
-        const tabComponents = response.components.filter(
-          (c: Component) =>
-            c.componentType === 'tab' &&
-            c.name !== 'permissions' &&
-            c.permissions?.canView !== false
+        const tabComponents = normalizedComponents.filter(
+          (component: Component) =>
+            component.componentType === 'tab' &&
+            component.name !== 'permissions' &&
+            component.permissions?.canView !== false
         ) as TabComponent[]
-        setTabs(tabComponents)
+
+        const normalizedTabs = tabComponents.map((tab) =>
+          tab.name === 'events'
+            ? { ...tab, displayName: 'Probe' }
+            : tab
+        ) as TabComponent[]
+
+        setTabs(normalizedTabs)
       } else {
         console.warn('Invalid response from getMyComponents:', response)
         setComponents([])
