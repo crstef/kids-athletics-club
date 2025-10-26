@@ -16,6 +16,13 @@ import { generateTabsFromPermissions, type TabConfig, getPermissionForTab } from
 
 // TAB_CONFIGS is now generated dynamically from user permissions via generateTabsFromPermissions()
 
+interface VisibleTabDescriptor {
+  id: string
+  label: string
+  icon: string
+  permission: string
+}
+
 function AppContent() {
   const { 
     currentUser, 
@@ -54,22 +61,48 @@ function AppContent() {
   // Compute visible tabs from components API (fallback to permission-based if needed)
   const visibleTabs = useMemo(() => {
     if (!currentUser) return []
-    
-    // Use API tabs if available
+
+    const userPermissions = currentUser.permissions || []
+    const permissionTabs = generateTabsFromPermissions(userPermissions)
+
     if (apiTabs && apiTabs.length > 0) {
-      return apiTabs
+      const apiTabEntries: VisibleTabDescriptor[] = apiTabs
         .filter(tab => tab.permissions?.canView !== false)
         .map(tab => ({
-        id: tab.name,
-        label: tab.displayName,
-        icon: tab.icon || 'LayoutDashboard',
-        permission: `${tab.name}.view`
+          id: tab.name,
+          label: tab.displayName,
+          icon: tab.icon || 'LayoutDashboard',
+          permission: `${tab.name}.view`
         }))
+
+      const tabById = new Map<string, VisibleTabDescriptor>(apiTabEntries.map(tab => [tab.id, tab]))
+
+      permissionTabs.forEach((tab) => {
+        if (!tabById.has(tab.id)) {
+          tabById.set(tab.id, {
+            id: tab.id,
+            label: tab.label,
+            icon: tab.icon || 'LayoutDashboard',
+            permission: tab.permission
+          })
+        }
+      })
+
+      const orderedByPermissions = permissionTabs
+        .map(tab => tabById.get(tab.id))
+        .filter((tab): tab is VisibleTabDescriptor => Boolean(tab))
+
+      const extras = apiTabEntries.filter(apiTab => !orderedByPermissions.some(tab => tab.id === apiTab.id))
+
+      return [...orderedByPermissions, ...extras]
     }
-    
-    // Fallback to permission-based tabs if API not ready
-    const userPermissions = currentUser.permissions || []
-    return generateTabsFromPermissions(userPermissions)
+
+    return permissionTabs.map<VisibleTabDescriptor>((tab) => ({
+      id: tab.id,
+      label: tab.label,
+      icon: tab.icon || 'LayoutDashboard',
+      permission: tab.permission
+    }))
   }, [currentUser, apiTabs])
 
   // Fetch components when user logs in

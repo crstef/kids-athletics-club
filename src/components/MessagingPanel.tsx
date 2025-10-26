@@ -14,6 +14,13 @@ import { PaperPlaneRight, ChatCircleDots } from '@phosphor-icons/react'
 import { getAvatarColor, getInitials } from '@/lib/utils'
 import { User, Message } from '@/lib/types'
 
+interface ConversationSummary {
+  user: User
+  lastMessage?: Message
+  hasHistory: boolean
+  unreadCount: number
+}
+
 interface MessagingPanelProps {
   currentUserId: string
   users: User[]
@@ -33,24 +40,69 @@ export function MessagingPanel({
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  const conversations = useMemo(() => {
-    const userConversations = new Map<string, { user: User, lastMessage: Message }>();
-    messages.forEach(message => {
-      const otherUserId = message.fromUserId === currentUserId ? message.toUserId : message.fromUserId;
-      const otherUser = users.find(u => u.id === otherUserId);
-      if (otherUser) {
-        if (!userConversations.has(otherUserId) || new Date(userConversations.get(otherUserId)!.lastMessage.timestamp) < new Date(message.timestamp)) {
-          userConversations.set(otherUserId, { user: otherUser, lastMessage: message });
-        }
+  const conversations = useMemo<ConversationSummary[]>(() => {
+    const summaries = new Map<string, ConversationSummary>()
+
+    messages.forEach((message) => {
+      const otherUserId = message.fromUserId === currentUserId ? message.toUserId : message.fromUserId
+      const otherUser = users.find((u) => u.id === otherUserId)
+      if (!otherUser) return
+
+      const existing = summaries.get(otherUserId)
+      const unreadIncrement = message.fromUserId === otherUserId && !message.read ? 1 : 0
+
+      if (!existing) {
+        summaries.set(otherUserId, {
+          user: otherUser,
+          lastMessage: message,
+          hasHistory: true,
+          unreadCount: unreadIncrement
+        })
+        return
       }
-    });
-    return Array.from(userConversations.values()).sort((a, b) => new Date(b.lastMessage.timestamp).getTime() - new Date(a.lastMessage.timestamp).getTime());
-  }, [messages, users, currentUserId]);
+
+      if (!existing.lastMessage || new Date(existing.lastMessage.timestamp) < new Date(message.timestamp)) {
+        existing.lastMessage = message
+      }
+      existing.hasHistory = true
+      existing.unreadCount += unreadIncrement
+    })
+
+    users
+      .filter((user) => user.id !== currentUserId)
+      .forEach((user) => {
+        if (!summaries.has(user.id)) {
+          summaries.set(user.id, {
+            user,
+            hasHistory: false,
+            unreadCount: 0
+          })
+        }
+      })
+
+    return Array.from(summaries.values()).sort((a, b) => {
+      if (a.hasHistory !== b.hasHistory) {
+        return a.hasHistory ? -1 : 1
+      }
+
+      if (a.lastMessage && b.lastMessage) {
+        return new Date(b.lastMessage.timestamp).getTime() - new Date(a.lastMessage.timestamp).getTime()
+      }
+
+      return `${a.user.firstName} ${a.user.lastName}`.localeCompare(`${b.user.firstName} ${b.user.lastName}`)
+    })
+  }, [messages, users, currentUserId])
+
+  useEffect(() => {
+    if (!selectedConversation && conversations.length > 0) {
+      setSelectedConversation(conversations[0].user.id)
+    }
+  }, [conversations, selectedConversation])
 
   const selectedUser = useMemo(() => {
-    if (!selectedConversation) return null;
-    return users.find(u => u.id === selectedConversation);
-  }, [selectedConversation, users]);
+    if (!selectedConversation) return null
+    return users.find((u) => u.id === selectedConversation) || null
+  }, [selectedConversation, users])
 
   const conversationMessages = useMemo(() => {
     if (!selectedConversation) return [];
@@ -106,7 +158,7 @@ export function MessagingPanel({
           </CardTitle>
         </CardHeader>
         <ScrollArea className="h-[calc(70vh-80px)]">
-          {conversations.map(({ user, lastMessage }) => (
+          {conversations.map(({ user, lastMessage, hasHistory, unreadCount }) => (
             <div 
               key={user.id} 
               className={`p-3 cursor-pointer hover:bg-muted/50 ${selectedConversation === user.id ? 'bg-muted' : ''}`}
@@ -123,11 +175,15 @@ export function MessagingPanel({
                 </Avatar>
                 <div className="flex-1 overflow-hidden">
                   <p className="font-semibold truncate">{user.firstName} {user.lastName}</p>
-                  <p className="text-sm text-muted-foreground truncate">{lastMessage.content}</p>
+                  <p className="text-sm text-muted-foreground truncate">
+                    {hasHistory && lastMessage
+                      ? lastMessage.content
+                      : 'Începe o conversație'}
+                  </p>
                 </div>
-                {messages.filter(m => m.fromUserId === user.id && !m.read).length > 0 && (
+                {unreadCount > 0 && (
                   <Badge variant="destructive" className="h-5 w-5 p-0 flex items-center justify-center">
-                    {messages.filter(m => m.fromUserId === user.id && !m.read).length}
+                    {unreadCount}
                   </Badge>
                 )}
               </div>

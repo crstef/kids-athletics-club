@@ -23,9 +23,11 @@ export const getAllMessages = async (req: AuthRequest, res: Response) => {
 
     query += ' ORDER BY m.timestamp DESC';
 
-    const result = await client.query(query, queryParams);
+  const result = await client.query(query, queryParams);
 
-    res.json(result.rows.map(m => ({
+  res.set('Cache-Control', 'no-store');
+
+  res.json(result.rows.map(m => ({
       id: m.id,
       fromUserId: m.from_user_id,
       fromUserName: `${m.from_fn} ${m.from_ln}`,
