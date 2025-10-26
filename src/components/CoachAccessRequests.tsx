@@ -3,61 +3,54 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { CheckCircle, XCircle, Envelope } from '@phosphor-icons/react'
-import { toast } from 'sonner'
 import type { Athlete, AccessRequest, User } from '@/lib/types'
 
 interface CoachAccessRequestsProps {
   coachId: string
+  mode?: 'coach' | 'admin'
+  users: User[]
   athletes: Athlete[]
   parents: User[]
   accessRequests: AccessRequest[]
-  onUpdateRequest: (id: string, status: 'approved' | 'rejected') => void
+  onUpdateRequest: (id: string, status: 'approved' | 'rejected') => Promise<void> | void
 }
 
 export function CoachAccessRequests({ 
   coachId, 
+  mode = 'coach',
+  users,
   athletes,
   parents,
   accessRequests,
   onUpdateRequest 
 }: CoachAccessRequestsProps) {
   const pendingRequests = useMemo(() => {
-    return accessRequests.filter(r => r.coachId === coachId && r.status === 'pending')
-  }, [accessRequests, coachId])
+    const list = accessRequests.filter(r => r.status === 'pending')
+    return mode === 'admin' ? list : list.filter(r => r.coachId === coachId)
+  }, [accessRequests, coachId, mode])
 
   const processedRequests = useMemo(() => {
-    return accessRequests.filter(r => r.coachId === coachId && r.status !== 'pending')
-  }, [accessRequests, coachId])
+    const list = accessRequests.filter(r => r.status !== 'pending')
+    return mode === 'admin' ? list : list.filter(r => r.coachId === coachId)
+  }, [accessRequests, coachId, mode])
 
-  const handleApprove = (requestId: string) => {
-    const request = accessRequests.find(r => r.id === requestId)
-    if (!request) return
-    
-    const parent = parents.find(p => p.id === request.parentId)
-    const athlete = athletes.find(a => a.id === request.athleteId)
-    
-    onUpdateRequest(requestId, 'approved')
-    
-    if (parent && athlete) {
-      toast.success(`Acces aprobat: ${parent.firstName} ${parent.lastName} poate vedea datele lui ${athlete.firstName} ${athlete.lastName}`)
-    } else {
-      toast.success('Cerere aprobată!')
-    }
+  const getCoachName = (coachIdValue?: string) => {
+    if (!coachIdValue) return null
+    const coach = users.find(u => u.id === coachIdValue)
+    if (!coach) return null
+    return `${coach.firstName} ${coach.lastName}`
   }
 
-  const handleReject = (requestId: string) => {
+  const handleApprove = async (requestId: string) => {
     const request = accessRequests.find(r => r.id === requestId)
     if (!request) return
-    
-    const parent = parents.find(p => p.id === request.parentId)
-    
-    onUpdateRequest(requestId, 'rejected')
-    
-    if (parent) {
-      toast.success(`Cererea de acces de la ${parent.firstName} ${parent.lastName} a fost respinsă`)
-    } else {
-      toast.success('Cerere respinsă')
-    }
+    await onUpdateRequest(requestId, 'approved')
+  }
+
+  const handleReject = async (requestId: string) => {
+    const request = accessRequests.find(r => r.id === requestId)
+    if (!request) return
+    await onUpdateRequest(requestId, 'rejected')
   }
 
   if (pendingRequests.length === 0 && processedRequests.length === 0) {
@@ -96,6 +89,11 @@ export function CoachAccessRequests({
                       <div className="text-sm text-muted-foreground">
                         Cere acces la datele: {athlete?.firstName} {athlete?.lastName}
                       </div>
+                      {mode === 'admin' && request.coachId && (
+                        <div className="text-xs text-muted-foreground">
+                          Antrenor: {getCoachName(request.coachId) || '—'}
+                        </div>
+                      )}
                       {request.message && (
                         <div className="text-sm text-muted-foreground italic bg-muted p-2 rounded">
                           "{request.message}"
@@ -152,6 +150,11 @@ export function CoachAccessRequests({
                       <div className="text-sm text-muted-foreground">
                         Atlet: {athlete?.firstName} {athlete?.lastName}
                       </div>
+                      {mode === 'admin' && request.coachId && (
+                        <div className="text-xs text-muted-foreground">
+                          Antrenor: {getCoachName(request.coachId) || '—'}
+                        </div>
+                      )}
                       <div className="text-xs text-muted-foreground">
                         {new Date(request.requestDate).toLocaleDateString('ro-RO')}
                       </div>

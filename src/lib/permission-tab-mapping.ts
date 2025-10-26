@@ -44,10 +44,10 @@ export const PERMISSION_TO_TAB_MAP: Record<string, TabConfig> = {
   },
 
   // Communication tabs
-  'access_requests.view': {
-    id: 'requests',
-    label: 'Cereri',
-    permission: 'access_requests.view',
+  'approval_requests.view': {
+    id: 'approvals',
+    label: 'Aprobări',
+    permission: 'approval_requests.view',
     category: 'data',
     order: 30
   },
@@ -93,9 +93,11 @@ export const PERMISSION_TO_TAB_MAP: Record<string, TabConfig> = {
 }
 
 const PERMISSION_ALIASES: Record<string, string> = {
-  'approval_requests.view': 'access_requests.view',
-  'approval_requests.approve': 'access_requests.view',
-  'requests.view.own': 'access_requests.view',
+  'approval_requests.view.own': 'approval_requests.view',
+  'approval_requests.approve': 'approval_requests.view',
+  'approval_requests.approve.own': 'approval_requests.view',
+  'requests.view.all': 'approval_requests.view',
+  'requests.view.own': 'approval_requests.view',
   'probes.view': 'events.view',
   'probes.manage': 'events.view',
   'probes.create': 'events.view',

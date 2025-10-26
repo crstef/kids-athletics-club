@@ -47,7 +47,9 @@ export const DEFAULT_PERMISSIONS: Omit<Permission, 'id' | 'createdAt' | 'created
   { name: 'access_requests.delete', description: 'Ștergere cereri de acces', isActive: true },
   
   { name: 'approval_requests.view', description: 'Vizualizare cereri de aprobare', isActive: true },
+  { name: 'approval_requests.view.own', description: 'Vizualizare cereri proprii de aprobare', isActive: true },
   { name: 'approval_requests.approve', description: 'Aprobare/respingere conturi', isActive: true },
+  { name: 'approval_requests.approve.own', description: 'Aprobare/respingere cereri proprii', isActive: true },
   { name: 'athletes.avatar.view', description: 'Vizualizare avatar sportivi', isActive: true },
   { name: 'athletes.avatar.upload', description: 'Încărcare avatar sportivi', isActive: true },
 ]
@@ -67,10 +69,10 @@ export const DEFAULT_ROLES: Omit<Role, 'id' | 'createdAt' | 'createdBy'>[] = [
       'users.create', 'users.view', 'users.edit', 'users.delete',
       'permissions.create', 'permissions.view', 'permissions.edit', 'permissions.delete',
       'roles.create', 'roles.view', 'roles.edit', 'roles.delete',
-  'messages.create', 'messages.view', 'messages.edit', 'messages.delete',
-  'access_requests.create', 'access_requests.view', 'access_requests.edit', 'access_requests.delete',
-  'approval_requests.view', 'approval_requests.approve',
-  'athletes.avatar.view', 'athletes.avatar.upload',
+      'messages.create', 'messages.view', 'messages.edit', 'messages.delete',
+      'access_requests.create', 'access_requests.view', 'access_requests.edit', 'access_requests.delete',
+      'approval_requests.view', 'approval_requests.view.own', 'approval_requests.approve', 'approval_requests.approve.own',
+      'athletes.avatar.view', 'athletes.avatar.upload',
     ]
   },
   {
@@ -84,9 +86,9 @@ export const DEFAULT_ROLES: Omit<Role, 'id' | 'createdAt' | 'createdBy'>[] = [
       'athletes.avatar.view', 'athletes.avatar.upload',
       'results.create', 'results.view', 'results.edit',
       'events.view',
-      'messages.create', 'messages.view',
-      'access_requests.view', 'access_requests.edit',
-      'approval_requests.view', 'approval_requests.approve',
+  'messages.create', 'messages.view',
+  'access_requests.view', 'access_requests.edit',
+  'approval_requests.view.own', 'approval_requests.approve.own',
     ]
   },
   {
@@ -174,8 +176,8 @@ export function getDefaultPermissionsForRole(role: User['role']): PermissionName
         'permissions.create', 'permissions.view', 'permissions.edit', 'permissions.delete',
         'roles.create', 'roles.view', 'roles.edit', 'roles.delete',
         'messages.create', 'messages.view', 'messages.edit', 'messages.delete',
-        'access_requests.create', 'access_requests.view', 'access_requests.edit', 'access_requests.delete',
-        'approval_requests.view', 'approval_requests.approve',
+  'access_requests.create', 'access_requests.view', 'access_requests.edit', 'access_requests.delete',
+  'approval_requests.view', 'approval_requests.view.own', 'approval_requests.approve', 'approval_requests.approve.own',
         'age_categories.view',
         'user_permissions.view',
         'dashboard.view.superadmin',
@@ -187,8 +189,8 @@ export function getDefaultPermissionsForRole(role: User['role']): PermissionName
         'results.create', 'results.view', 'results.edit',
         'events.view',
         'messages.create', 'messages.view',
-        'access_requests.view', 'access_requests.edit',
-        'approval_requests.view', 'approval_requests.approve',
+  'access_requests.view', 'access_requests.edit',
+  'approval_requests.view.own', 'approval_requests.approve.own',
         'dashboard.view.coach',
       ]
     case 'parent':

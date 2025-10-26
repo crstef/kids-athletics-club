@@ -61,7 +61,9 @@ const PERMISSION_NAMES: { value: PermissionName; label: string }[] = [
   { value: 'access_requests.edit', label: 'Aprobare Cereri Acces' },
   { value: 'access_requests.delete', label: 'Ștergere Cereri Acces' },
   { value: 'approval_requests.view', label: 'Vizualizare Cereri Aprobare' },
+  { value: 'approval_requests.view.own', label: 'Vizualizare Cereri Aprobare (Proprii)' },
   { value: 'approval_requests.approve', label: 'Aprobare/Respingere Conturi' },
+  { value: 'approval_requests.approve.own', label: 'Aprobare/Respingere Conturi (Proprii)' },
   { value: 'age_categories.view', label: 'Vizualizare Categorii Vârstă' },
 ]
 

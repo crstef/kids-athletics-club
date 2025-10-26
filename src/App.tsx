@@ -220,7 +220,7 @@ function AppContent() {
         case 'categories':
           if (ageCategories.length === 0) refetchAgeCategories()
           break
-        case 'requests':
+        case 'approvals':
           if (accessRequests.length === 0) refetchAccessRequests()
           if (approvalRequests.length === 0) refetchApprovalRequests()
           break
@@ -464,10 +464,9 @@ function AppContent() {
     try {
       await apiClient.updateAccessRequest(id, status)
       await refetchAccessRequests()
-      toast.success(`Cerere ${status === 'approved' ? 'aprobată' : 'respinsă'} cu succes!`)
     } catch (error: any) {
-      toast.error(error.message || 'Eroare la actualizarea cererii')
       console.error('Error updating access request:', error)
+      throw error
     }
   }
 
@@ -866,23 +865,30 @@ function AppContent() {
   const pendingRequestsCount = useMemo(() => {
     if (!currentUser) return 0
     
-    // Check if user can view ALL requests (typically superadmin)
-    if (hasPermission('requests.view.all')) {
-      return (approvalRequests || []).filter(r => r.status === 'pending').length
-    }
-    
-    // Check if user can view their OWN requests (typically coach)
-    if (hasPermission('requests.view.own')) {
-      const coachApprovals = (approvalRequests || []).filter(
+    const canViewAllApprovals = hasPermission('approval_requests.view') || hasPermission('requests.view.all')
+    const canViewOwnApprovals = hasPermission('approval_requests.view.own') || hasPermission('requests.view.own')
+    const canViewAllAccess = hasPermission('access_requests.view') && hasPermission('requests.view.all')
+    const canViewOwnAccess = hasPermission('access_requests.view') && (hasPermission('approval_requests.view.own') || hasPermission('requests.view.own'))
+
+    let pending = 0
+
+    if (canViewAllApprovals) {
+      pending += (approvalRequests || []).filter(r => r.status === 'pending').length
+    } else if (canViewOwnApprovals) {
+      pending += (approvalRequests || []).filter(
         r => r.coachId === currentUser.id && r.status === 'pending'
       ).length
-      const coachAccessRequests = (accessRequests || []).filter(
+    }
+
+    if (canViewAllAccess) {
+      pending += (accessRequests || []).filter(r => r.status === 'pending').length
+    } else if (canViewOwnAccess) {
+      pending += (accessRequests || []).filter(
         r => r.coachId === currentUser.id && r.status === 'pending'
       ).length
-      return coachApprovals + coachAccessRequests
     }
-    
-    return 0
+
+    return pending
   }, [accessRequests, approvalRequests, currentUser, hasPermission])
 
   const currentAthlete = useMemo(() => {

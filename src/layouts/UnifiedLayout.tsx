@@ -330,7 +330,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
             {visibleTabs.map((tab) => (
               <TabsTrigger key={tab.id} value={tab.id} className="gap-2">
                 {tab.label}
-                {tab.id === 'requests' && pendingRequestsCount > 0 && (
+                {tab.id === 'approvals' && pendingRequestsCount > 0 && (
                   <Badge variant="destructive" className="ml-2">{pendingRequestsCount}</Badge>
                 )}
                 {tab.id === 'messages' && unreadMessagesCount > 0 && (
@@ -494,9 +494,9 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
             </TabsContent>
           )}
 
-          {/* Requests Tab */}
-          {isTabVisible('requests') && (
-            <TabsContent value="requests" className="mt-6">
+          {/* Approvals Tab */}
+          {isTabVisible('approvals') && (
+            <TabsContent value="approvals" className="mt-6 space-y-6">
               <CoachApprovalRequests
                 coachId={currentUser.id}
                 mode={currentUser.role === 'superadmin' ? 'admin' : 'coach'}
@@ -522,6 +522,41 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
                   }
                 }}
               />
+
+              {(hasPermission('access_requests.view') || hasPermission('requests.view.own')) && (
+                <CoachAccessRequests
+                  coachId={currentUser.id}
+                  mode={currentUser.role === 'superadmin' ? 'admin' : 'coach'}
+                  users={users}
+                  athletes={athletes}
+                  parents={parents}
+                  accessRequests={accessRequests}
+                  onUpdateRequest={async (requestId: string, status: 'approved' | 'rejected') => {
+                    const request = accessRequests.find(r => r.id === requestId)
+                    if (!request) {
+                      toast.error('Cererea de acces nu a fost găsită')
+                      return
+                    }
+                    try {
+                      await props.handleUpdateAccessRequest(requestId, status)
+
+                      const parent = parents.find(p => p.id === request.parentId)
+                      const athlete = athletes.find(a => a.id === request.athleteId)
+                      if (status === 'approved') {
+                        if (parent && athlete) {
+                          toast.success(`Acces acordat: ${parent.firstName} ${parent.lastName} poate vizualiza datele lui ${athlete.firstName} ${athlete.lastName}`)
+                        } else {
+                          toast.success('Cerere de acces aprobată')
+                        }
+                      } else {
+                        toast.success('Cererea de acces a fost respinsă')
+                      }
+                    } catch (_error) {
+                      toast.error('Nu am putut actualiza cererea de acces')
+                    }
+                  }}
+                />
+              )}
             </TabsContent>
           )}
         </Tabs>

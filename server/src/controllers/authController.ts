@@ -229,6 +229,7 @@ export const login = async (req: Request, res: Response) => {
       userId: user.id,
       email: user.email,
       role: user.role,
+      roleId: user.role_id,
       permissions
     });
 
