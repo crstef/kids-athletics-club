@@ -376,14 +376,14 @@ export default function CoachTeamDashboard() {
         <TabsContent value="schedule" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Evenimente Viitoare</CardTitle>
+              <CardTitle>Probe Viitoare</CardTitle>
               <CardDescription>Competiții și antrenamente programate</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
                 {upcomingEvents.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">
-                    Nu există evenimente programate
+                    Nu există probe
                   </p>
                 ) : (
                   upcomingEvents.map((event, idx) => (

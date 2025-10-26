@@ -301,7 +301,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
             <div className="flex items-center gap-2">
               <ShieldCheck size={32} weight="fill" className="text-primary" />
               <div>
-                <h1 className="font-bold text-xl">Kids Athletics</h1>
+                <h1 className="font-bold text-xl">Club atletism Sibiu</h1>
                 <p className="text-xs text-muted-foreground">
                   {currentUser.firstName} {currentUser.lastName}
                 </p>

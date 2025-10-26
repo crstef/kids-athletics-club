@@ -240,7 +240,7 @@ export default function ParentProgressDashboard() {
               </TabsTrigger>
               <TabsTrigger value="events">
                 <Calendar className="w-4 h-4 mr-2" />
-                Evenimente
+                Probe
               </TabsTrigger>
               <TabsTrigger value="communication">
                 <ChatCircle className="w-4 h-4 mr-2" />
@@ -379,14 +379,14 @@ export default function ParentProgressDashboard() {
             <TabsContent value="events" className="space-y-4">
               <Card>
                 <CardHeader>
-                  <CardTitle>Evenimente Viitoare</CardTitle>
+                  <CardTitle>Probe Viitoare</CardTitle>
                   <CardDescription>Pregătește-te pentru următoarele competiții</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     {upcomingEvents.length === 0 ? (
                       <p className="text-center text-muted-foreground py-8">
-                        Nu există evenimente programate
+                        Nu există probe programate
                       </p>
                     ) : (
                       upcomingEvents.map((event, idx) => (

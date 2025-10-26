@@ -92,9 +92,9 @@ export const addGranularPermissions = async (req: Request, res: Response) => {
       { name: 'messages-create', display_name: 'Trimitere Mesaj', type: 'action', icon: 'Send', order: 2 },
       
       // Events
-      { name: 'events', display_name: 'Evenimente', type: 'tab', icon: 'Calendar', order: 4 },
-      { name: 'events-view', display_name: 'Vizualizare Evenimente', type: 'action', icon: 'Eye', order: 1 },
-      { name: 'events-create', display_name: 'Creare Eveniment', type: 'action', icon: 'Plus', order: 2 },
+  { name: 'events', display_name: 'Probe', type: 'tab', icon: 'Calendar', order: 4 },
+  { name: 'events-view', display_name: 'Vizualizare Probe', type: 'action', icon: 'Eye', order: 1 },
+  { name: 'events-create', display_name: 'Creare Probă', type: 'action', icon: 'Plus', order: 2 },
       
       // Probes (Specializations)
       { name: 'probes', display_name: 'Probe', type: 'tab', icon: 'Zap', order: 5 },

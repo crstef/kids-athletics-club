@@ -48,10 +48,27 @@ export const register = async (req: Request, res: Response) => {
 
     // If parent role and athlete selected, create access request for coach approval
     if (role === 'parent' && athleteId && coachId) {
+      const athlete = await client.query(
+        'SELECT first_name, last_name FROM athletes WHERE id = $1',
+        [athleteId]
+      );
+      const athleteName = athlete.rows.length > 0
+        ? `${athlete.rows[0].first_name} ${athlete.rows[0].last_name}`
+        : null;
+      const accessMessage = athleteName
+        ? `${firstName} ${lastName} solicită acces pentru ${athleteName}`
+        : `${firstName} ${lastName} solicită acces`;
+
       await client.query(
         `INSERT INTO access_requests (parent_id, athlete_id, coach_id, status, message)
          VALUES ($1, $2, $3, $4, $5)`,
-        [user.id, athleteId, coachId, 'pending', `${firstName} ${lastName} requesting access`]
+        [user.id, athleteId, coachId, 'pending', accessMessage]
+      );
+
+      await client.query(
+        `INSERT INTO approval_requests (user_id, coach_id, athlete_id, requested_role, status, child_name, approval_notes)
+         VALUES ($1, $2, $3, $4, 'pending', $5, $6)`,
+        [user.id, coachId, athleteId, role, athleteName, accessMessage]
       );
     }
     

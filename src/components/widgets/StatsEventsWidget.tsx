@@ -33,7 +33,7 @@ export function StatsEventsWidget({ events, onNavigateToTab }: StatsEventsWidget
       </div>
       {onNavigateToTab && (
         <Button onClick={() => onNavigateToTab('events')} className="w-full mt-4">
-          Mergi la Evenimente <ArrowRight size={16} className="ml-2" />
+          Mergi la Probe <ArrowRight size={16} className="ml-2" />
         </Button>
       )}
     </div>

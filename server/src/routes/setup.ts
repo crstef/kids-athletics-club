@@ -105,10 +105,10 @@ export const initializeData = async (req: Request, res: Response) => {
       ('results.create', 'Poate adăuga rezultate noi', NOW(), NOW()),
       ('results.edit', 'Poate edita rezultate', NOW(), NOW()),
       ('results.delete', 'Poate șterge rezultate', NOW(), NOW()),
-      ('events.view', 'Poate vizualiza evenimente', NOW(), NOW()),
-      ('events.create', 'Poate crea evenimente noi', NOW(), NOW()),
-      ('events.edit', 'Poate edita evenimente', NOW(), NOW()),
-      ('events.delete', 'Poate șterge evenimente', NOW(), NOW()),
+  ('events.view', 'Poate vizualiza probe', NOW(), NOW()),
+  ('events.create', 'Poate crea probe noi', NOW(), NOW()),
+  ('events.edit', 'Poate edita probe', NOW(), NOW()),
+  ('events.delete', 'Poate șterge probe', NOW(), NOW()),
       ('messages.view', 'Poate vizualiza mesaje', NOW(), NOW()),
       ('messages.create', 'Poate trimite mesaje', NOW(), NOW()),
       ('messages.delete', 'Poate șterge mesaje', NOW(), NOW()),
@@ -678,21 +678,21 @@ export const addModernDashboards = async (_req: Request, res: Response) => {
         displayName: 'Performanță Atlet',
         componentName: 'AthletePerformanceDashboard',
         icon: 'ChartLine',
-        description: 'Dashboard modern cu tracking performanță, recorduri personale, obiective și evenimente'
+  description: 'Dashboard modern cu tracking performanță, recorduri personale, obiective și probe'
       },
       {
         name: 'coach-team',
         displayName: 'Echipă Antrenor',
         componentName: 'CoachTeamDashboard',
         icon: 'Users',
-        description: 'Overview echipă cu progres atleți, planuri antrenament, calendar evenimente'
+  description: 'Overview echipă cu progres atleți, planuri antrenament, calendar probe'
       },
       {
         name: 'parent-progress',
         displayName: 'Progres Copil',
         componentName: 'ParentProgressDashboard',
         icon: 'UserCircle',
-        description: 'Urmărire progres copil, realizări, evenimente viitoare, comunicare antrenor'
+  description: 'Urmărire progres copil, realizări, probe viitoare, comunicare antrenor'
       }
     ];
 

@@ -51,10 +51,10 @@ INSERT INTO permissions (name, description, resource, action, created_at, update
 
 -- Permisiuni pentru Events
 INSERT INTO permissions (name, description, resource, action, created_at, updated_at) VALUES
-('events.view', 'Poate vizualiza evenimente', 'events', 'view', NOW(), NOW()),
-('events.create', 'Poate crea evenimente noi', 'events', 'create', NOW(), NOW()),
-('events.edit', 'Poate edita evenimente', 'events', 'edit', NOW(), NOW()),
-('events.delete', 'Poate șterge evenimente', 'events', 'delete', NOW(), NOW());
+('events.view', 'Poate vizualiza probe', 'events', 'view', NOW(), NOW()),
+('events.create', 'Poate crea probe noi', 'events', 'create', NOW(), NOW()),
+('events.edit', 'Poate edita probe', 'events', 'edit', NOW(), NOW()),
+('events.delete', 'Poate șterge probe', 'events', 'delete', NOW(), NOW());
 
 -- Permisiuni pentru Messages
 INSERT INTO permissions (name, description, resource, action, created_at, updated_at) VALUES
@@ -103,7 +103,7 @@ FROM roles r
 CROSS JOIN permissions p
 WHERE r.name = 'superadmin';
 
--- Coach - Permisiuni pentru atleți, rezultate, evenimente, mesaje
+-- Coach - Permisiuni pentru atleți, rezultate, probe, mesaje
 INSERT INTO role_permissions (role_id, permission_id, created_at, updated_at)
 SELECT r.id, p.id, NOW(), NOW()
 FROM roles r

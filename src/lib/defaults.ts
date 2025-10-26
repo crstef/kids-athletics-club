@@ -26,7 +26,7 @@ export const DEFAULT_ROLES: Omit<Role, 'id' | 'createdAt' | 'createdBy' | 'updat
     {
         name: 'coach',
         displayName: 'Antrenor',
-        description: 'Gestionează sportivii, rezultatele și evenimentele.',
+    description: 'Gestionează sportivii, rezultatele și probele.',
         isSystem: true,
         isActive: true,
         permissions: [

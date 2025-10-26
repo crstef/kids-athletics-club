@@ -215,7 +215,7 @@ export default function AthletePerformanceDashboard() {
           </TabsTrigger>
           <TabsTrigger value="events">
             <Calendar className="w-4 h-4 mr-2" />
-            Evenimente Viitoare
+            Probe
           </TabsTrigger>
         </TabsList>
 
@@ -375,7 +375,7 @@ export default function AthletePerformanceDashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="w-5 h-5 text-purple-600" />
-                Evenimente Viitoare
+                Probe 
               </CardTitle>
               <CardDescription>
                 Competiții și antrenamente programate
@@ -385,7 +385,7 @@ export default function AthletePerformanceDashboard() {
               <div className="space-y-3">
                 {upcomingEvents.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">
-                    Nu există evenimente programate
+                    Nu există probe 
                   </p>
                 ) : (
                   upcomingEvents.map((event, idx) => (

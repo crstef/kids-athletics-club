@@ -149,7 +149,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     <head>
       <meta charset="utf-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1" />
-      <title>Kids Athletics Club</title>
+      <title>Club Atletism Sibiu</title>
       <style>
         body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:#0b0b0b; color:#e8e8e8; display:flex; align-items:center; justify-content:center; min-height:100vh; }
         .box { max-width: 720px; padding: 24px; border: 1px solid #2a2a2a; border-radius: 12px; background: #121212; }
