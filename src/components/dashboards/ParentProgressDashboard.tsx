@@ -36,13 +36,13 @@ interface ChildProgress {
 }
 
 export default function ParentProgressDashboard() {
-  const { currentUser: user } = useAuth()
+  const { currentUser: _user } = useAuth()
   const [loading, setLoading] = useState(true)
   const [children, setChildren] = useState<ChildProgress[]>([])
   const [selectedChild, setSelectedChild] = useState<ChildProgress | null>(null)
   const [recentResults, setRecentResults] = useState<any[]>([])
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([])
-  const [messages, setMessages] = useState<any[]>([])
+  // Removed unused messages state
 
   useEffect(() => {
     fetchDashboardData()

@@ -194,7 +194,7 @@ export function MessagingPanel({
       <div className="w-2/3 flex flex-col">
         {selectedUser ? (
           <>
-            <CardHeader className="border-b">
+            <CardHeader className="border-b sticky top-0 z-10 bg-background">
               <div className="flex items-center gap-3">
                 <Avatar>
                   <div 
@@ -236,7 +236,7 @@ export function MessagingPanel({
                           : 'bg-muted rounded-bl-none'
                       }`}
                     >
-                      <p className="text-sm whitespace-pre-wrap break-word">{message.content}</p>
+                      <p className="text-sm whitespace-pre-wrap wrap-break-word">{message.content}</p>
                     </div>
                   </div>
                 ))}

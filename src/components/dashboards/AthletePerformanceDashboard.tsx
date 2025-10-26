@@ -5,7 +5,6 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { 
   TrendUp, 
-  TrendDown, 
   Trophy, 
   Target, 
   Calendar,
@@ -17,7 +16,7 @@ import {
 } from '@phosphor-icons/react'
 import { apiClient } from '@/lib/api-client'
 import { useAuth } from '@/lib/auth-context'
-import { format, subMonths } from 'date-fns'
+import { format } from 'date-fns'
 import { ro } from 'date-fns/locale'
 
 interface PersonalBest {
@@ -28,13 +27,7 @@ interface PersonalBest {
   improvement: number | null
 }
 
-interface TrainingSession {
-  date: string
-  type: string
-  duration: number
-  intensity: 'low' | 'medium' | 'high'
-  notes: string
-}
+// Removed unused TrainingSession interface
 
 interface Goal {
   id: string
@@ -51,7 +44,7 @@ export default function AthletePerformanceDashboard() {
   const [personalBests, setPersonalBests] = useState<PersonalBest[]>([])
   const [recentResults, setRecentResults] = useState<any[]>([])
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([])
-  const [goals, setGoals] = useState<Goal[]>([])
+  const [goals] = useState<Goal[]>([])
   const [stats, setStats] = useState({
     totalEvents: 0,
     medals: { gold: 0, silver: 0, bronze: 0 },

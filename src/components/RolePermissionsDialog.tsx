@@ -43,22 +43,14 @@ export default function RolePermissionsDialog({
       ])
       setAllPermissions(allPerms)
       setRolePermissions(new Set(rolePerms.map(p => p.id)))
-    } catch (error) {
+    } catch (_error) {
       toast.error('Eroare la încărcarea permisiunilor')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleTogglePermission = (permissionId: string) => {
-    const newSelected = new Set(rolePermissions)
-    if (newSelected.has(permissionId)) {
-      newSelected.delete(permissionId)
-    } else {
-      newSelected.add(permissionId)
-    }
-    setRolePermissions(newSelected)
-  }
+  // Removed unused handleTogglePermission (inline handlers used below)
 
   const handleSave = async () => {
     if (!role) return

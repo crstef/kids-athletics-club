@@ -70,19 +70,19 @@ export function StatWidget({
           } relative overflow-hidden group`}
           onClick={handleClick}
         >
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          <div className="absolute inset-0 bg-linear-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10 p-4 sm:p-6">
             <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
               {title}
             </CardTitle>
-            <div className={`${iconColor} p-1.5 sm:p-2 rounded-lg bg-gradient-to-br from-muted/50 to-muted/30 group-hover:scale-110 transition-transform duration-300`}>
+            <div className={`${iconColor} p-1.5 sm:p-2 rounded-lg bg-linear-to-br from-muted/50 to-muted/30 group-hover:scale-110 transition-transform duration-300`}>
               <div className="w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center">
                 {icon}
               </div>
             </div>
           </CardHeader>
           <CardContent className="relative z-10 p-4 sm:p-6 pt-0">
-            <div className="text-2xl sm:text-4xl font-bold mb-1 bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text" style={{ fontFamily: 'Outfit', letterSpacing: '-0.02em' }}>
+            <div className="text-2xl sm:text-4xl font-bold mb-1 bg-linear-to-br from-foreground to-foreground/70 bg-clip-text" style={{ fontFamily: 'Outfit', letterSpacing: '-0.02em' }}>
               {value}
             </div>
             {subtitle && (
@@ -111,7 +111,7 @@ export function StatWidget({
           <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto p-4 sm:p-6">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 sm:gap-3 text-lg sm:text-xl">
-                <div className={`${iconColor} p-1.5 sm:p-2 rounded-lg bg-gradient-to-br from-muted/50 to-muted/30`}>
+                <div className={`${iconColor} p-1.5 sm:p-2 rounded-lg bg-linear-to-br from-muted/50 to-muted/30`}>
                   {icon}
                 </div>
                 {title}

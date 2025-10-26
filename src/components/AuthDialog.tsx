@@ -23,7 +23,7 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
   const { rememberMe, setRememberMe } = useAuth()
   const [_users, _setUsers, _usersLoading] = useUsers({ autoFetch: false});
   const [athletes, setAthletes, _athletesLoading, _athletesError, _refetchAthletes] = useAthletes({ autoFetch: false });
-  const [coaches, _setCoaches, _coachesLoading, _coachesError, refetchCoaches] = usePublicCoaches();
+  const [coaches, _setCoaches, _coachesLoading, _coachesError, _refetchCoaches] = usePublicCoaches();
   
   const [loginEmail, setLoginEmail] = useState('')
   const [loginPassword, setLoginPassword] = useState('')

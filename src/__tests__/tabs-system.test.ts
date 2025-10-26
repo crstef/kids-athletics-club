@@ -8,7 +8,7 @@
  * - ✅ FIX 3: Backend role_dashboards population
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { generateTabsFromPermissions, PERMISSION_TO_TAB_MAP, getPermissionForTab } from '@/lib/permission-tab-mapping'
 
 describe('Permission to Tab Mapping System', () => {
@@ -257,7 +257,7 @@ describe('Permission to Tab Mapping System', () => {
         'approvals': ['accessRequests', 'approvalRequests']
       }
       
-      for (const [tabId, dataNeeds] of Object.entries(tabToDataMap)) {
+      for (const [_tabId, dataNeeds] of Object.entries(tabToDataMap)) {
         expect(dataNeeds.length).toBeGreaterThan(0)
       }
     })

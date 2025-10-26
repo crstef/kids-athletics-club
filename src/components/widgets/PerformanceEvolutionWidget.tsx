@@ -13,7 +13,7 @@ export default function PerformanceEvolutionWidget({ athletes = [], results = []
   const [selectedAthleteId, setSelectedAthleteId] = useState<string>('');
   const [selectedEvent, setSelectedEvent] = useState<EventType | 'all'>('all');
 
-  const selectedAthlete = useMemo(() => athletes.find(a => a.id === selectedAthleteId), [athletes, selectedAthleteId]);
+  // Removed unused selectedAthlete memo
 
   const athleteResults = useMemo(() => {
     if (!selectedAthleteId) return [];

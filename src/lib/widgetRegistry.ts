@@ -13,6 +13,8 @@ import { RecentEventsWidget } from '@/components/widgets/RecentEventsWidget'
 import { PerformanceChartWidget } from '@/components/widgets/PerformanceChartWidget'
 import { RecentResultsWidget } from '@/components/widgets/RecentResultsWidget'
 import { PendingRequestsWidget } from '@/components/widgets/PendingRequestsWidget'
+import AgeDistributionWidget from '@/components/widgets/AgeDistributionWidget'
+import PersonalBestWidget from '@/components/widgets/PersonalBestWidget'
 
 export interface WidgetConfig {
   id: string
@@ -92,6 +94,22 @@ export const WIDGET_REGISTRY: Record<string, WidgetConfig> = {
     requiredPermission: 'results.view',
     defaultSize: 'medium',
     description: 'Ultimele rezultate înregistrate'
+  },
+  'personal-bests': {
+    id: 'personal-bests',
+    name: 'Recorduri Personale',
+    component: PersonalBestWidget,
+    requiredPermission: 'results.view',
+    defaultSize: 'medium',
+    description: 'Recorduri personale recente pe probe'
+  },
+  'age-distribution': {
+    id: 'age-distribution',
+    name: 'Distribuție pe Vârste',
+    component: AgeDistributionWidget,
+    requiredPermission: 'athletes.view',
+    defaultSize: 'medium',
+    description: 'Număr atleți pe categorii de vârstă'
   },
   'pending-requests': {
     id: 'pending-requests',

@@ -21,12 +21,8 @@ export function PerformanceChartWidget({ athletes, results }: PerformanceChartWi
     if (!selectedAthleteId || !selectedEvent) return []
     return results
       .filter(r => r.athleteId === selectedAthleteId && r.eventType === selectedEvent)
-      .map(r => ({ date: r.date, value: r.value }))
+      .map(r => ({ date: r.date, value: r.value, notes: r.notes }))
   }, [results, selectedAthleteId, selectedEvent])
-
-  const unit = useMemo(() => {
-    return results.find(r => r.eventType === selectedEvent)?.unit || 'points'
-  }, [results, selectedEvent])
 
   const insufficientData = athletes.length === 0 || results.length === 0
 
@@ -69,7 +65,6 @@ export function PerformanceChartWidget({ athletes, results }: PerformanceChartWi
               <PerformanceChart
                 data={chartData}
                 eventType={selectedEvent}
-                unit={unit}
               />
             ) : (
               <p className="text-sm text-muted-foreground">Selectează o probă pentru a vedea graficul.</p>

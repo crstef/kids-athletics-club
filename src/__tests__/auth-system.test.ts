@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { hashPassword } from '../lib/auth'
 
 // ============================================================================
@@ -93,7 +93,8 @@ describe('AUTH SYSTEM ANALYSIS & TESTS', () => {
 
       Object.entries(permissionCategories).forEach(([category, perms]) => {
         perms.forEach(perm => {
-          expect(perm).toMatch(new RegExp(`^${category}\.`))
+          // Escape the dot explicitly in string form for the RegExp constructor
+          expect(perm).toMatch(new RegExp(`^${category}\\.`))
         })
       })
     })
@@ -136,7 +137,7 @@ describe('AUTH SYSTEM ANALYSIS & TESTS', () => {
         athlete: ['AthleteLayout', 'AthletePerformanceDashboard']
       }
 
-      Object.entries(dashboardsByRole).forEach(([role, dashboards]) => {
+      Object.entries(dashboardsByRole).forEach(([_role, dashboards]) => {
         expect(dashboards.length).toBeGreaterThan(0)
         dashboards.forEach(dashboard => {
           expect(dashboard).toBeDefined()

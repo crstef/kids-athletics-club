@@ -1,18 +1,18 @@
 import { useState, useMemo, useEffect } from 'react'
 import { Toaster, toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Trophy, UserCircle, Envelope, ChatCircleDots } from '@phosphor-icons/react'
+import { Trophy, UserCircle } from '@phosphor-icons/react'
 import { AuthProvider, useAuth } from './lib/auth-context'
 import { AuthDialog } from '@/components/AuthDialog'
 import { apiClient } from '@/lib/api-client'
 import { useAthletes, useResults, useUsers, useAccessRequests, useMessages, useEvents, usePermissions, useUserPermissions, useApprovalRequests, useRoles, useAgeCategories } from '@/hooks/use-api'
-import { useComponents, type TabComponent } from '@/hooks/use-components'
+import { useComponents } from '@/hooks/use-components'
 import { useInactivityLogout } from '@/hooks/use-inactivity-logout'
 import { hashPassword } from './lib/auth';
 import { DEFAULT_PERMISSIONS, DEFAULT_ROLES } from './lib/defaults'
 import type { Athlete, Result, AgeCategory, User, AccessRequest, Message, EventTypeCustom, Permission, UserPermission, Role, AgeCategoryCustom } from '@/lib/types'
 import { getDashboardComponent } from '@/lib/dashboardRegistry';
-import { generateTabsFromPermissions, type TabConfig, getPermissionForTab } from '@/lib/permission-tab-mapping'
+import { generateTabsFromPermissions } from '@/lib/permission-tab-mapping'
 
 // TAB_CONFIGS is now generated dynamically from user permissions via generateTabsFromPermissions()
 
@@ -46,7 +46,7 @@ function AppContent() {
   const [approvalRequests, setApprovalRequests, _approvalRequestsLoading, _approvalRequestsError, refetchApprovalRequests] = useApprovalRequests()
   const [roles, setRoles, _rolesLoading, _rolesError, refetchRoles] = useRoles()
   const [ageCategories, setAgeCategories, _ageCategoriesLoading, _ageCategoriesError, refetchAgeCategories] = useAgeCategories()
-  const { tabs: apiTabs, loading: componentsLoading, fetchComponents } = useComponents()
+  const { tabs: apiTabs, fetchComponents } = useComponents()
   const [selectedAthlete, setSelectedAthlete] = useState<Athlete | null>(null)
   const [selectedAthleteTab, setSelectedAthleteTab] = useState<'results' | 'evolution'>('results')
   const [deleteAthleteId, setDeleteAthleteId] = useState<string | null>(null)

@@ -4,9 +4,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Gear } from '@phosphor-icons/react';
-import { WIDGET_DEFINITIONS, userCanAccessWidget } from '@/lib/widget-definitions';
+import { WIDGET_REGISTRY, userCanAccessWidget } from '@/lib/widgetRegistry'
 import type { User, Athlete, EventTypeCustom, Permission, Result, AccessRequest, Message } from '@/lib/types';
-import { cn } from '@/lib/utils';
 
 interface DynamicDashboardProps {
   currentUser: User;
@@ -31,7 +30,7 @@ export function DynamicDashboard(props: DynamicDashboardProps) {
     users = [],
     athletes = [],
     events = [],
-    permissions = [],
+    
     results = [],
     accessRequests = [],
     onNavigateToTab,
@@ -40,10 +39,10 @@ export function DynamicDashboard(props: DynamicDashboardProps) {
   } = props;
 
   const getDefaultWidgets = (): string[] => {
-    return Object.keys(WIDGET_DEFINITIONS).filter(widgetId =>
+    return Object.keys(WIDGET_REGISTRY).filter(widgetId =>
       userCanAccessWidget(widgetId, currentUser.permissions || [])
-    );
-  };
+    )
+  }
 
   const [enabledWidgets, setEnabledWidgets] = useState<string[]>(
     initialWidgets || getDefaultWidgets()
@@ -59,32 +58,34 @@ export function DynamicDashboard(props: DynamicDashboardProps) {
   };
 
   const buildWidgetProps = (widgetId: string): any => {
-    const widgetDef = WIDGET_DEFINITIONS[widgetId];
-    const onNavigate = () => {
-      if (widgetId.startsWith('stats-')) {
-        onNavigateToTab?.(widgetId.replace('stats-', ''));
-      }
-    };
-
+    // Existing widgets expect simple props
     switch (widgetId) {
       case 'stats-users':
-        return { icon: widgetDef.icon, title: widgetDef.name, value: users.length, description: `${users.length} activi`, onNavigate };
+        return { users, onNavigateToTab }
       case 'stats-athletes':
-        return { icon: widgetDef.icon, title: widgetDef.name, value: athletes.length, description: `${athletes.length} în sistem`, onNavigate };
+        return { athletes, onNavigateToTab, onViewAthleteDetails }
       case 'stats-events':
-        return { icon: widgetDef.icon, title: widgetDef.name, value: events.length, description: `${events.length} configurate`, onNavigate };
+        return { events, onNavigateToTab }
+      case 'stats-permissions':
+        return { }
       case 'recent-users':
-        return { users, onNavigateToTab };
-      case 'performance-evolution':
-        return { athletes, results };
+        return { users, onNavigateToTab }
+      case 'recent-events':
+        return { events }
+      case 'performance-chart':
+        return { athletes, results }
       case 'recent-results':
-        return { athletes, results, onNavigateToTab };
+        return { athletes, results }
+      case 'personal-bests':
+        return { athletes, results, onViewAthleteDetails }
+      case 'age-distribution':
+        return { athletes }
       case 'pending-requests':
-        return { requests: accessRequests, onNavigateToTab };
+        return { requests: accessRequests, onNavigateToTab }
       default:
-        return {};
+        return {}
     }
-  };
+  }
 
   return (
     <div className="space-y-6">
@@ -101,27 +102,26 @@ export function DynamicDashboard(props: DynamicDashboardProps) {
 
       {enabledWidgets.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 auto-rows-[minmax(180px,auto)]">
-          {enabledWidgets.map(widgetId => {
-            const widgetConfig = WIDGET_DEFINITIONS[widgetId];
+          {[...enabledWidgets].sort((a,b) => a === 'performance-chart' ? -1 : b === 'performance-chart' ? 1 : 0).map(widgetId => {
+            const widgetConfig = WIDGET_REGISTRY[widgetId]
             if (!widgetConfig || !userCanAccessWidget(widgetId, currentUser.permissions || [])) {
-              return null;
+              return null
             }
 
-            const WidgetComponent = widgetConfig.component;
-            const widgetProps = buildWidgetProps(widgetId);
-            const { fullWidth } = widgetConfig;
+            const WidgetComponent = widgetConfig.component
+            const widgetProps = buildWidgetProps(widgetId)
+
+            const spanClass = widgetId === 'performance-chart'
+              ? 'lg:col-span-4 md:col-span-3 sm:col-span-2 col-span-1'
+              : widgetConfig.defaultSize === 'medium'
+                ? 'sm:col-span-2 col-span-1'
+                : 'col-span-1'
 
             return (
-              <div
-                key={widgetId}
-                className={cn(
-                  'col-span-1 sm:col-span-1',
-                  fullWidth ? 'sm:col-span-2 md:col-span-3 lg:col-span-4' : 'md:col-span-1'
-                )}
-              >
+              <div key={widgetId} className={spanClass}>
                 <WidgetComponent {...widgetProps} />
               </div>
-            );
+            )
           })}
         </div>
       ) : (
@@ -163,7 +163,7 @@ function CustomizeDialog({ open, onOpenChange, currentUser, enabledWidgets, onTo
           <DialogDescription>Activează sau dezactivează widget-urile de pe dashboard.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
-          {Object.values(WIDGET_DEFINITIONS).map((widget) => {
+          {Object.values(WIDGET_REGISTRY).map((widget) => {
             if (!userCanAccessWidget(widget.id, currentUser.permissions || [])) {
               return null;
             }

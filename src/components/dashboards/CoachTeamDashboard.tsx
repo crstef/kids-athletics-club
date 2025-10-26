@@ -75,7 +75,7 @@ export default function CoachTeamDashboard() {
       // Process athlete progress
       const athleteProgress = athletesData.map((athlete: any) => {
         const athleteResults = resultsData.filter((r: any) => r.athleteId === athlete.id)
-        const medals = athleteResults.filter((r: any) => r.position <= 3).length
+  const _medals = athleteResults.filter((r: any) => r.position <= 3).length
         
         return {
           id: athlete.id,

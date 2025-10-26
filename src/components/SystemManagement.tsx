@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { Users } from '@phosphor-icons/react'
 import { apiClient } from '@/lib/api-client'
 import type { Role, Dashboard } from '@/lib/types'
 import RoleManagementEnhanced from './RoleManagementEnhanced'

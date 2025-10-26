@@ -16,7 +16,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 // Components
 import { UserManagement } from '@/components/UserManagement'
 import { RoleManagement } from '@/components/RoleManagement'
-import SystemManagement from '@/components/SystemManagement'
 import { PermissionsSystem } from '@/components/PermissionsSystem'
 import { AgeCategoryManagement } from '@/components/AgeCategoryManagement'
 import { ProbeManagement } from '@/components/ProbeManagement'
@@ -135,7 +134,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
     unreadMessagesCount,
     activeTab,
     setActiveTab,
-    userWidgets = [],
+    
     users,
     athletes,
     probes,
@@ -194,8 +193,8 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
           // Default widgets if none saved
           setEnabledWidgets(['statistics', 'events', 'messages'])
         }
-      } catch (error) {
-        console.error('Failed to load widgets:', error)
+      } catch (_error) {
+        console.error('Failed to load widgets:', _error)
         // Fallback to default widgets
         setEnabledWidgets(['statistics', 'events', 'messages'])
       } finally {
@@ -218,8 +217,8 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
               config: {}
             }))
           )
-        } catch (error) {
-          console.error('Failed to save widgets:', error)
+        } catch (_error) {
+          console.error('Failed to save widgets:', _error)
         }
       }
       saveWidgets()
@@ -515,7 +514,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
                       await apiClient.approveRequest(requestId)
                       toast.success('Cerere aprobată cu succes')
                       window.location.reload()
-                    } catch (error) {
+                    } catch (_error) {
                       toast.error('Eroare la aprobarea cererii')
                     }
                   }}
@@ -524,7 +523,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
                       await apiClient.rejectRequest(requestId, reason)
                       toast.error('Cerere respinsă')
                       window.location.reload()
-                    } catch (error) {
+                    } catch (_error) {
                       toast.error('Eroare la respingerea cererii')
                     }
                   }}
@@ -613,7 +612,6 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
           onAddResult={props.handleAddResult}
           onUpdateResult={props.handleUpdateResult}
           onDeleteResult={props.handleDeleteResult}
-          onUploadAvatar={props.handleUploadAthleteAvatar}
           defaultTab={selectedAthleteTab}
         />
       )}

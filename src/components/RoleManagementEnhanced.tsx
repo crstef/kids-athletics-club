@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Pencil, Trash, Shield, Layout, Check, LockKey } from '@phosphor-icons/react'
+import { Plus, Pencil, Trash, Shield, Layout, LockKey } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { apiClient } from '@/lib/api-client'
 import RolePermissionsDialog from './RolePermissionsDialog'
@@ -19,7 +19,7 @@ interface RoleManagementEnhancedProps {
   onRefresh: () => void
 }
 
-export default function RoleManagementEnhanced({ roles, dashboards, onRefresh }: RoleManagementEnhancedProps) {
+export default function RoleManagementEnhanced({ roles, dashboards: _dashboards, onRefresh }: RoleManagementEnhancedProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isPermissionsDialogOpen, setIsPermissionsDialogOpen] = useState(false)
   const [isPermissionsModalOpen, setIsPermissionsModalOpen] = useState(false)
