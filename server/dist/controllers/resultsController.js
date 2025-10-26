@@ -17,6 +17,7 @@ const getAllResults = async (req, res) => {
         }
         query += ' ORDER BY r.date DESC';
         const result = await client.query(query, queryParams);
+        res.set('Cache-Control', 'no-store');
         res.json(result.rows.map(r => ({
             id: r.id,
             athleteId: r.athlete_id,

@@ -24,6 +24,7 @@ const getAllMessages = async (req, res) => {
         }
         query += ' ORDER BY m.timestamp DESC';
         const result = await client.query(query, queryParams);
+        res.set('Cache-Control', 'no-store');
         res.json(result.rows.map(m => ({
             id: m.id,
             fromUserId: m.from_user_id,
