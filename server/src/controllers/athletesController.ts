@@ -1,5 +1,6 @@
 import { Response } from 'express';
 import fs from 'fs';
+import path from 'path';
 import pool from '../config/database';
 import { AuthRequest } from '../middleware/auth';
 
@@ -105,10 +106,13 @@ export const updateAthlete = async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
     const { firstName, lastName, age, category, gender, dateOfBirth, dateJoined, avatar, coachId, parentId } = req.body;
 
-    const athlete = await client.query('SELECT id FROM athletes WHERE id = $1', [id]);
+    const athlete = await client.query('SELECT id, avatar FROM athletes WHERE id = $1', [id]);
     if (athlete.rows.length === 0) {
       return res.status(404).json({ error: 'Athlete not found' });
     }
+
+    const currentAvatar: string | null = athlete.rows[0].avatar;
+    const removeExistingAvatar = avatar !== undefined && (avatar === null || avatar === '');
 
     const updates: string[] = [];
     const values: any[] = [];
@@ -144,7 +148,7 @@ export const updateAthlete = async (req: AuthRequest, res: Response) => {
     }
     if (avatar !== undefined) {
       updates.push(`avatar = $${paramCount++}`);
-      values.push(avatar);
+      values.push(avatar === '' ? null : avatar);
     }
     if (coachId !== undefined) {
       updates.push(`coach_id = $${paramCount++}`);
@@ -165,6 +169,22 @@ export const updateAthlete = async (req: AuthRequest, res: Response) => {
        RETURNING id, first_name, last_name, age, category, gender, date_of_birth, date_joined, avatar, coach_id, created_at`,
       values
     );
+
+    if (removeExistingAvatar && currentAvatar) {
+      const normalizedPath = currentAvatar.startsWith('/') ? `.${currentAvatar}` : currentAvatar;
+      const absolutePath = path.resolve(process.cwd(), normalizedPath);
+      const uploadsDir = path.resolve(process.cwd(), 'uploads', 'athletes');
+
+      if (absolutePath.startsWith(uploadsDir)) {
+        try {
+          await fs.promises.unlink(absolutePath);
+        } catch (fileError) {
+          if ((fileError as NodeJS.ErrnoException).code !== 'ENOENT') {
+            console.warn('Failed to delete athlete avatar file:', fileError);
+          }
+        }
+      }
+    }
 
     const updatedAthlete = result.rows[0];
 

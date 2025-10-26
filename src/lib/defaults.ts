@@ -1,16 +1,17 @@
 import { PermissionName, Role } from './types';
 
 export const DEFAULT_PERMISSIONS: PermissionName[] = [
-  'athletes.view',
+    'athletes.view',
     'athletes.avatar.upload',
     'athletes.avatar.view',
-  'results.view',
-  'events.view',
-  'messages.create',
-  'messages.view',
-  'access_requests.create',
-  'access_requests.view',
+    'results.view',
+    'events.view',
+    'messages.create',
+    'messages.view',
+    'access_requests.create',
+    'access_requests.view',
     'approval_requests.view',
+    'approval_requests.approve',
 ];
 
 export const DEFAULT_ROLES: Omit<Role, 'id' | 'createdAt' | 'createdBy' | 'updatedAt' | 'updatedBy'>[] = [
@@ -35,6 +36,7 @@ export const DEFAULT_ROLES: Omit<Role, 'id' | 'createdAt' | 'createdBy' | 'updat
             'events.view',
             'messages.create', 'messages.view',
             'access_requests.view', 'access_requests.edit',
+            'approval_requests.view', 'approval_requests.approve',
             'dashboard.view.coach',
         ],
     },

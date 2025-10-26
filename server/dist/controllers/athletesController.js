@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.uploadAthleteAvatar = exports.deleteAthlete = exports.updateAthlete = exports.createAthlete = exports.getAllAthletes = void 0;
 const fs_1 = __importDefault(require("fs"));
+const path_1 = __importDefault(require("path"));
 const database_1 = __importDefault(require("../config/database"));
 const getAllAthletes = async (req, res) => {
     const client = await database_1.default.connect();
@@ -97,10 +98,12 @@ const updateAthlete = async (req, res) => {
     try {
         const { id } = req.params;
         const { firstName, lastName, age, category, gender, dateOfBirth, dateJoined, avatar, coachId, parentId } = req.body;
-        const athlete = await client.query('SELECT id FROM athletes WHERE id = $1', [id]);
+        const athlete = await client.query('SELECT id, avatar FROM athletes WHERE id = $1', [id]);
         if (athlete.rows.length === 0) {
             return res.status(404).json({ error: 'Athlete not found' });
         }
+        const currentAvatar = athlete.rows[0].avatar;
+        const removeExistingAvatar = avatar !== undefined && (avatar === null || avatar === '');
         const updates = [];
         const values = [];
         let paramCount = 1;
@@ -134,7 +137,7 @@ const updateAthlete = async (req, res) => {
         }
         if (avatar !== undefined) {
             updates.push(`avatar = $${paramCount++}`);
-            values.push(avatar);
+            values.push(avatar === '' ? null : avatar);
         }
         if (coachId !== undefined) {
             updates.push(`coach_id = $${paramCount++}`);
@@ -150,6 +153,21 @@ const updateAthlete = async (req, res) => {
         values.push(id);
         const result = await client.query(`UPDATE athletes SET ${updates.join(', ')} WHERE id = $${paramCount}
        RETURNING id, first_name, last_name, age, category, gender, date_of_birth, date_joined, avatar, coach_id, created_at`, values);
+        if (removeExistingAvatar && currentAvatar) {
+            const normalizedPath = currentAvatar.startsWith('/') ? `.${currentAvatar}` : currentAvatar;
+            const absolutePath = path_1.default.resolve(process.cwd(), normalizedPath);
+            const uploadsDir = path_1.default.resolve(process.cwd(), 'uploads', 'athletes');
+            if (absolutePath.startsWith(uploadsDir)) {
+                try {
+                    await fs_1.default.promises.unlink(absolutePath);
+                }
+                catch (fileError) {
+                    if (fileError.code !== 'ENOENT') {
+                        console.warn('Failed to delete athlete avatar file:', fileError);
+                    }
+                }
+            }
+        }
         const updatedAthlete = result.rows[0];
         res.json({
             id: updatedAthlete.id,

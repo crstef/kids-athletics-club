@@ -44,10 +44,10 @@ export const PERMISSION_TO_TAB_MAP: Record<string, TabConfig> = {
   },
 
   // Communication tabs
-  'approval_requests.view': {
+  'access_requests.view': {
     id: 'requests',
     label: 'Cereri',
-    permission: 'approval_requests.view',
+    permission: 'access_requests.view',
     category: 'data',
     order: 30
   },
@@ -92,6 +92,12 @@ export const PERMISSION_TO_TAB_MAP: Record<string, TabConfig> = {
   }
 }
 
+const PERMISSION_ALIASES: Record<string, string> = {
+  'approval_requests.view': 'access_requests.view',
+  'approval_requests.approve': 'access_requests.view',
+  'requests.view.own': 'access_requests.view',
+}
+
 /**
  * Generate tabs from user permissions
  * @param userPermissions Array of permission strings the user has
@@ -115,8 +121,9 @@ export function generateTabsFromPermissions(userPermissions: string[]): TabConfi
   
   // For non-superadmin users, add tabs for each specific permission they have
   for (const permission of userPermissions) {
-    if (PERMISSION_TO_TAB_MAP[permission]) {
-      const tabConfig = PERMISSION_TO_TAB_MAP[permission]
+    const normalized = PERMISSION_ALIASES[permission] ?? permission
+    if (PERMISSION_TO_TAB_MAP[normalized]) {
+      const tabConfig = PERMISSION_TO_TAB_MAP[normalized]
       tabs.set(tabConfig.id, tabConfig)
     }
   }

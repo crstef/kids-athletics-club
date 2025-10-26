@@ -81,10 +81,12 @@ export const DEFAULT_ROLES: Omit<Role, 'id' | 'createdAt' | 'createdBy'>[] = [
     isActive: true,
     permissions: [
       'athletes.create', 'athletes.view', 'athletes.edit',
+      'athletes.avatar.view', 'athletes.avatar.upload',
       'results.create', 'results.view', 'results.edit',
       'events.view',
       'messages.create', 'messages.view',
-  'access_requests.view', 'access_requests.edit',
+      'access_requests.view', 'access_requests.edit',
+      'approval_requests.view', 'approval_requests.approve',
     ]
   },
   {
@@ -98,7 +100,7 @@ export const DEFAULT_ROLES: Omit<Role, 'id' | 'createdAt' | 'createdBy'>[] = [
       'results.view',
       'events.view',
       'messages.create', 'messages.view',
-  'access_requests.create', 'access_requests.view',
+      'access_requests.create', 'access_requests.view',
     ]
   },
   {
@@ -186,6 +188,7 @@ export function getDefaultPermissionsForRole(role: User['role']): PermissionName
         'events.view',
         'messages.create', 'messages.view',
         'access_requests.view', 'access_requests.edit',
+        'approval_requests.view', 'approval_requests.approve',
         'dashboard.view.coach',
       ]
     case 'parent':

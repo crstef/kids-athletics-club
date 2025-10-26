@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { Toaster, toast } from '@/components/ui/sonner'
+import { Toaster } from '@/components/ui/sonner'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { ShieldCheck, SignOut, Gear } from '@phosphor-icons/react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -452,7 +453,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
           )}
 
           {/* Categories Tab */}
-          {hasPermission('categories.view') && (
+          {hasPermission('age_categories.view') && (
             <TabsContent value="categories" className="mt-6">
               <AgeCategoryManagement
                 ageCategories={ageCategories}
@@ -500,7 +501,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
                 approvalRequests={props.approvalRequests}
                 onApproveAccount={async (requestId: string) => {
                   try {
-                    await apiClient.request(`/approval-requests/${requestId}/approve`, { method: 'POST' })
+                    await apiClient.approveRequest(requestId)
                     toast.success('Cerere aprobată cu succes')
                     window.location.reload()
                   } catch (error) {
@@ -509,10 +510,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
                 }}
                 onRejectAccount={async (requestId: string, reason?: string) => {
                   try {
-                    await apiClient.request(`/approval-requests/${requestId}/reject`, {
-                      method: 'POST',
-                      body: JSON.stringify({ reason })
-                    })
+                    await apiClient.rejectRequest(requestId, reason)
                     toast.error('Cerere respinsă')
                     window.location.reload()
                   } catch (error) {

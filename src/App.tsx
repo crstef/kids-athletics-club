@@ -57,12 +57,14 @@ function AppContent() {
     
     // Use API tabs if available
     if (apiTabs && apiTabs.length > 0) {
-      return apiTabs.map(tab => ({
+      return apiTabs
+        .filter(tab => tab.permissions?.canView !== false)
+        .map(tab => ({
         id: tab.name,
         label: tab.displayName,
         icon: tab.icon || 'LayoutDashboard',
         permission: `${tab.name}.view`
-      }))
+        }))
     }
     
     // Fallback to permission-based tabs if API not ready
