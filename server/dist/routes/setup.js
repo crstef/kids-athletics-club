@@ -623,21 +623,21 @@ const addModernDashboards = async (_req, res) => {
                 displayName: 'Performanță Atlet',
                 componentName: 'AthletePerformanceDashboard',
                 icon: 'ChartLine',
-                description: 'Dashboard modern cu tracking performanță, recorduri personale, obiective și evenimente'
+                description: 'Dashboard modern cu tracking performanță, recorduri personale, obiective și probe'
             },
             {
                 name: 'coach-team',
                 displayName: 'Echipă Antrenor',
                 componentName: 'CoachTeamDashboard',
                 icon: 'Users',
-                description: 'Overview echipă cu progres atleți, planuri antrenament, calendar evenimente'
+                description: 'Overview echipă cu progres atleți, planuri antrenament, calendar probe'
             },
             {
                 name: 'parent-progress',
                 displayName: 'Progres Copil',
                 componentName: 'ParentProgressDashboard',
                 icon: 'UserCircle',
-                description: 'Urmărire progres copil, realizări, evenimente viitoare, comunicare antrenor'
+                description: 'Urmărire progres copil, realizări, probe viitoare, comunicare antrenor'
             }
         ];
         let addedCount = 0;
