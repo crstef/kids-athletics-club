@@ -75,36 +75,133 @@ export const updateAccessRequest = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Invalid status value' });
     }
 
-    const user = req.user;
-    const params: any[] = [status, req.params.id];
-    let query = 'UPDATE access_requests SET status = $1, response_date = CURRENT_TIMESTAMP WHERE id = $2';
+    await client.query('BEGIN');
 
-    // Coaches can only approve/reject their own requests
-    if (user?.role === 'coach') {
-      query += ' AND coach_id = $3';
-      params.push(user.userId);
+    const authUser = req.user;
+    const selectParams: any[] = [req.params.id];
+    let selectQuery = `
+      SELECT 
+        ar.*,
+        u.role_id AS parent_role_id,
+        u.role AS parent_role,
+        u.is_active AS parent_is_active,
+        u.needs_approval AS parent_needs_approval
+      FROM access_requests ar
+      JOIN users u ON u.id = ar.parent_id
+      WHERE ar.id = $1`;
+
+    if (authUser?.role === 'coach') {
+      selectParams.push(authUser.userId);
+      selectQuery += ' AND ar.coach_id = $2';
     }
 
-    query += ' RETURNING *';
+    selectQuery += ' FOR UPDATE';
 
-    const result = await client.query(query, params);
+    const existingRequest = await client.query(selectQuery, selectParams);
 
-    if (!result.rowCount) {
+    if (!existingRequest.rowCount) {
+      await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Access request not found' });
     }
 
-    const r = result.rows[0];
+    const requestRow = existingRequest.rows[0];
+
+    const updateParams: any[] = [status, req.params.id];
+    let updateQuery = 'UPDATE access_requests SET status = $1, response_date = CURRENT_TIMESTAMP WHERE id = $2';
+
+    if (authUser?.role === 'coach') {
+      updateParams.push(authUser.userId);
+      updateQuery += ' AND coach_id = $3';
+    }
+
+    updateQuery += ' RETURNING *';
+
+    const updateResult = await client.query(updateQuery, updateParams);
+
+    if (!updateResult.rowCount) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Access request not found' });
+    }
+
+    if (status === 'approved') {
+      const approverId = authUser?.userId || null;
+
+      let parentRoleId = requestRow.parent_role_id;
+      if (!parentRoleId) {
+        const roleResult = await client.query('SELECT id FROM roles WHERE name = $1 LIMIT 1', ['parent']);
+        parentRoleId = roleResult.rows[0]?.id || null;
+      }
+
+      const userUpdateValues: any[] = [approverId, requestRow.parent_id];
+      let valueIndex = 3;
+      let userUpdateSet = `
+        is_active = true,
+        needs_approval = false,
+        approved_by = $1,
+        approved_at = CURRENT_TIMESTAMP`;
+
+      if (parentRoleId) {
+        userUpdateSet += `,
+        role_id = COALESCE(role_id, $${valueIndex})`;
+        userUpdateValues.push(parentRoleId);
+        valueIndex += 1;
+      }
+
+      if (!requestRow.parent_role || requestRow.parent_role !== 'parent') {
+        userUpdateSet += `,
+        role = COALESCE(role, 'parent')`;
+      }
+
+      await client.query(
+        `UPDATE users SET ${userUpdateSet} WHERE id = $2`,
+        userUpdateValues
+      );
+
+      if (requestRow.athlete_id) {
+        await client.query(
+          `UPDATE athletes SET parent_id = $1 WHERE id = $2`,
+          [requestRow.parent_id, requestRow.athlete_id]
+        );
+      }
+
+      await client.query(
+        `UPDATE approval_requests
+         SET status = 'approved', response_date = CURRENT_TIMESTAMP, approved_by = $1
+         WHERE user_id = $2
+           AND requested_role = 'parent'
+           AND status = 'pending'
+           AND (coach_id = $3 OR coach_id IS NULL)`,
+        [approverId, requestRow.parent_id, requestRow.coach_id]
+      );
+    } else if (status === 'rejected') {
+      const approverId = authUser?.userId || null;
+      await client.query(
+        `UPDATE approval_requests
+         SET status = 'rejected', response_date = CURRENT_TIMESTAMP, approved_by = $1
+         WHERE user_id = $2
+           AND requested_role = 'parent'
+           AND status = 'pending'
+           AND (coach_id = $3 OR coach_id IS NULL)`,
+        [approverId, requestRow.parent_id, requestRow.coach_id]
+      );
+    }
+
+    await client.query('COMMIT');
+
+    const updated = updateResult.rows[0];
     res.json({
-      id: r.id,
-      parentId: r.parent_id,
-      athleteId: r.athlete_id,
-      coachId: r.coach_id,
-      status: r.status,
-      requestDate: r.request_date,
-      responseDate: r.response_date,
-      message: r.message
+      id: updated.id,
+      parentId: updated.parent_id,
+      athleteId: updated.athlete_id,
+      coachId: updated.coach_id,
+      status: updated.status,
+      requestDate: updated.request_date,
+      responseDate: updated.response_date,
+      message: updated.message
     });
-  } catch (_error) {
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error updating access request:', error);
     res.status(500).json({ error: 'Internal server error' });
   } finally {
     client.release();
