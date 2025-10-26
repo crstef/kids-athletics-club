@@ -186,6 +186,7 @@ const login = async (req, res) => {
             userId: user.id,
             email: user.email,
             role: user.role,
+            roleId: user.role_id,
             permissions
         });
         res.json({

@@ -109,8 +109,10 @@ const initializeData = async (req, res) => {
       ('messages.delete', 'Poate șterge mesaje', NOW(), NOW()),
       ('access_requests.view', 'Poate vizualiza cereri de acces', NOW(), NOW()),
       ('access_requests.approve', 'Poate aproba/respinge cereri de acces', NOW(), NOW()),
-      ('approval_requests.view', 'Poate vizualiza cereri de aprobare', NOW(), NOW()),
-      ('approval_requests.approve', 'Poate aproba/respinge antrenori', NOW(), NOW()),
+  ('approval_requests.view', 'Poate vizualiza cereri de aprobare', NOW(), NOW()),
+  ('approval_requests.view.own', 'Poate vizualiza cereri proprii de aprobare', NOW(), NOW()),
+  ('approval_requests.approve', 'Poate aproba/respinge antrenori', NOW(), NOW()),
+  ('approval_requests.approve.own', 'Poate aproba/respinge cereri proprii', NOW(), NOW()),
       ('permissions.view', 'Poate vizualiza permisiuni', NOW(), NOW()),
       ('permissions.manage', 'Poate gestiona permisiuni', NOW(), NOW()),
       ('roles.view', 'Poate vizualiza roluri', NOW(), NOW()),
@@ -129,7 +131,7 @@ const initializeData = async (req, res) => {
       ('requests.view.own', 'Poate vizualiza doar cererile proprii', NOW(), NOW())
       ON CONFLICT (name) DO NOTHING
     `);
-        results.permissions = 48;
+        results.permissions = 50;
         // 3. Associate all permissions to superadmin role
         const superadminPerms = await client.query(`
       INSERT INTO role_permissions (role_id, permission_id, granted_at)
@@ -155,7 +157,7 @@ const initializeData = async (req, res) => {
         'results.view', 'results.view.own', 'results.create', 'results.edit', 'results.delete',
         'events.view', 'events.create', 'events.edit', 'events.delete',
         'messages.view', 'messages.create',
-        'approval_requests.view', 'approval_requests.approve',
+        'approval_requests.view.own', 'approval_requests.approve.own',
         'requests.view.own',
         'age_categories.view', 'age_categories.manage'
       )
