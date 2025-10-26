@@ -1,27 +1,28 @@
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Label } from '@/components/ui/label'
-import { Gear } from '@phosphor-icons/react'
-import { WIDGET_REGISTRY, userCanAccessWidget } from '@/lib/widgetRegistry'
-import type { User, Athlete, EventTypeCustom, Permission, Result, AccessRequest, Message } from '@/lib/types'
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { Gear } from '@phosphor-icons/react';
+import { WIDGET_DEFINITIONS, userCanAccessWidget } from '@/lib/widget-definitions';
+import type { User, Athlete, EventTypeCustom, Permission, Result, AccessRequest, Message } from '@/lib/types';
+import { cn } from '@/lib/utils';
 
 interface DynamicDashboardProps {
-  currentUser: User
+  currentUser: User;
   // Data for widgets
-  users?: User[]
-  athletes?: Athlete[]
-  events?: EventTypeCustom[]
-  permissions?: Permission[]
-  results?: Result[]
-  accessRequests?: AccessRequest[]
-  messages?: Message[]
+  users?: User[];
+  athletes?: Athlete[];
+  events?: EventTypeCustom[];
+  permissions?: Permission[];
+  results?: Result[];
+  accessRequests?: AccessRequest[];
+  messages?: Message[];
   // Handlers
-  onNavigateToTab?: (tab: string) => void
-  onViewAthleteDetails?: (athlete: Athlete) => void
-  // Widget configuration (from database or localStorage)
-  initialWidgets?: string[] // Array of widget IDs to display
+  onNavigateToTab?: (tab: string) => void;
+  onViewAthleteDetails?: (athlete: Athlete) => void;
+  // Widget configuration
+  initialWidgets?: string[];
 }
 
 export function DynamicDashboard(props: DynamicDashboardProps) {
@@ -33,161 +34,107 @@ export function DynamicDashboard(props: DynamicDashboardProps) {
     permissions = [],
     results = [],
     accessRequests = [],
-    messages = [],
     onNavigateToTab,
     onViewAthleteDetails,
-    initialWidgets
-  } = props
+    initialWidgets,
+  } = props;
 
-  // Get default widgets based on user permissions if none provided
   const getDefaultWidgets = (): string[] => {
-    const allWidgets = Object.keys(WIDGET_REGISTRY)
-    return allWidgets.filter(widgetId => 
+    return Object.keys(WIDGET_DEFINITIONS).filter(widgetId =>
       userCanAccessWidget(widgetId, currentUser.permissions || [])
-    )
-  }
+    );
+  };
 
   const [enabledWidgets, setEnabledWidgets] = useState<string[]>(
     initialWidgets || getDefaultWidgets()
-  )
-  const [customizeOpen, setCustomizeOpen] = useState(false)
+  );
+  const [customizeOpen, setCustomizeOpen] = useState(false);
 
   const toggleWidget = (widgetId: string) => {
-    setEnabledWidgets(prev => 
-      prev.includes(widgetId) 
+    setEnabledWidgets(prev =>
+      prev.includes(widgetId)
         ? prev.filter(id => id !== widgetId)
         : [...prev, widgetId]
-    )
-  }
+    );
+  };
 
-  // Build widget-specific props
   const buildWidgetProps = (widgetId: string): any => {
-    const baseProps = {
-      onNavigateToTab
-    }
+    const widgetDef = WIDGET_DEFINITIONS[widgetId];
+    const onNavigate = () => {
+      if (widgetId.startsWith('stats-')) {
+        onNavigateToTab?.(widgetId.replace('stats-', ''));
+      }
+    };
 
     switch (widgetId) {
       case 'stats-users':
-        return { ...baseProps, users }
-      
+        return { icon: widgetDef.icon, title: widgetDef.name, value: users.length, description: `${users.length} activi`, onNavigate };
       case 'stats-athletes':
-        return { 
-          ...baseProps, 
-          athletes,
-          onViewAthleteDetails
-        }
-      
+        return { icon: widgetDef.icon, title: widgetDef.name, value: athletes.length, description: `${athletes.length} în sistem`, onNavigate };
       case 'stats-events':
-        return { ...baseProps, events }
-      
-      case 'stats-permissions':
-        return { ...baseProps, permissions }
-      
+        return { icon: widgetDef.icon, title: widgetDef.name, value: events.length, description: `${events.length} configurate`, onNavigate };
       case 'recent-users':
-        return { users }
-      
-      case 'recent-events':
-        return { events }
-      
-      case 'performance-chart':
-        return { athletes, results }
-      
+        return { users, onNavigateToTab };
+      case 'performance-evolution':
+        return { athletes, results };
       case 'recent-results':
-        return { athletes, results }
-      
+        return { athletes, results, onNavigateToTab };
       case 'pending-requests':
-        return { requests: accessRequests }
-      
+        return { requests: accessRequests, onNavigateToTab };
       default:
-        return baseProps
+        return {};
     }
-  }
+  };
 
-  // If no widgets enabled, show empty state
-  if (enabledWidgets.length === 0) {
-    return (
-      <div className="space-y-6">
-        <div className="relative">
-          <div className="absolute inset-0 bg-linear-to-r from-primary/10 via-primary/5 to-accent/10 blur-3xl -z-10" />
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-3xl font-bold mb-2 bg-linear-to-r from-primary to-accent bg-clip-text text-transparent" style={{ fontFamily: 'Outfit', letterSpacing: '-0.02em' }}>
-                Dashboard
-              </h2>
-              <p className="text-muted-foreground">
-                Bine ai revenit, {currentUser.firstName}!
-              </p>
-            </div>
-            <Button variant="outline" onClick={() => setCustomizeOpen(true)}>
-              <Gear size={16} className="mr-2" />
-              Personalizează
-            </Button>
-          </div>
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-3xl font-bold">Dashboard</h2>
+          <p className="text-muted-foreground">Bine ai revenit, {currentUser.firstName}!</p>
         </div>
+        <Button variant="outline" onClick={() => setCustomizeOpen(true)}>
+          <Gear size={16} className="mr-2" />
+          Personalizează
+        </Button>
+      </div>
 
+      {enabledWidgets.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 auto-rows-[minmax(180px,auto)]">
+          {enabledWidgets.map(widgetId => {
+            const widgetConfig = WIDGET_DEFINITIONS[widgetId];
+            if (!widgetConfig || !userCanAccessWidget(widgetId, currentUser.permissions || [])) {
+              return null;
+            }
+
+            const WidgetComponent = widgetConfig.component;
+            const widgetProps = buildWidgetProps(widgetId);
+            const { fullWidth } = widgetConfig;
+
+            return (
+              <div
+                key={widgetId}
+                className={cn(
+                  'col-span-1 sm:col-span-1',
+                  fullWidth ? 'sm:col-span-2 md:col-span-3 lg:col-span-4' : 'md:col-span-1'
+                )}
+              >
+                <WidgetComponent {...widgetProps} />
+              </div>
+            );
+          })}
+        </div>
+      ) : (
         <div className="text-center py-12 border border-dashed rounded-lg">
-          <p className="text-muted-foreground mb-4">
-            Nu aveți widget-uri activate pe dashboard
-          </p>
+          <p className="text-muted-foreground mb-4">Nu aveți widget-uri activate pe dashboard.</p>
           <Button onClick={() => setCustomizeOpen(true)}>
             <Gear size={16} className="mr-2" />
             Activează Widget-uri
           </Button>
         </div>
+      )}
 
-        <CustomizeDialog 
-          open={customizeOpen}
-          onOpenChange={setCustomizeOpen}
-          currentUser={currentUser}
-          enabledWidgets={enabledWidgets}
-          onToggleWidget={toggleWidget}
-        />
-      </div>
-    )
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="relative">
-        <div className="absolute inset-0 bg-linear-to-r from-primary/10 via-primary/5 to-accent/10 blur-3xl -z-10" />
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-3xl font-bold mb-2 bg-linear-to-r from-primary to-accent bg-clip-text text-transparent" style={{ fontFamily: 'Outfit', letterSpacing: '-0.02em' }}>
-              Dashboard
-            </h2>
-            <p className="text-muted-foreground">
-              Bine ai revenit, {currentUser.firstName}!
-            </p>
-          </div>
-          <Button variant="outline" onClick={() => setCustomizeOpen(true)}>
-            <Gear size={16} className="mr-2" />
-            Personalizează
-          </Button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 auto-rows-auto">
-        {enabledWidgets.map(widgetId => {
-          const widgetConfig = WIDGET_REGISTRY[widgetId]
-          if (!widgetConfig) return null
-          
-          // Double-check permission
-          if (!userCanAccessWidget(widgetId, currentUser.permissions || [])) {
-            return null
-          }
-
-          const WidgetComponent = widgetConfig.component
-          const widgetProps = buildWidgetProps(widgetId)
-          
-          return (
-            <div key={widgetId} className="col-span-1">
-              <WidgetComponent {...widgetProps} />
-            </div>
-          )
-        })}
-      </div>
-
-      <CustomizeDialog 
+      <CustomizeDialog
         open={customizeOpen}
         onOpenChange={setCustomizeOpen}
         currentUser={currentUser}
@@ -195,16 +142,16 @@ export function DynamicDashboard(props: DynamicDashboardProps) {
         onToggleWidget={toggleWidget}
       />
     </div>
-  )
+  );
 }
 
 // Separate dialog component for cleaner code
 interface CustomizeDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  currentUser: User
-  enabledWidgets: string[]
-  onToggleWidget: (widgetId: string) => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  currentUser: User;
+  enabledWidgets: string[];
+  onToggleWidget: (widgetId: string) => void;
 }
 
 function CustomizeDialog({ open, onOpenChange, currentUser, enabledWidgets, onToggleWidget }: CustomizeDialogProps) {
@@ -213,19 +160,16 @@ function CustomizeDialog({ open, onOpenChange, currentUser, enabledWidgets, onTo
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Personalizează Dashboard</DialogTitle>
-          <DialogDescription>
-            Activează sau dezactivează widget-urile pe dashboard
-          </DialogDescription>
+          <DialogDescription>Activează sau dezactivează widget-urile de pe dashboard.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
-          {Object.values(WIDGET_REGISTRY).map((widget) => {
-            // Only show widgets user has permission for
+          {Object.values(WIDGET_DEFINITIONS).map((widget) => {
             if (!userCanAccessWidget(widget.id, currentUser.permissions || [])) {
-              return null
+              return null;
             }
             
             return (
-              <div key={widget.id} className="flex items-center gap-4 p-4 border rounded-lg">
+              <div key={widget.id} className="flex items-center gap-4 p-4 border rounded-lg hover:bg-muted/50">
                 <Checkbox
                   id={`widget-${widget.id}`}
                   checked={enabledWidgets.includes(widget.id)}
@@ -236,10 +180,10 @@ function CustomizeDialog({ open, onOpenChange, currentUser, enabledWidgets, onTo
                   <div className="text-sm text-muted-foreground">{widget.description}</div>
                 </Label>
               </div>
-            )
+            );
           })}
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
