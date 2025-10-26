@@ -8,5 +8,5 @@ const router = (0, express_1.Router)();
 router.use(auth_1.authenticate);
 router.get('/', (0, authorizeDb_1.authorizeDb)('access_requests.view'), accessRequestsController_1.getAllAccessRequests);
 router.post('/', (0, authorizeDb_1.authorizeDb)('access_requests.view'), accessRequestsController_1.createAccessRequest);
-router.put('/:id', (0, authorizeDb_1.authorizeDb)('access_requests.approve'), accessRequestsController_1.updateAccessRequest);
+router.put('/:id', (0, authorizeDb_1.authorizeDb)('access_requests.approve', 'access_requests.edit', 'requests.view.own'), accessRequestsController_1.updateAccessRequest);
 exports.default = router;
