@@ -70,10 +70,29 @@ export const updateAccessRequest = async (req: AuthRequest, res: Response) => {
   const client = await pool.connect();
   try {
     const { status } = req.body;
-    const result = await client.query(
-      'UPDATE access_requests SET status = $1, response_date = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *',
-      [status, req.params.id]
-    );
+    const validStatuses = ['approved', 'rejected'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ error: 'Invalid status value' });
+    }
+
+    const user = req.user;
+    const params: any[] = [status, req.params.id];
+    let query = 'UPDATE access_requests SET status = $1, response_date = CURRENT_TIMESTAMP WHERE id = $2';
+
+    // Coaches can only approve/reject their own requests
+    if (user?.role === 'coach') {
+      query += ' AND coach_id = $3';
+      params.push(user.userId);
+    }
+
+    query += ' RETURNING *';
+
+    const result = await client.query(query, params);
+
+    if (!result.rowCount) {
+      return res.status(404).json({ error: 'Access request not found' });
+    }
+
     const r = result.rows[0];
     res.json({
       id: r.id,

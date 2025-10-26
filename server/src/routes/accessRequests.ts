@@ -8,6 +8,10 @@ router.use(authenticate);
 
 router.get('/', authorizeDb('access_requests.view'), getAllAccessRequests);
 router.post('/', authorizeDb('access_requests.view'), createAccessRequest);
-router.put('/:id', authorizeDb('access_requests.approve'), updateAccessRequest);
+router.put(
+	'/:id',
+	authorizeDb('access_requests.approve', 'access_requests.edit', 'requests.view.own'),
+	updateAccessRequest
+);
 
 export default router;
