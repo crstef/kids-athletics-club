@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { Toaster } from '@/components/ui/sonner'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -169,6 +169,9 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
   const [customizeOpen, setCustomizeOpen] = useState(false)
   const [enabledWidgets, setEnabledWidgets] = useState<string[]>([])
   const [widgetsLoaded, setWidgetsLoaded] = useState(false)
+
+  const visibleTabIds = useMemo(() => new Set(visibleTabs.map(tab => tab.id)), [visibleTabs])
+  const isTabVisible = (tabId: string) => visibleTabIds.has(tabId)
 
   // Load widgets from database on mount
   useEffect(() => {
@@ -343,7 +346,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
           </TabsContent>
 
           {/* Athletes Tab */}
-          {hasPermission('athletes.view') && (
+          {isTabVisible('athletes') && (
             <TabsContent value="athletes" className="mt-6">
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
@@ -412,7 +415,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
           )}
 
           {/* Users Tab */}
-          {hasPermission('users.view') && (
+          {isTabVisible('users') && (
             <TabsContent value="users" className="mt-6">
               <UserManagement
                 users={users}
@@ -426,7 +429,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
           )}
 
           {/* Roles Tab */}
-          {hasPermission('roles.view') && (
+          {isTabVisible('roles') && (
             <TabsContent value="roles" className="mt-6">
               <RoleManagement
                 roles={roles}
@@ -440,7 +443,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
           )}
 
           {/* Permissions Tab */}
-          {hasPermission('permissions.view') && (
+          {isTabVisible('permissions') && (
             <TabsContent value="permissions" className="mt-6">
               <PermissionsSystem
                 permissions={permissions}
@@ -453,7 +456,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
           )}
 
           {/* Categories Tab */}
-          {hasPermission('age_categories.view') && (
+          {isTabVisible('categories') && (
             <TabsContent value="categories" className="mt-6">
               <AgeCategoryManagement
                 ageCategories={ageCategories}
@@ -466,7 +469,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
           )}
 
           {/* Events Tab */}
-          {hasPermission('events.view') && (
+          {isTabVisible('events') && (
             <TabsContent value="events" className="mt-6">
               <ProbeManagement
                 probes={probes}
@@ -479,7 +482,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
           )}
 
           {/* Messages Tab */}
-          {hasPermission('messages.view') && (
+          {isTabVisible('messages') && (
             <TabsContent value="messages" className="mt-6">
               <MessagingPanel
                 currentUserId={currentUser.id}
@@ -492,7 +495,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
           )}
 
           {/* Requests Tab */}
-          {hasPermission('approval_requests.view') && (
+          {isTabVisible('requests') && (
             <TabsContent value="requests" className="mt-6">
               <CoachApprovalRequests
                 coachId={currentUser.id}

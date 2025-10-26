@@ -8,12 +8,12 @@ import { toast } from 'sonner'
 import type { Role } from '@/lib/types'
 
 interface Widget {
-  id: string
-  name: string
+  componentId: string
   displayName: string
   description?: string
   icon?: string
-  componentType: 'tab' | 'action' | 'widget'
+  componentType: 'tab' | 'widget'
+  canView: boolean
 }
 
 interface RoleDashboardWidgetsModalProps {
@@ -39,20 +39,39 @@ export function RoleDashboardWidgetsModal({ open, onClose, role, onSave }: RoleD
         
         // Get all components/widgets with permission flags
         const response = await apiClient.getRoleComponentPermissions(role.id) as any[]
-        
-        // Filter to only tabs and widgets (not actions for dashboard)
-        const widgets = response.filter((c: any) => 
-          c.componentType === 'tab' || c.componentType === 'widget'
-        )
+
+        // Normalize components that can appear on dashboard (tabs + widgets)
+        const widgets: Widget[] = response
+          .map((component: any) => {
+            const rawType = (component.componentType ?? component.component_type ?? '').toString().toLowerCase()
+            let normalizedType: 'tab' | 'widget' | null = null
+
+            if (rawType === 'tab' || rawType.endsWith('_tab')) {
+              normalizedType = 'tab'
+            } else if (rawType === 'widget' || rawType.includes('widget')) {
+              normalizedType = 'widget'
+            }
+
+            if (!normalizedType) return null
+
+            const componentId = component.componentId ?? component.component_id ?? component.id
+            if (!componentId) return null
+
+            return {
+              componentId,
+              displayName: component.displayName ?? component.display_name ?? component.componentName ?? component.name ?? 'Componentă',
+              description: component.description ?? '',
+              icon: component.icon ?? undefined,
+              componentType: normalizedType,
+              canView: Boolean(component.canView ?? component.can_view ?? component.isAssigned)
+            } as Widget
+          })
+          .filter((component): component is Widget => component !== null)
+
         setAllWidgets(widgets)
 
-        // Build set of currently assigned widgets (where can_view = true or isAssigned = true)
-        const widgetIds = new Set(
-          widgets
-            .filter((w: any) => w.isAssigned === true || w.canView === true)
-            .map((w: any) => w.componentId)
-        )
-        setSelectedWidgets(widgetIds)
+        // Selected widgets correspond to those currently visible
+        setSelectedWidgets(new Set(widgets.filter(widget => widget.canView).map(widget => widget.componentId)))
       } catch (error) {
         console.error('Error fetching widgets:', error)
         toast.error('Eroare la încărcarea widget-urilor')
@@ -66,12 +85,12 @@ export function RoleDashboardWidgetsModal({ open, onClose, role, onSave }: RoleD
     fetchData()
   }, [open, role])
 
-  const handleToggleWidget = (widgetId: string) => {
+  const handleToggleWidget = (componentId: string) => {
     const newSet = new Set(selectedWidgets)
-    if (newSet.has(widgetId)) {
-      newSet.delete(widgetId)
+    if (newSet.has(componentId)) {
+      newSet.delete(componentId)
     } else {
-      newSet.add(widgetId)
+      newSet.add(componentId)
     }
     setSelectedWidgets(newSet)
   }
@@ -81,20 +100,20 @@ export function RoleDashboardWidgetsModal({ open, onClose, role, onSave }: RoleD
       setSaving(true)
       
       // Update component permissions for this role
-      const permissions = Array.from(selectedWidgets).map(componentId => ({
-        componentId,
-        can_view: true,
+      const permissions = allWidgets.map(widget => ({
+        componentId: widget.componentId,
+        can_view: selectedWidgets.has(widget.componentId),
         can_create: false,
         can_edit: false,
         can_delete: false,
         can_export: false
       }))
 
-      await apiClient.updateRoleComponentPermissionsForWidgets(role.id, permissions)
+      await apiClient.updateRoleComponentPermissions(role.id, permissions)
 
-      toast.success('Widget-urile au fost actualizate!')
-  // Trigger immediate components refresh for current user sessions
-  window.dispatchEvent(new CustomEvent('components:refresh'))
+    toast.success('Widget-urile au fost actualizate!')
+    // Trigger immediate components refresh for current user sessions
+    window.dispatchEvent(new CustomEvent('components:refresh'))
       onSave()
       onClose()
     } catch (error: any) {
@@ -129,15 +148,15 @@ export function RoleDashboardWidgetsModal({ open, onClose, role, onSave }: RoleD
             ) : (
               <div className="space-y-3">
                 {allWidgets.map((widget) => (
-                  <div key={widget.id} className="flex items-start space-x-3 p-2 hover:bg-accent rounded">
+                  <div key={widget.componentId} className="flex items-start space-x-3 p-2 hover:bg-accent rounded">
                     <Checkbox
-                      id={widget.id}
-                      checked={selectedWidgets.has(widget.id)}
-                      onCheckedChange={() => handleToggleWidget(widget.id)}
+                      id={widget.componentId}
+                      checked={selectedWidgets.has(widget.componentId)}
+                      onCheckedChange={() => handleToggleWidget(widget.componentId)}
                       className="mt-1"
                     />
                     <label
-                      htmlFor={widget.id}
+                      htmlFor={widget.componentId}
                       className="flex-1 cursor-pointer"
                     >
                       <div className="font-medium text-sm">{widget.displayName}</div>
