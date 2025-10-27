@@ -470,7 +470,12 @@ function AppContent() {
   const handleUpdateAccessRequest = async (id: string, status: 'approved' | 'rejected') => {
     try {
       await apiClient.updateAccessRequest(id, status)
-      await refetchAccessRequests()
+      await Promise.all([
+        refetchAccessRequests(),
+        refetchApprovalRequests(),
+        refetchUsers(),
+        refetchAthletes()
+      ])
     } catch (error: any) {
       console.error('Error updating access request:', error)
       throw error
