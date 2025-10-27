@@ -128,8 +128,8 @@ const getRoleComponentPermissions = async (req, res) => {
         const { roleId } = req.params;
         // Return ALL components with permission flags for this role
         const result = await client.query(`
-            SELECT 
-                cp.id as id,
+      SELECT 
+        cp.id as id,
         c.id as component_id,
         c.name as component_name,
         c.display_name,
