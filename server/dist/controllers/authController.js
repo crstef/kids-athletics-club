@@ -169,12 +169,19 @@ const login = async (req, res) => {
             return res.status(400).json({ error: 'Email and password are required' });
         }
         // Get user
-        const result = await client.query(`SELECT id, email, password, first_name, last_name, role, role_id, is_active, needs_approval, athlete_id
+        const result = await client.query(`SELECT id, email, password, first_name, last_name, role, role_id, is_active, needs_approval, probe_id, athlete_id
        FROM users WHERE email = $1`, [email.toLowerCase()]);
         if (result.rows.length === 0) {
             return res.status(401).json({ error: 'Invalid email or password' });
         }
         const user = result.rows[0];
+        console.log('Login user data:', {
+            id: user.id,
+            email: user.email,
+            role: user.role,
+            role_id: user.role_id,
+            role_id_type: typeof user.role_id
+        });
         // Verify password
         const hashedPassword = hashPassword(password);
         if (user.password !== hashedPassword) {
@@ -214,7 +221,8 @@ const login = async (req, res) => {
         // Get dashboards assigned to this role
         let dashboards = [];
         let defaultDashboardId = null;
-        if (user.role_id) {
+        if (user.role_id && user.role_id.trim() !== '') {
+            console.log('Fetching dashboards for role_id:', user.role_id);
             const dashboardsResult = await client.query(`
         SELECT 
           d.id, d.name, d.display_name, d.component_name, d.icon,
@@ -301,6 +309,7 @@ const login = async (req, res) => {
                 roleId: user.role_id,
                 isActive: user.is_active,
                 needsApproval: user.needs_approval,
+                probeId: user.probe_id,
                 athleteId: user.athlete_id,
                 permissions,
                 dashboards,
@@ -329,7 +338,7 @@ const getCurrentUser = async (req, res) => {
         if (!userId) {
             return res.status(401).json({ error: 'Not authenticated' });
         }
-        const result = await client.query(`SELECT id, email, first_name, last_name, role, role_id, is_active, needs_approval, athlete_id, created_at
+        const result = await client.query(`SELECT id, email, first_name, last_name, role, role_id, is_active, needs_approval, probe_id, athlete_id, created_at
        FROM users WHERE id = $1`, [userId]);
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'User not found' });
@@ -442,6 +451,7 @@ const getCurrentUser = async (req, res) => {
             roleId: user.role_id,
             isActive: user.is_active,
             needsApproval: user.needs_approval,
+            probeId: user.probe_id,
             athleteId: user.athlete_id,
             createdAt: user.created_at,
             permissions,
