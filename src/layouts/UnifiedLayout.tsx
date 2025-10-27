@@ -199,23 +199,27 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
     }
 
     const coachIds = new Set<string>()
-    athletes
-      .filter((athlete) => athlete.parentId === currentUser.id && athlete.coachId)
-      .forEach((athlete) => {
-        if (athlete.coachId) {
-          coachIds.add(athlete.coachId)
-        }
-      })
+    if (Array.isArray(athletes)) {
+      athletes
+        .filter((athlete) => athlete.parentId === currentUser.id && athlete.coachId)
+        .forEach((athlete) => {
+          if (athlete.coachId) {
+            coachIds.add(athlete.coachId)
+          }
+        })
+    }
 
     const partnerIds = new Set<string>()
-    messages
-      .filter((message) => message.fromUserId === currentUser.id || message.toUserId === currentUser.id)
-      .forEach((message) => {
-        const otherUserId = message.fromUserId === currentUser.id ? message.toUserId : message.fromUserId
-        if (otherUserId) {
-          partnerIds.add(otherUserId)
-        }
-      })
+    if (Array.isArray(messages)) {
+      messages
+        .filter((message) => message.fromUserId === currentUser.id || message.toUserId === currentUser.id)
+        .forEach((message) => {
+          const otherUserId = message.fromUserId === currentUser.id ? message.toUserId : message.fromUserId
+          if (otherUserId) {
+            partnerIds.add(otherUserId)
+          }
+        })
+    }
 
     const allowedIds = new Set<string>()
     coachIds.forEach((id) => allowedIds.add(id))
