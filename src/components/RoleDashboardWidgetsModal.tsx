@@ -38,10 +38,19 @@ export function RoleDashboardWidgetsModal({ open, onClose, role, onSave }: RoleD
         setLoading(true)
         
         // Get all components/widgets with permission flags
-        const response = await apiClient.getRoleComponentPermissions(role.id) as any[]
+        const response = await apiClient.getRoleComponentPermissions(role.id)
+        const rawList = Array.isArray(response) ? response : (response as any)?.permissions ?? []
+
+        if (!Array.isArray(rawList)) {
+          console.warn('getRoleComponentPermissions returned non-array data:', rawList)
+          setAllWidgets([])
+          setSelectedWidgets(new Set())
+          toast.error('Eroare la încărcarea widget-urilor')
+          return
+        }
 
         // Normalize components that can appear on dashboard (tabs + widgets)
-        const widgets: Widget[] = response
+        const widgets: Widget[] = rawList
           .map((component: any) => {
             const rawType = (component.componentType ?? component.component_type ?? '').toString().toLowerCase()
             let normalizedType: 'tab' | 'widget' | null = null
@@ -67,11 +76,10 @@ export function RoleDashboardWidgetsModal({ open, onClose, role, onSave }: RoleD
             } as Widget
           })
           .filter((component): component is Widget => component !== null)
+  setAllWidgets(widgets)
 
-        setAllWidgets(widgets)
-
-        // Selected widgets correspond to those currently visible
-        setSelectedWidgets(new Set(widgets.filter(widget => widget.canView).map(widget => widget.componentId)))
+  // Selected widgets correspond to those currently visible
+  setSelectedWidgets(new Set(widgets.filter(widget => widget.canView).map(widget => widget.componentId)))
       } catch (error) {
         console.error('Error fetching widgets:', error)
         toast.error('Eroare la încărcarea widget-urilor')
