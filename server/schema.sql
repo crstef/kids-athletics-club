@@ -114,10 +114,83 @@ CREATE TABLE IF NOT EXISTS dashboards (
     name VARCHAR(100) UNIQUE NOT NULL,
     display_name VARCHAR(150) NOT NULL,
     description TEXT,
+    component_name VARCHAR(150),
     icon VARCHAR(50),
     route VARCHAR(100),
     is_active BOOLEAN DEFAULT true,
+    is_system BOOLEAN DEFAULT false,
     sort_order INTEGER DEFAULT 0,
+    created_by UUID,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+);
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'dashboards_name_key'
+          AND conrelid = 'dashboards'::regclass
+    ) THEN
+        ALTER TABLE dashboards
+            ADD CONSTRAINT dashboards_name_key UNIQUE (name);
+    END IF;
+END$$;
+
+    DO $$
+    BEGIN
+        IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'dashboards'
+              AND column_name = 'component_name'
+        ) THEN
+            ALTER TABLE dashboards ADD COLUMN component_name VARCHAR(150);
+        END IF;
+
+        IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'dashboards'
+              AND column_name = 'is_system'
+        ) THEN
+            ALTER TABLE dashboards ADD COLUMN is_system BOOLEAN DEFAULT false;
+        END IF;
+    END$$;
+
+-- Components table (UI sections/widgets/actions)
+CREATE TABLE IF NOT EXISTS components (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(100) UNIQUE NOT NULL,
+    display_name VARCHAR(150) NOT NULL,
+    description TEXT,
+    component_type VARCHAR(50),
+    icon VARCHAR(50),
+    order_index INTEGER DEFAULT 0,
+    is_system BOOLEAN DEFAULT false,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'components_name_key'
+          AND conrelid = 'components'::regclass
+    ) THEN
+        ALTER TABLE components
+            ADD CONSTRAINT components_name_key UNIQUE (name);
+    END IF;
+END$$;
+
+-- Roles table
+CREATE TABLE IF NOT EXISTS roles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(50) UNIQUE NOT NULL,
+    display_name VARCHAR(100) NOT NULL,
+    description TEXT,
+    is_system BOOLEAN DEFAULT false,
+    is_active BOOLEAN DEFAULT true,
     created_by UUID,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -138,19 +211,46 @@ CREATE TABLE IF NOT EXISTS role_dashboards (
     FOREIGN KEY (dashboard_id) REFERENCES dashboards(id) ON DELETE CASCADE
 );
 
--- Roles table
-CREATE TABLE IF NOT EXISTS roles (
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'role_dashboards_role_id_dashboard_id_key'
+          AND conrelid = 'role_dashboards'::regclass
+    ) THEN
+        ALTER TABLE role_dashboards
+            ADD CONSTRAINT role_dashboards_role_id_dashboard_id_key UNIQUE (role_id, dashboard_id);
+    END IF;
+END$$;
+
+-- Component permissions (granular permissions per role per component)
+CREATE TABLE IF NOT EXISTS component_permissions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(50) UNIQUE NOT NULL,
-    display_name VARCHAR(100) NOT NULL,
-    description TEXT,
-    is_system BOOLEAN DEFAULT false,
-    is_active BOOLEAN DEFAULT true,
-    created_by UUID,
+    role_id UUID NOT NULL,
+    component_id UUID NOT NULL,
+    can_view BOOLEAN DEFAULT false,
+    can_create BOOLEAN DEFAULT false,
+    can_edit BOOLEAN DEFAULT false,
+    can_delete BOOLEAN DEFAULT false,
+    can_export BOOLEAN DEFAULT false,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+    UNIQUE(role_id, component_id),
+    FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
+    FOREIGN KEY (component_id) REFERENCES components(id) ON DELETE CASCADE
 );
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'component_permissions_role_id_component_id_key'
+          AND conrelid = 'component_permissions'::regclass
+    ) THEN
+        ALTER TABLE component_permissions
+            ADD CONSTRAINT component_permissions_role_id_component_id_key UNIQUE (role_id, component_id);
+    END IF;
+END$$;
 
 -- Role permissions (many-to-many)
 CREATE TABLE IF NOT EXISTS role_permissions (
@@ -184,6 +284,43 @@ CREATE TABLE IF NOT EXISTS user_permissions (
     FOREIGN KEY (granted_by) REFERENCES users(id) ON DELETE SET NULL
 );
 
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'user_permissions_user_id_permission_id_key'
+          AND conrelid = 'user_permissions'::regclass
+    ) THEN
+        ALTER TABLE user_permissions
+            ADD CONSTRAINT user_permissions_user_id_permission_id_key UNIQUE (user_id, permission_id);
+    END IF;
+END$$;
+
+-- User widgets table
+CREATE TABLE IF NOT EXISTS user_widgets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    widget_name VARCHAR(100) NOT NULL,
+    is_enabled BOOLEAN DEFAULT true,
+    sort_order INTEGER DEFAULT 0,
+    config JSONB DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(user_id, widget_name)
+);
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'user_widgets_user_id_widget_name_key'
+          AND conrelid = 'user_widgets'::regclass
+    ) THEN
+        ALTER TABLE user_widgets
+            ADD CONSTRAINT user_widgets_user_id_widget_name_key UNIQUE (user_id, widget_name);
+    END IF;
+END$$;
+
 -- Account approval requests
 CREATE TABLE IF NOT EXISTS approval_requests (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -209,7 +346,7 @@ CREATE TABLE IF NOT EXISTS approval_requests (
 -- Age categories table
 CREATE TABLE IF NOT EXISTS age_categories (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(50) NOT NULL,
+    name VARCHAR(50) UNIQUE NOT NULL,
     age_from INTEGER NOT NULL,
     age_to INTEGER NOT NULL,
     gender VARCHAR(1),
@@ -220,6 +357,18 @@ CREATE TABLE IF NOT EXISTS age_categories (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
 );
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'age_categories_name_key'
+          AND conrelid = 'age_categories'::regclass
+    ) THEN
+        ALTER TABLE age_categories
+            ADD CONSTRAINT age_categories_name_key UNIQUE (name);
+    END IF;
+END$$;
 
 -- Coach probes (specializations)
 CREATE TABLE IF NOT EXISTS coach_probes (
@@ -232,6 +381,12 @@ CREATE TABLE IF NOT EXISTS coach_probes (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
 );
+
+-- Reset user table foreign keys to allow reruns
+ALTER TABLE users DROP CONSTRAINT IF EXISTS fk_users_role;
+ALTER TABLE users DROP CONSTRAINT IF EXISTS fk_users_probe;
+ALTER TABLE users DROP CONSTRAINT IF EXISTS fk_users_athlete;
+ALTER TABLE users DROP CONSTRAINT IF EXISTS fk_users_approved_by;
 
 -- Add foreign key for users.role_id
 ALTER TABLE users
@@ -257,6 +412,8 @@ CREATE INDEX IF NOT EXISTS idx_role_permissions_role_id ON role_permissions(role
 CREATE INDEX IF NOT EXISTS idx_dashboards_name ON dashboards(name);
 CREATE INDEX IF NOT EXISTS idx_role_dashboards_role_id ON role_dashboards(role_id);
 CREATE INDEX IF NOT EXISTS idx_role_dashboards_dashboard_id ON role_dashboards(dashboard_id);
+CREATE INDEX IF NOT EXISTS idx_user_widgets_user_id ON user_widgets(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_widgets_enabled ON user_widgets(user_id, is_enabled);
 
 -- Update timestamp trigger function
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -268,6 +425,22 @@ END;
 $$ language 'plpgsql';
 
 -- Create triggers for updated_at
+DROP TRIGGER IF EXISTS update_users_updated_at ON users;
+DROP TRIGGER IF EXISTS update_athletes_updated_at ON athletes;
+DROP TRIGGER IF EXISTS update_results_updated_at ON results;
+DROP TRIGGER IF EXISTS update_events_updated_at ON events;
+DROP TRIGGER IF EXISTS update_access_requests_updated_at ON access_requests;
+DROP TRIGGER IF EXISTS update_messages_updated_at ON messages;
+DROP TRIGGER IF EXISTS update_permissions_updated_at ON permissions;
+DROP TRIGGER IF EXISTS update_roles_updated_at ON roles;
+DROP TRIGGER IF EXISTS update_user_permissions_updated_at ON user_permissions;
+DROP TRIGGER IF EXISTS update_approval_requests_updated_at ON approval_requests;
+DROP TRIGGER IF EXISTS update_age_categories_updated_at ON age_categories;
+DROP TRIGGER IF EXISTS update_coach_probes_updated_at ON coach_probes;
+DROP TRIGGER IF EXISTS update_dashboards_updated_at ON dashboards;
+DROP TRIGGER IF EXISTS update_role_dashboards_updated_at ON role_dashboards;
+DROP TRIGGER IF EXISTS update_user_widgets_updated_at ON user_widgets;
+
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_athletes_updated_at BEFORE UPDATE ON athletes FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_results_updated_at BEFORE UPDATE ON results FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
@@ -282,3 +455,4 @@ CREATE TRIGGER update_age_categories_updated_at BEFORE UPDATE ON age_categories 
 CREATE TRIGGER update_coach_probes_updated_at BEFORE UPDATE ON coach_probes FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_dashboards_updated_at BEFORE UPDATE ON dashboards FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_role_dashboards_updated_at BEFORE UPDATE ON role_dashboards FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_user_widgets_updated_at BEFORE UPDATE ON user_widgets FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

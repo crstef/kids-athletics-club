@@ -280,8 +280,16 @@ exports.initializeData = initializeData;
 const createAdminUser = async (req, res) => {
     const client = await database_1.default.connect();
     try {
-        // Check if any admin already exists
-        const existingAdmin = await client.query('SELECT id FROM users WHERE role = $1 LIMIT 1', ['admin']);
+    // Ensure superadmin role exists
+    const superadminRole = await client.query('SELECT id FROM roles WHERE name = $1 LIMIT 1', ['superadmin']);
+    if (superadminRole.rows.length === 0) {
+      return res.status(400).json({
+        error: 'Superadmin role not found. Please run initialize-data first.'
+      });
+    }
+    const superadminRoleId = superadminRole.rows[0].id;
+    // Check if any superadmin already exists
+    const existingAdmin = await client.query('SELECT id FROM users WHERE role = $1 LIMIT 1', ['superadmin']);
         if (existingAdmin.rows.length > 0) {
             return res.status(400).json({
                 error: 'Admin user already exists. Setup has been completed.'
@@ -305,6 +313,7 @@ const createAdminUser = async (req, res) => {
         first_name,
         last_name,
         role,
+    role_id,
         is_active,
         needs_approval,
         created_at,
@@ -315,11 +324,17 @@ const createAdminUser = async (req, res) => {
             hashedPassword,
             'Admin',
             'User',
-            'admin',
+      'superadmin',
+      superadminRoleId,
             true,
             false
         ]);
         const user = result.rows[0];
+    // Grant all permissions to new superadmin user (idempotent)
+    await client.query(`INSERT INTO user_permissions (user_id, permission_id, granted_by, granted_at, created_at, updated_at)
+     SELECT $1, p.id, $1, NOW(), NOW(), NOW()
+     FROM permissions p
+     ON CONFLICT (user_id, permission_id) DO NOTHING`, [user.id]);
         res.status(201).json({
             message: 'Admin user created successfully',
             user: {

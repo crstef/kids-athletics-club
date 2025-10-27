@@ -134,7 +134,7 @@ export const getRoleComponentPermissions = async (req: AuthRequest, res: Respons
     // Return ALL components with permission flags for this role
     const result = await client.query(`
       SELECT 
-        COALESCE(cp.id, '') as id,
+        cp.id as id,
         c.id as component_id,
         c.name as component_name,
         c.display_name,
