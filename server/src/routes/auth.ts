@@ -9,6 +9,7 @@ const router = Router();
 router.get('/debug/test-user', async (req, res) => {
   const client = await pool.connect();
   try {
+    console.log('Debug endpoint hit - testing user query');
     // Test basic user query
     const result = await client.query(
       `SELECT id, email, first_name, last_name, role, role_id, is_active, needs_approval, probe_id, athlete_id
