@@ -252,6 +252,8 @@ const approveRequest = async (req, res) => {
     }
     catch (_error) {
         await client.query('ROLLBACK');
+        // Surface the underlying issue for easier debugging in development
+        console.error('approveRequest error', _error);
         res.status(500).json({ error: 'Internal server error' });
     }
     finally {
@@ -340,6 +342,7 @@ const rejectRequest = async (req, res) => {
     }
     catch (_error) {
         await client.query('ROLLBACK');
+        console.error('rejectRequest error', _error);
         res.status(500).json({ error: 'Internal server error' });
     }
     finally {
