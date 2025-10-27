@@ -10,10 +10,38 @@ const crypto_1 = __importDefault(require("crypto"));
 const hashPassword = (password) => {
     return crypto_1.default.createHash('sha256').update(password).digest('hex');
 };
+const calculateAge = (dateOfBirth) => {
+    if (!dateOfBirth)
+        return null;
+    const birthDate = new Date(dateOfBirth);
+    if (Number.isNaN(birthDate.getTime()))
+        return null;
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+    }
+    return age;
+};
+const determineCategory = (age) => {
+    if (age === null || age < 0)
+        return null;
+    if (age < 10)
+        return 'U10';
+    if (age < 12)
+        return 'U12';
+    if (age < 14)
+        return 'U14';
+    if (age < 16)
+        return 'U16';
+    return 'U18';
+};
 const register = async (req, res) => {
     const client = await database_1.default.connect();
+    let transactionStarted = false;
     try {
-        const { email, password, firstName, lastName, role, coachId, athleteId } = req.body;
+        const { email, password, firstName, lastName, role, coachId, athleteId, approvalNotes, athleteProfile } = req.body;
         // Validate required fields
         if (!email || !password || !firstName || !lastName || !role) {
             return res.status(400).json({ error: 'Missing required fields' });
@@ -27,6 +55,8 @@ const register = async (req, res) => {
         if (existingUser.rows.length > 0) {
             return res.status(400).json({ error: 'Email already registered' });
         }
+        await client.query('BEGIN');
+        transactionStarted = true;
         // Hash password
         const hashedPassword = hashPassword(password);
         // Create user
@@ -40,21 +70,68 @@ const register = async (req, res) => {
             const athleteName = athlete.rows.length > 0
                 ? `${athlete.rows[0].first_name} ${athlete.rows[0].last_name}`
                 : null;
-            const accessMessage = athleteName
+            const baseMessage = athleteName
                 ? `${firstName} ${lastName} solicită acces pentru ${athleteName}`
                 : `${firstName} ${lastName} solicită acces`;
+            const trimmedNotes = typeof approvalNotes === 'string' && approvalNotes.trim().length > 0 ? approvalNotes.trim() : null;
+            const accessMessage = trimmedNotes ? `${baseMessage}\n\nMesaj: ${trimmedNotes}` : baseMessage;
             await client.query(`INSERT INTO access_requests (parent_id, athlete_id, coach_id, status, message)
          VALUES ($1, $2, $3, $4, $5)`, [user.id, athleteId, coachId, 'pending', accessMessage]);
             await client.query(`INSERT INTO approval_requests (user_id, coach_id, athlete_id, requested_role, status, child_name, approval_notes)
-         VALUES ($1, $2, $3, $4, 'pending', $5, $6)`, [user.id, coachId, athleteId, role, athleteName, accessMessage]);
+         VALUES ($1, $2, $3, $4, 'pending', $5, $6)`, [user.id, coachId, athleteId, role, athleteName, trimmedNotes ?? accessMessage]);
+        }
+        // If athlete role, create approval request for coach review with pending profile data
+        if (role === 'athlete') {
+            if (!coachId) {
+                await client.query('ROLLBACK');
+                transactionStarted = false;
+                return res.status(400).json({ error: 'Athletes must select a coach' });
+            }
+            if (!athleteProfile || typeof athleteProfile !== 'object') {
+                await client.query('ROLLBACK');
+                transactionStarted = false;
+                return res.status(400).json({ error: 'Missing athlete profile data' });
+            }
+            const profileDob = athleteProfile.dateOfBirth;
+            const profileGender = athleteProfile.gender;
+            if (!profileDob || !profileGender) {
+                await client.query('ROLLBACK');
+                transactionStarted = false;
+                return res.status(400).json({ error: 'Athlete profile requires date of birth and gender' });
+            }
+            const derivedAge = calculateAge(profileDob);
+            const derivedCategory = determineCategory(derivedAge);
+            if (derivedAge === null || derivedAge < 6 || derivedAge > 18 || !derivedCategory) {
+                await client.query('ROLLBACK');
+                transactionStarted = false;
+                return res.status(400).json({ error: 'Athlete age must be between 6 and 18 years' });
+            }
+            const trimmedNotes = typeof approvalNotes === 'string' && approvalNotes.trim().length > 0 ? approvalNotes.trim() : null;
+            const metadata = {
+                message: trimmedNotes,
+                profile: {
+                    dateOfBirth: profileDob,
+                    gender: profileGender,
+                    age: derivedAge,
+                    category: derivedCategory
+                }
+            };
+            await client.query(`INSERT INTO approval_requests (user_id, coach_id, requested_role, status, child_name, approval_notes)
+         VALUES ($1, $2, $3, 'pending', $4, $5)`, [user.id, coachId, role, `${firstName} ${lastName}`, JSON.stringify(metadata)]);
         }
         // If coach role, create approval request for superadmin
         if (role === 'coach') {
             await client.query(`INSERT INTO approval_requests (user_id, requested_role, status)
          VALUES ($1, $2, $3)`, [user.id, role, 'pending']);
         }
+        await client.query('COMMIT');
+        transactionStarted = false;
         res.status(201).json({
-            message: role === 'parent' ? 'Registration successful. Waiting for coach approval.' : 'Registration successful. Waiting for admin approval.',
+            message: role === 'parent'
+                ? 'Registration successful. Waiting for coach approval.'
+                : role === 'athlete'
+                    ? 'Registration successful. Waiting for coach approval.'
+                    : 'Registration successful. Waiting for admin approval.',
             user: {
                 id: user.id,
                 email: user.email,
@@ -69,6 +146,14 @@ const register = async (req, res) => {
     }
     catch (error) {
         console.error('Registration error:', error);
+        if (transactionStarted) {
+            try {
+                await client.query('ROLLBACK');
+            }
+            catch (rollbackError) {
+                console.error('Rollback error during registration:', rollbackError);
+            }
+        }
         res.status(500).json({ error: 'Internal server error' });
     }
     finally {
