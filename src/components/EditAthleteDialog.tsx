@@ -35,8 +35,9 @@ export function EditAthleteDialog({ athlete, parents, coaches, onEdit, onUploadA
   const [lastName, setLastName] = useState(athlete.lastName)
   const [dateOfBirth, setDateOfBirth] = useState(normalizeDate(athlete.dateOfBirth))
   const [gender, setGender] = useState<'M' | 'F'>(athlete.gender)
+  const parentIds = useMemo(() => new Set(parents.map((p) => p.id)), [parents])
   const [coachId, setCoachId] = useState(athlete.coachId || '')
-  const [parentId, setParentId] = useState(athlete.parentId || '')
+  const [parentId, setParentId] = useState(parentIds.has(athlete.parentId || '') ? athlete.parentId || '' : '')
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(athlete.avatar || null)
   const [deleteAvatar, setDeleteAvatar] = useState(false)
@@ -70,11 +71,11 @@ export function EditAthleteDialog({ athlete, parents, coaches, onEdit, onUploadA
       setDateOfBirth(normalizeDate(athlete.dateOfBirth))
       setGender(athlete.gender)
       setCoachId(athlete.coachId || '')
-      setParentId(athlete.parentId || '')
+      setParentId(parentIds.has(athlete.parentId || '') ? athlete.parentId || '' : '')
       setAvatarPreview(athlete.avatar || null)
       setDeleteAvatar(false)
     }
-  }, [open, athlete])
+  }, [open, athlete, parentIds])
 
   useEffect(() => {
     if (!avatarFile) return

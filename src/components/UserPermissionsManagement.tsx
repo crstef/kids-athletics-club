@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
  
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Trash, MagnifyingGlass, Check, X, Clock, Warning } from '@phosphor-icons/react'
@@ -175,10 +176,14 @@ export function UserPermissionsManagement({
 
   
 
-  const getAthleteName = (athleteId?: string) => {
-    if (!athleteId) return null
-    const athlete = athletes.find(a => a.id === athleteId)
-    return athlete ? `${athlete.firstName} ${athlete.lastName}` : null
+  const getAthleteName = (athleteId?: string, fallbackName?: string | null) => {
+    if (athleteId) {
+      const athlete = athletes.find(a => a.id === athleteId)
+      if (athlete) {
+        return `${athlete.firstName} ${athlete.lastName}`
+      }
+    }
+    return fallbackName || null
   }
 
   const handleViewRequest = (request: AccountApprovalRequest) => {
@@ -239,6 +244,7 @@ export function UserPermissionsManagement({
 
                     const isProcessed = request.status !== 'pending'
                     const isUserActive = user.isActive && !user.needsApproval
+                    const isAthleteRequest = request.requestedRole === 'athlete'
 
                     return (
                       <div key={request.id} className="flex flex-col sm:flex-row sm:items-start justify-between p-5 border-2 border-accent/20 rounded-xl gap-4 bg-linear-to-br from-card to-accent/5 hover:shadow-md transition-all">
@@ -260,9 +266,14 @@ export function UserPermissionsManagement({
                             <Badge variant="secondary" className="font-medium">
                               Rol: {request.requestedRole === 'coach' ? 'Antrenor' : request.requestedRole === 'parent' ? 'Părinte' : request.requestedRole === 'athlete' ? 'Atlet' : request.requestedRole}
                             </Badge>
-                            {athleteName && (
+                            {athleteName && !isAthleteRequest && (
                               <span className="text-sm bg-primary/10 px-3 py-1 rounded-full font-medium">
                                 👤 Copil: <strong>{athleteName}</strong>
+                              </span>
+                            )}
+                            {isAthleteRequest && (
+                              <span className="text-sm bg-primary/10 px-3 py-1 rounded-full font-medium">
+                                🏃 Atlet nou: <strong>{request.childName || `${user.firstName} ${user.lastName}`}</strong>
                               </span>
                             )}
                             {coach && (
@@ -271,6 +282,17 @@ export function UserPermissionsManagement({
                               </span>
                             )}
                           </div>
+                          {request.athleteProfile && (
+                            <div className="text-sm bg-muted p-3 rounded-lg border-l-4 border-accent mt-2">
+                              <strong className="text-accent">Detalii atlet:</strong>
+                              <div className="mt-2 space-y-1 text-muted-foreground">
+                                {request.athleteProfile.dateOfBirth && <p>📅 Data nașterii: {new Date(request.athleteProfile.dateOfBirth).toLocaleDateString('ro-RO')}</p>}
+                                {request.athleteProfile.age !== undefined && <p>🎂 Vârstă estimată: {request.athleteProfile.age} ani</p>}
+                                {request.athleteProfile.category && <p>🏷️ Categoria propusă: {request.athleteProfile.category}</p>}
+                                <p>⚧ Gen: {request.athleteProfile.gender === 'F' ? 'Feminin' : 'Masculin'}</p>
+                              </div>
+                            </div>
+                          )}
                           {request.approvalNotes && (
                             <div className="text-sm bg-muted p-3 rounded-lg border-l-4 border-accent mt-2">
                               <strong className="text-accent">Mesaj de la utilizator:</strong>
@@ -374,9 +396,12 @@ export function UserPermissionsManagement({
                 <div className="space-y-3">
                   {processedRequests.map((request) => {
                     const user = users.find(u => u.id === request.userId)
-                    const athleteName = getAthleteName(request.athleteId)
+                    const athleteName = getAthleteName(request.athleteId, request.childName)
                     const approver = request.approvedBy ? users.find(u => u.id === request.approvedBy) : null
-                    
+                    const coach = request.coachId ? users.find(u => u.id === request.coachId) : null
+                    const isAthleteRequest = request.requestedRole === 'athlete'
+                    const roleLabel = request.requestedRole === 'coach' ? 'Antrenor' : request.requestedRole === 'parent' ? 'Părinte' : request.requestedRole === 'athlete' ? 'Atlet' : request.requestedRole
+
                     if (!user) return null
 
                     return (
@@ -394,8 +419,42 @@ export function UserPermissionsManagement({
                           <div className="text-xs text-muted-foreground">
                             {user.email}
                           </div>
-                          <div className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
-                            {athleteName && <span>👤 Copil: {athleteName}</span>}
+                          <div className="text-xs flex items-center gap-2 flex-wrap">
+                            <Badge variant="secondary" className="font-medium">
+                              Rol: {roleLabel}
+                            </Badge>
+                            {isAthleteRequest && (
+                              <span className="bg-primary/10 px-2 py-1 rounded-full font-medium">
+                                🏃 Atlet nou: {request.childName || `${user.firstName} ${user.lastName}`}
+                              </span>
+                            )}
+                            {!isAthleteRequest && athleteName && (
+                              <span className="bg-primary/10 px-2 py-1 rounded-full font-medium">
+                                👤 Copil: {athleteName}
+                              </span>
+                            )}
+                            {coach && (
+                              <span className="bg-secondary/10 px-2 py-1 rounded-full font-medium">
+                                🎓 Antrenor: {coach.firstName} {coach.lastName}
+                              </span>
+                            )}
+                          </div>
+                          {request.athleteProfile && (
+                            <div className="text-xs text-muted-foreground bg-muted p-3 rounded-lg border-l-4 border-primary mt-2 space-y-1">
+                              <p className="font-medium text-primary">Detalii atlet</p>
+                              {request.athleteProfile.dateOfBirth && (
+                                <p>📅 Data nașterii: {new Date(request.athleteProfile.dateOfBirth).toLocaleDateString('ro-RO')}</p>
+                              )}
+                              {request.athleteProfile.age !== undefined && (
+                                <p>🎂 Vârstă estimată: {request.athleteProfile.age} ani</p>
+                              )}
+                              {request.athleteProfile.category && (
+                                <p>🏷️ Categoria atribuită: {request.athleteProfile.category}</p>
+                              )}
+                              <p>⚧ Gen: {request.athleteProfile.gender === 'F' ? 'Feminin' : 'Masculin'}</p>
+                            </div>
+                          )}
+                          <div className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap mt-2">
                             {request.responseDate && <span>📅 {new Date(request.responseDate).toLocaleString('ro-RO')}</span>}
                             {approver && <span>👤 De: {approver.firstName} {approver.lastName}</span>}
                           </div>
@@ -462,9 +521,10 @@ export function UserPermissionsManagement({
           </DialogHeader>
           {selectedRequestForView && (() => {
             const user = users.find(u => u.id === selectedRequestForView.userId)
-            const athleteName = getAthleteName(selectedRequestForView.athleteId)
+            const athleteName = getAthleteName(selectedRequestForView.athleteId, selectedRequestForView.childName)
             const coach = selectedRequestForView.coachId ? users.find(u => u.id === selectedRequestForView.coachId) : null
             const approver = selectedRequestForView.approvedBy ? users.find(u => u.id === selectedRequestForView.approvedBy) : null
+            const isAthleteRequest = selectedRequestForView.requestedRole === 'athlete'
             
             if (!user) return <p className="text-muted-foreground">Utilizator negăsit</p>
 
@@ -520,7 +580,7 @@ export function UserPermissionsManagement({
                         <div className="flex items-center gap-2 bg-primary/10 p-3 rounded-lg">
                           <span className="text-2xl">👤</span>
                           <div>
-                            <Label className="text-xs text-muted-foreground">Copil</Label>
+                            <Label className="text-xs text-muted-foreground">{isAthleteRequest ? 'Atlet Nou' : 'Copil'}</Label>
                             <p className="font-medium">{athleteName}</p>
                           </div>
                         </div>
@@ -534,6 +594,26 @@ export function UserPermissionsManagement({
                           </div>
                         </div>
                       )}
+                    </CardContent>
+                  </Card>
+                )}
+
+                {selectedRequestForView.athleteProfile && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Detalii Profil Atlet</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2 text-sm text-muted-foreground">
+                      {selectedRequestForView.athleteProfile.dateOfBirth && (
+                        <p>📅 Data nașterii: {new Date(selectedRequestForView.athleteProfile.dateOfBirth).toLocaleDateString('ro-RO')}</p>
+                      )}
+                      {selectedRequestForView.athleteProfile.age !== undefined && (
+                        <p>🎂 Vârstă estimată: {selectedRequestForView.athleteProfile.age} ani</p>
+                      )}
+                      {selectedRequestForView.athleteProfile.category && (
+                        <p>🏷️ Categoria propusă: {selectedRequestForView.athleteProfile.category}</p>
+                      )}
+                      <p>⚧ Gen: {selectedRequestForView.athleteProfile.gender === 'F' ? 'Feminin' : 'Masculin'}</p>
                     </CardContent>
                   </Card>
                 )}

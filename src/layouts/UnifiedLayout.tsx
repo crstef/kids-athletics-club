@@ -168,8 +168,21 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
   const [customizeOpen, setCustomizeOpen] = useState(false)
   const [enabledWidgets, setEnabledWidgets] = useState<string[]>([])
   const [widgetsLoaded, setWidgetsLoaded] = useState(false)
+  const isParentUser = currentUser.role === 'parent'
 
-  const visibleTabIds = useMemo(() => new Set(visibleTabs.map(tab => tab.id)), [visibleTabs])
+  const displayTabs = useMemo(() => {
+    if (!isParentUser) {
+      return visibleTabs
+    }
+
+    return visibleTabs.map((tab) =>
+      tab.id === 'athletes'
+        ? { ...tab, label: 'Atlet' }
+        : tab
+    )
+  }, [visibleTabs, isParentUser])
+
+  const visibleTabIds = useMemo(() => new Set(displayTabs.map(tab => tab.id)), [displayTabs])
   const isTabVisible = (tabId: string) => visibleTabIds.has(tabId)
 
   const isSuperAdminUser = currentUser.role === 'superadmin'
@@ -177,6 +190,43 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
   const canViewOwnRequests = hasPermission('requests.view.own')
   const showApprovalRequests = isSuperAdminUser
   const showAccessRequests = !isSuperAdminUser && (canViewAccessRequests || canViewOwnRequests)
+
+  const messagingUsers = useMemo(() => {
+    const otherUsers = (users || []).filter((user) => user.id !== currentUser.id)
+
+    if (!isParentUser) {
+      return otherUsers
+    }
+
+    const coachIds = new Set<string>()
+    athletes
+      .filter((athlete) => athlete.parentId === currentUser.id && athlete.coachId)
+      .forEach((athlete) => {
+        if (athlete.coachId) {
+          coachIds.add(athlete.coachId)
+        }
+      })
+
+    const partnerIds = new Set<string>()
+    messages
+      .filter((message) => message.fromUserId === currentUser.id || message.toUserId === currentUser.id)
+      .forEach((message) => {
+        const otherUserId = message.fromUserId === currentUser.id ? message.toUserId : message.fromUserId
+        if (otherUserId) {
+          partnerIds.add(otherUserId)
+        }
+      })
+
+    const allowedIds = new Set<string>()
+    coachIds.forEach((id) => allowedIds.add(id))
+    partnerIds.forEach((id) => allowedIds.add(id))
+
+    if (allowedIds.size === 0) {
+      return otherUsers
+    }
+
+    return otherUsers.filter((user) => allowedIds.has(user.id))
+  }, [users, currentUser.id, isParentUser, athletes, messages])
 
   // Load widgets from database on mount
   useEffect(() => {
@@ -332,7 +382,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
       <main className="flex-1 container mx-auto px-4 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="w-full justify-start overflow-x-auto">
-            {visibleTabs.map((tab) => (
+            {displayTabs.map((tab) => (
               <TabsTrigger key={tab.id} value={tab.id} className="gap-2">
                 {tab.label}
                 {tab.id === 'approvals' && pendingRequestsCount > 0 && (
@@ -355,7 +405,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
             <TabsContent value="athletes" className="mt-6">
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-bold">Atleți</h2>
+                  <h2 className="text-2xl font-bold">{isParentUser ? 'Atlet' : 'Atleți'}</h2>
                   {hasPermission('athletes.create') && (
                     <AddAthleteDialog
                       onAdd={props.handleAddAthlete}
@@ -364,39 +414,41 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
                   )}
                 </div>
 
-                <div className="flex gap-4">
-                  <div className="relative flex-1">
-                    <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
-                    <Input
-                      type="text"
-                      placeholder="Caută atlet..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10"
-                    />
+                {!isParentUser && (
+                  <div className="flex gap-4">
+                    <div className="relative flex-1">
+                      <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
+                      <Input
+                        type="text"
+                        placeholder="Caută atlet..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                    <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Toate categoriile" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Toate categoriile</SelectItem>
+                        {ageCategories.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select value={genderFilter} onValueChange={(v) => setGenderFilter(v as 'all' | 'M' | 'F')}>
+                      <SelectTrigger className="w-[140px]">
+                        <SelectValue placeholder="Gen" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Toate</SelectItem>
+                        <SelectItem value="M">Băieți</SelectItem>
+                        <SelectItem value="F">Fete</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Toate categoriile" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Toate categoriile</SelectItem>
-                      {ageCategories.map((cat) => (
-                        <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select value={genderFilter} onValueChange={(v) => setGenderFilter(v as 'all' | 'M' | 'F')}>
-                    <SelectTrigger className="w-[140px]">
-                      <SelectValue placeholder="Gen" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Toate</SelectItem>
-                      <SelectItem value="M">Băieți</SelectItem>
-                      <SelectItem value="F">Fete</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                )}
 
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {filteredAndSortedAthletes.map((athlete) => (
@@ -493,6 +545,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
                 currentUserId={currentUser.id}
                 messages={messages}
                 users={users}
+                availableUsers={messagingUsers}
                 onSendMessage={props.handleSendMessage}
                 onMarkAsRead={props.handleMarkAsRead}
               />

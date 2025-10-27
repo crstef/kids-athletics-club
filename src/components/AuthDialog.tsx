@@ -39,12 +39,19 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
   const [selectedAthleteId, setSelectedAthleteId] = useState<string>('')
   const [childName, setChildName] = useState('')
   const [approvalNotes, setApprovalNotes] = useState('')
+  const [athleteDateOfBirth, setAthleteDateOfBirth] = useState('')
+  const [athleteGender, setAthleteGender] = useState<'M' | 'F'>('M')
   const [showLoginPassword, setShowLoginPassword] = useState(false)
   const [showSignupPassword, setShowSignupPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   
   // Fetch athletes when coach is selected
   useEffect(() => {
+    if (signupRole !== 'parent') {
+      setAthletes([])
+      return
+    }
+
     if (selectedCoachId) {
       apiClient.getPublicAthletes(selectedCoachId)
         .then((data: any) => setAthletes(data))
@@ -55,12 +62,43 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
     } else {
       setAthletes([])
     }
-  }, [selectedCoachId, setAthletes])
+  }, [selectedCoachId, setAthletes, signupRole])
   
   // Athletes are already filtered by coach from the API
   const athletesByCoach = useMemo(() => {
     return athletes || []
   }, [athletes])
+
+  const calculateAge = (dateOfBirth: string): number => {
+    const today = new Date()
+    const birthDate = new Date(dateOfBirth)
+    let age = today.getFullYear() - birthDate.getFullYear()
+    const monthDiff = today.getMonth() - birthDate.getMonth()
+
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--
+    }
+
+    return age
+  }
+
+  const determineCategory = (age: number): string => {
+    if (age < 10) return 'U10'
+    if (age < 12) return 'U12'
+    if (age < 14) return 'U14'
+    if (age < 16) return 'U16'
+    return 'U18'
+  }
+
+  const athleteAge = useMemo(() => {
+    if (!athleteDateOfBirth) return null
+    return calculateAge(athleteDateOfBirth)
+  }, [athleteDateOfBirth])
+
+  const athleteCategory = useMemo(() => {
+    if (athleteAge === null) return null
+    return determineCategory(athleteAge)
+  }, [athleteAge])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -108,6 +146,23 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
       }
     }
 
+    if (signupRole === 'athlete') {
+      if (!selectedCoachId) {
+        toast.error('Selectează antrenorul tău')
+        return
+      }
+
+      if (!athleteDateOfBirth) {
+        toast.error('Selectează data nașterii')
+        return
+      }
+
+      if (athleteAge === null || athleteAge < 6 || athleteAge > 18) {
+        toast.error('Vârsta trebuie să fie între 6 și 18 ani')
+        return
+      }
+    }
+
     if (signupPassword.length < 6) {
       toast.error('Parola trebuie să aibă minim 6 caractere')
       return
@@ -120,6 +175,16 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
 
     try {
       const selectedAthlete = athletesByCoach.find(a => a.id === selectedAthleteId)
+      const normalizedGender = athleteGender === 'F' ? 'F' : 'M'
+
+      const athleteProfile = signupRole === 'athlete' && athleteAge !== null && athleteCategory
+        ? {
+            dateOfBirth: athleteDateOfBirth,
+            gender: normalizedGender,
+            age: athleteAge,
+            category: athleteCategory
+          }
+        : undefined
       
       const userData = {
         email: signupEmail.trim(),
@@ -131,7 +196,8 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
         coachId: selectedCoachId || undefined,
         athleteId: selectedAthleteId || undefined,
         childName: selectedAthlete ? `${selectedAthlete.firstName} ${selectedAthlete.lastName}` : childName.trim() || undefined,
-        approvalNotes: approvalNotes.trim() || undefined
+        approvalNotes: approvalNotes.trim() || undefined,
+        athleteProfile
       }
 
       await apiClient.register(userData)
@@ -139,6 +205,8 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
       if (signupRole !== 'superadmin') {
         if (signupRole === 'parent') {
           toast.info('Cererea ta a fost trimisă la antrenor pentru aprobată')
+        } else if (signupRole === 'athlete') {
+          toast.info('Cererea ta a fost trimisă la antrenor pentru aprobare')
         } else {
           toast.info('Contul tău așteaptă aprobată de la administrator')
         }
@@ -170,6 +238,8 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
     setSelectedAthleteId('')
     setChildName('')
     setApprovalNotes('')
+    setAthleteDateOfBirth('')
+    setAthleteGender('M')
     setShowLoginPassword(false)
     setShowSignupPassword(false)
     setShowConfirmPassword(false)
@@ -252,7 +322,23 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
             <form onSubmit={handleSignup} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="signup-role">Tip Cont *</Label>
-                <Select value={signupRole} onValueChange={(v) => setSignupRole(v as UserRole)}>
+                <Select
+                  value={signupRole}
+                  onValueChange={(v) => {
+                    const nextRole = v as UserRole
+                    setSignupRole(nextRole)
+                    if (nextRole !== 'parent') {
+                      setSelectedAthleteId('')
+                    }
+                    if (nextRole === 'coach') {
+                      setSelectedCoachId('')
+                    }
+                    if (nextRole !== 'athlete') {
+                      setAthleteDateOfBirth('')
+                      setAthleteGender('M')
+                    }
+                  }}
+                >
                   <SelectTrigger id="signup-role">
                     <SelectValue />
                   </SelectTrigger>
@@ -331,14 +417,80 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
               )}
 
               {signupRole === 'athlete' && (
-                <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 space-y-2">
-                  <div className="font-semibold text-sm text-foreground">ℹ️ Informații Atlet:</div>
-                  <div className="text-sm text-foreground space-y-1">
-                    <p>• Contul necesită aprobată de la antrenor</p>
-                    <p>• Antrenorul va asocia profilul tău la profilul din sistem</p>
-                    <p>• Vei avea acces la rezultatele și statisticile tale</p>
+                <>
+                  <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 space-y-2">
+                    <div className="font-semibold text-sm text-foreground">ℹ️ Informații Atlet:</div>
+                    <div className="text-sm text-foreground space-y-1">
+                      <p>• Contul necesită aprobare din partea antrenorului selectat</p>
+                      <p>• După aprobare vei fi adăugat automat în lista de atleți</p>
+                      <p>• Completează datele corect pentru a calcula categoria potrivită</p>
+                    </div>
                   </div>
-                </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-coach-athlete">Selectează Antrenorul *</Label>
+                    <Select value={selectedCoachId} onValueChange={setSelectedCoachId}>
+                      <SelectTrigger id="signup-coach-athlete">
+                        <SelectValue placeholder="Alege antrenorul..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {_coachesLoading ? (
+                          <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                            Se încarcă...
+                          </div>
+                        ) : coaches.length === 0 ? (
+                          <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                            Nu există antrenori disponibili
+                          </div>
+                        ) : (
+                          coaches.map((coach) => (
+                            <SelectItem key={coach.id} value={coach.id}>
+                              {coach.name}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="athlete-date-of-birth">Data nașterii *</Label>
+                      <Input
+                        id="athlete-date-of-birth"
+                        type="date"
+                        value={athleteDateOfBirth}
+                        onChange={(e) => setAthleteDateOfBirth(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="athlete-gender">Gen *</Label>
+                      <Select value={athleteGender} onValueChange={(v) => setAthleteGender(v as 'M' | 'F')}>
+                        <SelectTrigger id="athlete-gender">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="M">Băiat</SelectItem>
+                          <SelectItem value="F">Fatǎ</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {athleteAge !== null && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Vârstă estimată</Label>
+                        <Input value={`${athleteAge} ani`} disabled className="bg-muted" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Categorie recomandată</Label>
+                        <Input value={athleteCategory ?? ''} disabled className="bg-muted" />
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
 
               {signupRole === 'coach' && (
@@ -455,12 +607,12 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
 
               {signupRole === 'athlete' && (
                 <div className="space-y-2">
-                  <Label htmlFor="signup-notes">Notițe Aprobată (opțional)</Label>
+                  <Label htmlFor="signup-notes">Mesaj pentru antrenor (opțional)</Label>
                   <Input
                     id="signup-notes"
                     value={approvalNotes}
                     onChange={(e) => setApprovalNotes(e.target.value)}
-                    placeholder="ex: Informații suplimentare..."
+                    placeholder="ex: Vreau să mă antrenez pentru sprint..."
                   />
                 </div>
               )}

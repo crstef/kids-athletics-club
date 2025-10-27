@@ -40,14 +40,18 @@ export function CoachApprovalRequests({
         return true
       }
 
-      return request.coachId === coachId && request.requestedRole === 'parent'
+      return request.coachId === coachId && (request.requestedRole === 'parent' || request.requestedRole === 'athlete')
     })
   }, [approvalRequests, coachId, mode])
 
-  const getAthleteName = (athleteId?: string) => {
-    if (!athleteId) return null
-    const athlete = athletes.find(a => a.id === athleteId)
-    return athlete ? `${athlete.firstName} ${athlete.lastName}` : null
+  const getAthleteName = (athleteId?: string, fallbackName?: string | null) => {
+    if (athleteId) {
+      const athlete = athletes.find(a => a.id === athleteId)
+      if (athlete) {
+        return `${athlete.firstName} ${athlete.lastName}`
+      }
+    }
+    return fallbackName || null
   }
 
   const getCoachName = (coachIdValue?: string) => {
@@ -125,7 +129,7 @@ export function CoachApprovalRequests({
           <CardDescription>
             {mode === 'admin'
               ? 'Nu există cereri de aprobare în așteptare'
-              : 'Cereri de acces de la părinți pentru copiii lor'}
+              : 'Nu există cereri de aprobare în așteptare de la părinți sau atleți'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -152,15 +156,17 @@ export function CoachApprovalRequests({
           <CardDescription>
             {mode === 'admin'
               ? 'Cereri de aprobare trimise de utilizatori în așteptarea procesării'
-              : 'Părinți care solicită acces la datele copiilor lor'}
+              : 'Solicitări de la părinți sau atleți care necesită aprobarea ta'}
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
           <div className="space-y-4">
             {pendingRequests.map((request) => {
               const user = users.find(u => u.id === request.userId)
-              const athleteName = getAthleteName(request.athleteId)
+              const isAthleteRequest = request.requestedRole === 'athlete'
+              const athleteName = getAthleteName(request.athleteId, request.childName)
               const coachName = getCoachName(request.coachId)
+              const profile = request.athleteProfile
               
               if (!user) return null
 
@@ -173,9 +179,14 @@ export function CoachApprovalRequests({
                     <div className="text-sm text-muted-foreground flex items-center gap-1.5">
                       📧 {user.email}
                     </div>
-                    {athleteName && (
+                    {athleteName && !isAthleteRequest && (
                       <div className="text-sm font-medium bg-primary/10 px-3 py-1.5 rounded-full inline-block mt-2">
                         👤 Solicită acces pentru: <strong>{athleteName}</strong>
+                      </div>
+                    )}
+                    {isAthleteRequest && (
+                      <div className="text-sm font-medium bg-primary/10 px-3 py-1.5 rounded-full inline-block mt-2">
+                        🏃 Atlet nou: <strong>{athleteName ?? `${user.firstName} ${user.lastName}`}</strong>
                       </div>
                     )}
                     {mode === 'admin' && coachName && (
@@ -183,9 +194,20 @@ export function CoachApprovalRequests({
                         🧑‍🏫 Antrenor: <strong>{coachName}</strong>
                       </div>
                     )}
+                    {profile && (
+                      <div className="text-sm bg-muted p-3 rounded-lg border-l-4 border-accent mt-2">
+                        <strong className="text-accent">Detalii atlet:</strong>
+                        <div className="mt-2 space-y-1 text-muted-foreground">
+                          {profile.dateOfBirth && <p>📅 Data nașterii: {new Date(profile.dateOfBirth).toLocaleDateString('ro-RO')}</p>}
+                          {profile.age !== undefined && <p>🎂 Vârstă estimată: {profile.age} ani</p>}
+                          {profile.category && <p>🏷️ Categoria propusă: {profile.category}</p>}
+                          <p>⚧ Gen: {profile.gender === 'F' ? 'Feminin' : 'Masculin'}</p>
+                        </div>
+                      </div>
+                    )}
                     {request.approvalNotes && (
                       <div className="text-sm bg-muted p-3 rounded-lg border-l-4 border-accent mt-2">
-                        <strong className="text-accent">Mesaj de la părinte:</strong>
+                        <strong className="text-accent">Mesaj de la utilizator:</strong>
                         <p className="mt-1 text-muted-foreground">{request.approvalNotes}</p>
                       </div>
                     )}

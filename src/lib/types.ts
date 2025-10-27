@@ -251,6 +251,12 @@ export interface AccountApprovalRequest {
   rejectionReason?: string
   childName?: string
   approvalNotes?: string
+  athleteProfile?: {
+    dateOfBirth: string
+    gender: Gender
+    age?: number
+    category?: string
+  }
 }
 
 export interface Dashboard {

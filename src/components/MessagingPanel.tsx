@@ -27,6 +27,7 @@ interface MessagingPanelProps {
   messages: Message[]
   onSendMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void
   onMarkAsRead: (messageIds: string[]) => void
+  availableUsers?: User[]
 }
 
 export function MessagingPanel({ 
@@ -34,18 +35,40 @@ export function MessagingPanel({
   users,
   messages,
   onSendMessage,
-  onMarkAsRead
+  onMarkAsRead,
+  availableUsers
 }: MessagingPanelProps) {
   const [newMessage, setNewMessage] = useState('')
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null)
 
+  const userLookup = useMemo(() => {
+    const map = new Map<string, User>()
+    users.forEach((user) => {
+      map.set(user.id, user)
+    })
+    return map
+  }, [users])
+
+  const conversationCandidates = useMemo(() => {
+    const base = availableUsers ?? users
+    return base.filter((user) => user.id !== currentUserId)
+  }, [availableUsers, users, currentUserId])
+
   const conversations = useMemo<ConversationSummary[]>(() => {
     const summaries = new Map<string, ConversationSummary>()
+    const allowedIds = new Set(conversationCandidates.map((user) => user.id))
+    const allowAll = allowedIds.size === 0
 
     messages.forEach((message) => {
+      if (message.fromUserId !== currentUserId && message.toUserId !== currentUserId) {
+        return
+      }
       const otherUserId = message.fromUserId === currentUserId ? message.toUserId : message.fromUserId
-      const otherUser = users.find((u) => u.id === otherUserId)
+      if (!allowAll && !allowedIds.has(otherUserId)) {
+        return
+      }
+      const otherUser = userLookup.get(otherUserId)
       if (!otherUser) return
 
       const existing = summaries.get(otherUserId)
@@ -68,17 +91,15 @@ export function MessagingPanel({
       existing.unreadCount += unreadIncrement
     })
 
-    users
-      .filter((user) => user.id !== currentUserId)
-      .forEach((user) => {
-        if (!summaries.has(user.id)) {
-          summaries.set(user.id, {
-            user,
-            hasHistory: false,
-            unreadCount: 0
-          })
-        }
-      })
+    conversationCandidates.forEach((user) => {
+      if (!summaries.has(user.id)) {
+        summaries.set(user.id, {
+          user,
+          hasHistory: false,
+          unreadCount: 0
+        })
+      }
+    })
 
     return Array.from(summaries.values()).sort((a, b) => {
       if (a.hasHistory !== b.hasHistory) {
@@ -91,9 +112,14 @@ export function MessagingPanel({
 
       return `${a.user.firstName} ${a.user.lastName}`.localeCompare(`${b.user.firstName} ${b.user.lastName}`)
     })
-  }, [messages, users, currentUserId])
+  }, [messages, currentUserId, conversationCandidates, userLookup])
 
   useEffect(() => {
+    if (selectedConversation && !conversations.some(c => c.user.id === selectedConversation)) {
+      setSelectedConversation(conversations.length > 0 ? conversations[0].user.id : null)
+      return
+    }
+
     if (!selectedConversation && conversations.length > 0) {
       setSelectedConversation(conversations[0].user.id)
     }
@@ -101,8 +127,8 @@ export function MessagingPanel({
 
   const selectedUser = useMemo(() => {
     if (!selectedConversation) return null
-    return users.find((u) => u.id === selectedConversation) || null
-  }, [selectedConversation, users])
+    return userLookup.get(selectedConversation) || null
+  }, [selectedConversation, userLookup])
 
   const conversationMessages = useMemo(() => {
     if (!selectedConversation) return [];
@@ -149,15 +175,15 @@ export function MessagingPanel({
   }
 
   return (
-    <Card className="h-[70vh] flex">
-      <div className="w-1/3 border-r">
+    <Card className="h-[70vh] gap-0 md:flex-row">
+      <div className="w-full border-b md:w-1/3 md:border-b-0 md:border-r">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ChatCircleDots size={24} />
             Conversații
           </CardTitle>
         </CardHeader>
-        <ScrollArea className="h-[calc(70vh-80px)]">
+        <ScrollArea className="h-auto md:h-[calc(70vh-80px)]">
           {conversations.map(({ user, lastMessage, hasHistory, unreadCount }) => (
             <div 
               key={user.id} 
@@ -191,7 +217,7 @@ export function MessagingPanel({
           ))}
         </ScrollArea>
       </div>
-      <div className="w-2/3 flex flex-col">
+      <div className="w-full flex flex-col md:w-2/3">
         {selectedUser ? (
           <>
             <CardHeader className="border-b sticky top-0 z-10 bg-background">
