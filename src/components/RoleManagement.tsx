@@ -9,9 +9,11 @@ import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Switch } from '@/components/ui/switch'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
-import { Plus, Pencil, Trash, ShieldCheck, Lock, UserGear } from '@phosphor-icons/react'
+import { Plus, Pencil, Trash, ShieldCheck, Lock, UserGear, Layout } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import type { Role, Permission, PermissionName, ResourceType } from '@/lib/types'
+import { RoleDashboardWidgetsModal } from './RoleDashboardWidgetsModal'
+import { useAuth } from '@/lib/auth-context'
 
 interface RoleManagementProps {
   roles: Role[]
@@ -30,9 +32,12 @@ export function RoleManagement({
   onUpdateRole, 
   onDeleteRole 
 }: RoleManagementProps) {
+  const { currentUser, hasPermission } = useAuth()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingRole, setEditingRole] = useState<Role | null>(null)
   const [deleteRoleId, setDeleteRoleId] = useState<string | null>(null)
+  const [widgetsModalOpen, setWidgetsModalOpen] = useState(false)
+  const [widgetsRole, setWidgetsRole] = useState<Role | null>(null)
   
   const [formData, setFormData] = useState({
     name: '',
@@ -41,6 +46,8 @@ export function RoleManagement({
     isActive: true,
     permissions: [] as PermissionName[]
   })
+
+  const canManageWidgets = (currentUser?.role === 'superadmin') || hasPermission('dashboards.assign')
 
   const groupedPermissions = permissions.reduce((acc, perm) => {
     const [resource] = perm.name.split('.') as [ResourceType, string]
@@ -213,6 +220,20 @@ export function RoleManagement({
               </div>
 
               <div className="flex gap-2 pt-2">
+                {canManageWidgets && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setWidgetsRole(role)
+                      setWidgetsModalOpen(true)
+                    }}
+                    className="flex-1"
+                  >
+                    <Layout size={14} className="mr-1" />
+                    Widgets
+                  </Button>
+                )}
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -416,6 +437,18 @@ export function RoleManagement({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {widgetsRole && (
+        <RoleDashboardWidgetsModal
+          open={widgetsModalOpen}
+          onClose={() => {
+            setWidgetsModalOpen(false)
+            setWidgetsRole(null)
+          }}
+          role={widgetsRole}
+          onSave={() => {}}
+        />
+      )}
     </div>
   )
 }
