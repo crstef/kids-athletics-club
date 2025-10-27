@@ -124,20 +124,6 @@ CREATE TABLE IF NOT EXISTS dashboards (
     FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
 );
 
--- Role dashboards (many-to-many between roles and dashboards)
-CREATE TABLE IF NOT EXISTS role_dashboards (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    role_id UUID NOT NULL,
-    dashboard_id UUID NOT NULL,
-    is_default BOOLEAN DEFAULT false,
-    sort_order INTEGER DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(role_id, dashboard_id),
-    FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
-    FOREIGN KEY (dashboard_id) REFERENCES dashboards(id) ON DELETE CASCADE
-);
-
 -- Roles table
 CREATE TABLE IF NOT EXISTS roles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -150,6 +136,20 @@ CREATE TABLE IF NOT EXISTS roles (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- Role dashboards (many-to-many between roles and dashboards)
+CREATE TABLE IF NOT EXISTS role_dashboards (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    role_id UUID NOT NULL,
+    dashboard_id UUID NOT NULL,
+    is_default BOOLEAN DEFAULT false,
+    sort_order INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(role_id, dashboard_id),
+    FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
+    FOREIGN KEY (dashboard_id) REFERENCES dashboards(id) ON DELETE CASCADE
 );
 
 -- Role permissions (many-to-many)
