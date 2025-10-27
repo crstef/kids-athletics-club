@@ -321,6 +321,8 @@ export const approveRequest = async (req: AuthRequest, res: Response) => {
     res.json({ message: 'Request approved successfully' });
   } catch (_error) {
     await client.query('ROLLBACK');
+    // Surface the underlying issue for easier debugging in development
+    console.error('approveRequest error', _error);
     res.status(500).json({ error: 'Internal server error' });
   } finally {
     client.release();
@@ -425,6 +427,7 @@ export const rejectRequest = async (req: AuthRequest, res: Response) => {
     res.json({ message: 'Request rejected successfully' });
   } catch (_error) {
     await client.query('ROLLBACK');
+    console.error('rejectRequest error', _error);
     res.status(500).json({ error: 'Internal server error' });
   } finally {
     client.release();
