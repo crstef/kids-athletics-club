@@ -219,7 +219,7 @@ export const login = async (req: Request, res: Response) => {
 
     // Get user
     const result = await client.query(
-      `SELECT id, email, password, first_name, last_name, role, role_id, is_active, needs_approval, probe_id, athlete_id
+      `SELECT id, email, password, first_name, last_name, role, role_id, is_active, needs_approval, athlete_id
        FROM users WHERE email = $1`,
       [email.toLowerCase()]
     );
@@ -379,7 +379,6 @@ export const login = async (req: Request, res: Response) => {
         roleId: user.role_id,
         isActive: user.is_active,
         needsApproval: user.needs_approval,
-        probeId: user.probe_id,
         athleteId: user.athlete_id,
         permissions,
         dashboards,
@@ -410,7 +409,7 @@ export const getCurrentUser = async (req: Request, res: Response) => {
     }
 
     const result = await client.query(
-      `SELECT id, email, first_name, last_name, role, role_id, is_active, needs_approval, probe_id, athlete_id, created_at
+      `SELECT id, email, first_name, last_name, role, role_id, is_active, needs_approval, athlete_id, created_at
        FROM users WHERE id = $1`,
       [userId]
     );
@@ -548,7 +547,6 @@ export const getCurrentUser = async (req: Request, res: Response) => {
       roleId: user.role_id,
       isActive: user.is_active,
       needsApproval: user.needs_approval,
-      probeId: user.probe_id,
       athleteId: user.athlete_id,
       createdAt: user.created_at,
       permissions,
