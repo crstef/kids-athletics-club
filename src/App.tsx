@@ -69,8 +69,14 @@ function AppContent() {
   const visibleTabs = useMemo(() => {
     if (!currentUser) return []
 
-    const userPermissions = currentUser.permissions || []
+    const userPermissions = Array.isArray(currentUser.permissions) ? currentUser.permissions : []
     const permissionTabs = generateTabsFromPermissions(userPermissions)
+    
+    // Safety check to ensure permissionTabs is an array
+    if (!Array.isArray(permissionTabs)) {
+      console.warn('generateTabsFromPermissions did not return an array:', permissionTabs)
+      return []
+    }
 
     if (apiTabs && apiTabs.length > 0) {
       const apiTabEntries: VisibleTabDescriptor[] = apiTabs
@@ -84,16 +90,19 @@ function AppContent() {
 
       const tabById = new Map<string, VisibleTabDescriptor>(apiTabEntries.map(tab => [tab.id, tab]))
 
-      permissionTabs.forEach((tab) => {
-        if (!tabById.has(tab.id)) {
-          tabById.set(tab.id, {
-            id: tab.id,
-            label: tab.label,
-            icon: tab.icon || 'LayoutDashboard',
-            permission: tab.permission
-          })
-        }
-      })
+      // Safety check before forEach
+      if (Array.isArray(permissionTabs)) {
+        permissionTabs.forEach((tab) => {
+          if (!tabById.has(tab.id)) {
+            tabById.set(tab.id, {
+              id: tab.id,
+              label: tab.label,
+              icon: tab.icon || 'LayoutDashboard',
+              permission: tab.permission
+            })
+          }
+        })
+      }
 
       const orderedByPermissions = permissionTabs
         .map(tab => tabById.get(tab.id))
@@ -504,7 +513,7 @@ function AppContent() {
 
   const handleAddProbe = async (probeData: Omit<EventTypeCustom, 'id' | 'createdAt'>) => {
     try {
-      await apiClient.createEvent(probeData)
+      await apiClient.createProbe(probeData)
       await refetchProbes()
       toast.success('Probă adăugată cu succes!')
     } catch (error: any) {
@@ -515,7 +524,7 @@ function AppContent() {
 
   const handleEditProbe = async (id: string, probeData: Partial<EventTypeCustom>) => {
     try {
-      await apiClient.updateEvent(id, probeData)
+      await apiClient.updateProbe(id, probeData)
       await refetchProbes()
       toast.success('Probă actualizată cu succes!')
     } catch (error: any) {
@@ -526,7 +535,7 @@ function AppContent() {
 
   const handleDeleteProbe = async (id: string) => {
     try {
-      await apiClient.deleteEvent(id)
+      await apiClient.deleteProbe(id)
       await refetchProbes()
       toast.success('Probă ștearsă cu succes!')
     } catch (error: any) {
