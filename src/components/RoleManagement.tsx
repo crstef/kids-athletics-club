@@ -102,6 +102,13 @@ export function RoleManagement({
       try {
         const response = await apiClient.getRoleComponentPermissions(editingRole.id)
         const rawList = Array.isArray(response) ? response : response?.permissions ?? []
+        
+        // Ensure rawList is actually an array
+        if (!Array.isArray(rawList)) {
+          console.warn('getRoleComponentPermissions returned non-array data:', rawList)
+          setWidgetEntries([])
+          return
+        }
 
         const normalized = rawList
           .map((component: any) => {
@@ -146,13 +153,19 @@ export function RoleManagement({
     }
   }, [dialogOpen, editingRole, canManageWidgets])
 
-  const widgetsByGroup = useMemo(() => {
+  const widgetGroups = useMemo(() => {
     const groups: Record<WidgetGroupKey, WidgetPermissionEntry[]> = {
       general: [],
       admin: [],
       coach: [],
       parent: [],
       athlete: []
+    }
+
+    // Safety check: ensure widgetEntries is an array
+    if (!Array.isArray(widgetEntries)) {
+      console.warn('widgetEntries is not an array:', widgetEntries)
+      return groups
     }
 
     widgetEntries.forEach((entry) => {
@@ -545,7 +558,7 @@ export function RoleManagement({
 
                           const isSelected = formData.permissions.includes(perm.name)
                           const widgetGroup = PERMISSION_WIDGET_GROUP_MAP[perm.name]
-                          const groupWidgets = widgetGroup ? widgetsByGroup[widgetGroup] : []
+                          const groupWidgets = widgetGroup ? widgetGroups[widgetGroup] : []
                           const showWidgets = Boolean(editingRole && canManageWidgets && widgetGroup)
 
                           return (
