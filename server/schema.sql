@@ -296,6 +296,31 @@ BEGIN
     END IF;
 END$$;
 
+-- User widgets table
+CREATE TABLE IF NOT EXISTS user_widgets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    widget_name VARCHAR(100) NOT NULL,
+    is_enabled BOOLEAN DEFAULT true,
+    sort_order INTEGER DEFAULT 0,
+    config JSONB DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(user_id, widget_name)
+);
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'user_widgets_user_id_widget_name_key'
+          AND conrelid = 'user_widgets'::regclass
+    ) THEN
+        ALTER TABLE user_widgets
+            ADD CONSTRAINT user_widgets_user_id_widget_name_key UNIQUE (user_id, widget_name);
+    END IF;
+END$$;
+
 -- Account approval requests
 CREATE TABLE IF NOT EXISTS approval_requests (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -387,6 +412,8 @@ CREATE INDEX IF NOT EXISTS idx_role_permissions_role_id ON role_permissions(role
 CREATE INDEX IF NOT EXISTS idx_dashboards_name ON dashboards(name);
 CREATE INDEX IF NOT EXISTS idx_role_dashboards_role_id ON role_dashboards(role_id);
 CREATE INDEX IF NOT EXISTS idx_role_dashboards_dashboard_id ON role_dashboards(dashboard_id);
+CREATE INDEX IF NOT EXISTS idx_user_widgets_user_id ON user_widgets(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_widgets_enabled ON user_widgets(user_id, is_enabled);
 
 -- Update timestamp trigger function
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -412,6 +439,7 @@ DROP TRIGGER IF EXISTS update_age_categories_updated_at ON age_categories;
 DROP TRIGGER IF EXISTS update_coach_probes_updated_at ON coach_probes;
 DROP TRIGGER IF EXISTS update_dashboards_updated_at ON dashboards;
 DROP TRIGGER IF EXISTS update_role_dashboards_updated_at ON role_dashboards;
+DROP TRIGGER IF EXISTS update_user_widgets_updated_at ON user_widgets;
 
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_athletes_updated_at BEFORE UPDATE ON athletes FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
@@ -427,3 +455,4 @@ CREATE TRIGGER update_age_categories_updated_at BEFORE UPDATE ON age_categories 
 CREATE TRIGGER update_coach_probes_updated_at BEFORE UPDATE ON coach_probes FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_dashboards_updated_at BEFORE UPDATE ON dashboards FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_role_dashboards_updated_at BEFORE UPDATE ON role_dashboards FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_user_widgets_updated_at BEFORE UPDATE ON user_widgets FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
