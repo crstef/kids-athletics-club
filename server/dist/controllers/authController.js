@@ -151,14 +151,28 @@ const login = async (req, res) => {
             const defaultDashboard = dashboards.find(d => d.isDefault);
             defaultDashboardId = defaultDashboard?.id || dashboards[0]?.id || null;
         }
-        // Combine permissions (remove duplicates)
-        const allPermissions = [
-            ...rolePermissions.rows.map(r => r.name),
-            ...userPermissions.rows.map(r => r.name)
-        ];
-        let permissions = [...new Set(allPermissions)];
-        // Always guarantee a minimal, sane default set based on role.
-        // This unions DB-resolved permissions with our baseline so partial DB configs don't break UX.
+        if (dashboards.length === 0) {
+            const fallbackDashboard = await client.query(`SELECT id, name, display_name, component_name, icon
+         FROM dashboards
+         WHERE name = 'UnifiedDashboard' AND is_active = true
+         LIMIT 1`);
+            if (fallbackDashboard.rows.length > 0) {
+                const dash = fallbackDashboard.rows[0];
+                dashboards = [{
+                        id: dash.id,
+                        name: dash.name,
+                        displayName: dash.display_name,
+                        componentName: dash.component_name,
+                        icon: dash.icon,
+                        isDefault: true,
+                        sortOrder: 0
+                    }];
+                defaultDashboardId = dash.id;
+            }
+        }
+        const rolePermissionNames = rolePermissions.rows.map(r => r.name);
+        const userPermissionNames = userPermissions.rows.map(r => r.name);
+        let permissions = [...new Set([...rolePermissionNames, ...userPermissionNames])];
         const baselineByRole = {
             superadmin: ['*'],
             coach: [
@@ -180,7 +194,9 @@ const login = async (req, res) => {
             ],
         };
         const baseline = baselineByRole[user.role] || [];
-        permissions = [...new Set([...baseline, ...permissions])];
+        if (permissions.length === 0 && baseline.length > 0) {
+            permissions = [...new Set(baseline)];
+        }
         // Generate JWT
         const token = (0, jwt_1.generateToken)({
             userId: user.id,
@@ -259,7 +275,12 @@ const getCurrentUser = async (req, res) => {
         else {
             console.log(`[getCurrentUser] User ${user.email} has no role_id and couldn't find role by name, returning empty permissions`);
         }
-        // Apply same union baseline logic as in login to avoid partial DB configs breaking UX
+        const userPermissionResult = await client.query(`SELECT p.name
+       FROM user_permissions up
+       JOIN permissions p ON up.permission_id = p.id
+       WHERE up.user_id = $1`, [user.id]);
+        const userPermissionNames = userPermissionResult.rows.map(row => row.name);
+        permissions = [...new Set([...permissions, ...userPermissionNames])];
         const baselineByRole2 = {
             superadmin: ['*'],
             coach: [
@@ -281,7 +302,9 @@ const getCurrentUser = async (req, res) => {
             ],
         };
         const baseline2 = baselineByRole2[user.role] || [];
-        permissions = [...new Set([...baseline2, ...permissions])];
+        if (permissions.length === 0 && baseline2.length > 0) {
+            permissions = [...new Set(baseline2)];
+        }
         // Get dashboards assigned to this role (same as login)
         let dashboards = [];
         let defaultDashboardId = null;
@@ -306,6 +329,25 @@ const getCurrentUser = async (req, res) => {
             }));
             const defaultDashboard = dashboards.find(d => d.isDefault);
             defaultDashboardId = defaultDashboard?.id || dashboards[0]?.id || null;
+        }
+        if (dashboards.length === 0) {
+            const fallbackDashboard = await client.query(`SELECT id, name, display_name, component_name, icon
+         FROM dashboards
+         WHERE name = 'UnifiedDashboard' AND is_active = true
+         LIMIT 1`);
+            if (fallbackDashboard.rows.length > 0) {
+                const dash = fallbackDashboard.rows[0];
+                dashboards = [{
+                        id: dash.id,
+                        name: dash.name,
+                        displayName: dash.display_name,
+                        componentName: dash.component_name,
+                        icon: dash.icon,
+                        isDefault: true,
+                        sortOrder: 0
+                    }];
+                defaultDashboardId = dash.id;
+            }
         }
         res.json({
             id: user.id,
