@@ -4,12 +4,13 @@
  * ALL widgets available to ALL roles - visibility controlled by role_dashboards table
  */
 
+import React from 'react'
 import { StatsUsersWidget } from '@/components/widgets/StatsUsersWidget'
 import { StatsAthletesWidget } from '@/components/widgets/StatsAthletesWidget'
-import { StatsEventsWidget } from '@/components/widgets/StatsEventsWidget'
+import { StatsProbesWidget } from '@/components/widgets/StatsProbesWidget'
 import { StatsPermissionsWidget } from '@/components/widgets/StatsPermissionsWidget'
 import { RecentUsersWidget } from '@/components/widgets/RecentUsersWidget'
-import { RecentEventsWidget } from '@/components/widgets/RecentEventsWidget'
+import { RecentProbesWidget } from '@/components/widgets/RecentProbesWidget'
 import { PerformanceChartWidget } from '@/components/widgets/PerformanceChartWidget'
 import { RecentResultsWidget } from '@/components/widgets/RecentResultsWidget'
 import { PendingRequestsWidget } from '@/components/widgets/PendingRequestsWidget'
@@ -47,11 +48,11 @@ export const WIDGET_REGISTRY: Record<string, WidgetConfig> = {
     defaultSize: 'small',
     description: 'Numărul total de atleți înregistrați'
   },
-  'stats-events': {
-    id: 'stats-events',
+  'stats-probes': {
+    id: 'stats-probes',
     name: 'Probe Sportive',
-    component: StatsEventsWidget,
-    requiredPermission: 'events.view',
+    component: StatsProbesWidget,
+    requiredPermission: 'probes.view',
     defaultSize: 'small',
     description: 'Probe sportive configurate'
   },
@@ -71,11 +72,11 @@ export const WIDGET_REGISTRY: Record<string, WidgetConfig> = {
     defaultSize: 'medium',
     description: 'Ultimii utilizatori înregistrați'
   },
-  'recent-events': {
-    id: 'recent-events',
+  'recent-probes': {
+    id: 'recent-probes',
     name: 'Probe Recente',
-    component: RecentEventsWidget,
-    requiredPermission: 'events.view',
+    component: RecentProbesWidget,
+    requiredPermission: 'probes.view',
     defaultSize: 'medium',
     description: 'Ultimele probe configurate'
   },

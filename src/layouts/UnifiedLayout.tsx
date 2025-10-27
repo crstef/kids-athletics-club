@@ -241,12 +241,12 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
           setEnabledWidgets(widgetNames)
         } else {
           // Default widgets if none saved
-          setEnabledWidgets(['statistics', 'events', 'messages'])
+          setEnabledWidgets(['statistics', 'probes', 'messages'])
         }
       } catch (_error) {
         console.error('Failed to load widgets:', _error)
         // Fallback to default widgets
-        setEnabledWidgets(['statistics', 'events', 'messages'])
+        setEnabledWidgets(['statistics', 'probes', 'messages'])
       } finally {
         setWidgetsLoaded(true)
       }
@@ -525,9 +525,9 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
             </TabsContent>
           )}
 
-          {/* Events Tab */}
-          {isTabVisible('events') && (
-            <TabsContent value="events" className="mt-6">
+          {/* Probes Tab */}
+          {isTabVisible('probes') && (
+            <TabsContent value="probes" className="mt-6">
               <ProbeManagement
                 probes={probes}
                 currentUserId={currentUser.id}
@@ -712,8 +712,8 @@ function buildWidgetProps(widgetId: string, props: UnifiedLayoutProps): any {
         onViewAthleteDetails: props.handleViewAthleteDetails
       }
     
-    case 'stats-events':
-      return { ...baseProps, events: props.probes }
+    case 'stats-probes':
+      return { ...baseProps, probes: props.probes }
     
     case 'stats-permissions':
       return { ...baseProps, permissions: props.permissions }
@@ -721,8 +721,8 @@ function buildWidgetProps(widgetId: string, props: UnifiedLayoutProps): any {
     case 'recent-users':
       return { users: props.users }
     
-    case 'recent-events':
-      return { events: props.probes }
+    case 'recent-probes':
+      return { probes: props.probes }
     
     case 'performance-chart':
       return { 

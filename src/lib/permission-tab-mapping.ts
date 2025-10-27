@@ -35,10 +35,10 @@ export const PERMISSION_TO_TAB_MAP: Record<string, TabConfig> = {
     category: 'data',
     order: 10
   },
-  'events.view': {
-    id: 'events',
+  'probes.view': {
+    id: 'probes',
     label: 'Probe',
-    permission: 'events.view',
+    permission: 'probes.view',
     category: 'data',
     order: 20
   },
@@ -98,11 +98,11 @@ const PERMISSION_ALIASES: Record<string, string> = {
   'approval_requests.approve.own': 'approval_requests.view',
   'requests.view.all': 'approval_requests.view',
   'requests.view.own': 'approval_requests.view',
-  'probes.view': 'events.view',
-  'probes.manage': 'events.view',
-  'probes.create': 'events.view',
-  'probes.edit': 'events.view',
-  'probes.delete': 'events.view'
+  'events.view': 'probes.view',
+  'events.manage': 'probes.view',
+  'events.create': 'probes.view',
+  'events.edit': 'probes.view',
+  'events.delete': 'probes.view'
 }
 
 /**

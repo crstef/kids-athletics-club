@@ -15,7 +15,7 @@ describe('Permission to Tab Mapping System', () => {
   describe('PERMISSION_TO_TAB_MAP completeness', () => {
     it('should have all required tabs mapped', () => {
       // NOTE: 'permissions' tab removed - permissions now managed via Roluri modal
-  const requiredTabs = ['dashboard', 'athletes', 'events', 'approvals', 'messages', 'users', 'roles', 'categories']
+  const requiredTabs = ['dashboard', 'athletes', 'probes', 'approvals', 'messages', 'users', 'roles', 'categories']
       
       for (const tabId of requiredTabs) {
         const found = Object.values(PERMISSION_TO_TAB_MAP).some(tab => tab.id === tabId)
@@ -55,7 +55,7 @@ describe('Permission to Tab Mapping System', () => {
 
   describe('generateTabsFromPermissions function', () => {
     it('should always include dashboard for authenticated users', () => {
-      const permissions = ['athletes.view', 'events.view']
+      const permissions = ['athletes.view', 'probes.view']
       const tabs = generateTabsFromPermissions(permissions)
       
       expect(tabs.some(t => t.id === 'dashboard')).toBe(true)
@@ -66,7 +66,7 @@ describe('Permission to Tab Mapping System', () => {
       const tabs = generateTabsFromPermissions(permissions)
       
       // Should include all mapped tabs (excluding permissions tab which was removed)
-  const expectedTabs = ['dashboard', 'athletes', 'events', 'approvals', 'messages', 'users', 'roles', 'categories']
+  const expectedTabs = ['dashboard', 'athletes', 'probes', 'approvals', 'messages', 'users', 'roles', 'categories']
       for (const tabId of expectedTabs) {
         expect(tabs.some(t => t.id === tabId)).toBe(true)
       }

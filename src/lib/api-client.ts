@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' && window.location.hostname !== 'localhost' ? '/api' : 'http://localhost:3001/api');
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || (typeof window !== 'undefined' && window.location.hostname !== 'localhost' ? '/api' : 'http://localhost:3001/api');
 
 class ApiClient {
   private token: string | null = null;
@@ -180,29 +180,6 @@ class ApiClient {
 
   async deleteResult(id: string) {
     return this.request(`/results/${id}`, { method: 'DELETE' });
-  }
-
-  // Events
-  async getEvents() {
-    return this.request<any[]>('/events');
-  }
-
-  async createEvent(data: any) {
-    return this.request('/events', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
-
-  async updateEvent(id: string, data: any) {
-    return this.request(`/events/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
-  }
-
-  async deleteEvent(id: string) {
-    return this.request(`/events/${id}`, { method: 'DELETE' });
   }
 
   // Access Requests
