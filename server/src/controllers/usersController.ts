@@ -13,7 +13,7 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
   
   try {
     let query = `SELECT u.id, u.email, u.first_name, u.last_name, u.role, u.role_id, u.is_active, u.needs_approval, 
-                        u.probe_id, u.athlete_id, u.approved_by, u.approved_at, u.created_at,
+                        u.athlete_id, u.approved_by, u.approved_at, u.created_at,
                         r.name as role_name
                  FROM users u
                  LEFT JOIN roles r ON u.role_id = r.id`;
@@ -46,7 +46,6 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
       roleName: user.role_name,
       isActive: user.is_active,
       needsApproval: user.needs_approval,
-      probeId: user.probe_id,
       athleteId: user.athlete_id,
       approvedBy: user.approved_by,
       approvedAt: user.approved_at,
@@ -66,7 +65,7 @@ export const createUser = async (req: AuthRequest, res: Response) => {
   const client = await pool.connect();
   
   try {
-    const { email, password, firstName, lastName, role, isActive, needsApproval, probeId, roleId } = req.body;
+    const { email, password, firstName, lastName, role, isActive, needsApproval, roleId } = req.body;
 
     if (!email || !password || !firstName || !lastName || !role) {
       return res.status(400).json({ error: 'Missing required fields' });
@@ -88,11 +87,11 @@ export const createUser = async (req: AuthRequest, res: Response) => {
     const hashedPassword = hashPassword(password);
 
     const result = await client.query(
-      `INSERT INTO users (email, password, first_name, last_name, role, role_id, is_active, needs_approval, probe_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-       RETURNING id, email, first_name, last_name, role, role_id, is_active, needs_approval, probe_id, created_at`,
-      [email.toLowerCase(), hashedPassword, firstName, lastName, role, roleId || null, 
-       isActive ?? true, needsApproval ?? false, probeId || null]
+      `INSERT INTO users (email, password, first_name, last_name, role, role_id, is_active, needs_approval)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING id, email, first_name, last_name, role, role_id, is_active, needs_approval, created_at`,
+      [email.toLowerCase(), hashedPassword, firstName, lastName, role, roleId || null,
+       isActive ?? true, needsApproval ?? false]
     );
 
     const user = result.rows[0];
@@ -106,7 +105,6 @@ export const createUser = async (req: AuthRequest, res: Response) => {
       roleId: user.role_id,
       isActive: user.is_active,
       needsApproval: user.needs_approval,
-      probeId: user.probe_id,
       createdAt: user.created_at
     });
   } catch (error) {
@@ -122,7 +120,7 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
   
   try {
     const { id } = req.params;
-    const { email, password, firstName, lastName, role, roleId, isActive, needsApproval, probeId, athleteId } = req.body;
+    const { email, password, firstName, lastName, role, roleId, isActive, needsApproval, athleteId } = req.body;
 
     const user = await client.query('SELECT id FROM users WHERE id = $1', [id]);
     if (user.rows.length === 0) {
@@ -165,10 +163,7 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
       updates.push(`needs_approval = $${paramCount++}`);
       values.push(needsApproval);
     }
-    if (probeId !== undefined) {
-      updates.push(`probe_id = $${paramCount++}`);
-      values.push(probeId);
-    }
+
     if (athleteId !== undefined) {
       updates.push(`athlete_id = $${paramCount++}`);
       values.push(athleteId);
@@ -181,7 +176,7 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
     values.push(id);
     const result = await client.query(
       `UPDATE users SET ${updates.join(', ')} WHERE id = $${paramCount}
-       RETURNING id, email, first_name, last_name, role, role_id, is_active, needs_approval, probe_id, athlete_id, created_at`,
+       RETURNING id, email, first_name, last_name, role, role_id, is_active, needs_approval, athlete_id, created_at`,
       values
     );
 
@@ -196,7 +191,6 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
       roleId: updatedUser.role_id,
       isActive: updatedUser.is_active,
       needsApproval: updatedUser.needs_approval,
-      probeId: updatedUser.probe_id,
       athleteId: updatedUser.athlete_id,
       createdAt: updatedUser.created_at
     });
