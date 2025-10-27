@@ -109,7 +109,7 @@ export function RoleManagement({
             if (!componentId) return null
 
             const componentName = component.componentName ?? component.component_name ?? component.name ?? ''
-            const displayName = component.displayName ?? component.display_name ?? componentName || 'Componentă'
+            const displayName = component.displayName ?? component.display_name ?? (componentName || 'Componentă')
             const rawType = (component.componentType ?? component.component_type ?? '').toString().toLowerCase()
             if (!rawType.includes('widget')) return null
 
