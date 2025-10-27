@@ -63,7 +63,7 @@ exports.getAllUsers = getAllUsers;
 const createUser = async (req, res) => {
     const client = await database_1.default.connect();
     try {
-        const { email, password, firstName, lastName, role, isActive, needsApproval, probeId, roleId } = req.body;
+        const { email, password, firstName, lastName, role, isActive, needsApproval, roleId } = req.body;
         if (!email || !password || !firstName || !lastName || !role) {
             return res.status(400).json({ error: 'Missing required fields' });
         }
@@ -75,10 +75,10 @@ const createUser = async (req, res) => {
             return res.status(400).json({ error: 'Email already exists' });
         }
         const hashedPassword = hashPassword(password);
-        const result = await client.query(`INSERT INTO users (email, password, first_name, last_name, role, role_id, is_active, needs_approval, probe_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-       RETURNING id, email, first_name, last_name, role, role_id, is_active, needs_approval, probe_id, created_at`, [email.toLowerCase(), hashedPassword, firstName, lastName, role, roleId || null,
-            isActive ?? true, needsApproval ?? false, probeId || null]);
+        const result = await client.query(`INSERT INTO users (email, password, first_name, last_name, role, role_id, is_active, needs_approval)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING id, email, first_name, last_name, role, role_id, is_active, needs_approval, created_at`, [email.toLowerCase(), hashedPassword, firstName, lastName, role, roleId || null,
+            isActive ?? true, needsApproval ?? false]);
         const user = result.rows[0];
         res.status(201).json({
             id: user.id,
@@ -89,7 +89,6 @@ const createUser = async (req, res) => {
             roleId: user.role_id,
             isActive: user.is_active,
             needsApproval: user.needs_approval,
-            probeId: user.probe_id,
             createdAt: user.created_at
         });
     }
@@ -106,7 +105,7 @@ const updateUser = async (req, res) => {
     const client = await database_1.default.connect();
     try {
         const { id } = req.params;
-        const { email, password, firstName, lastName, role, roleId, isActive, needsApproval, probeId, athleteId } = req.body;
+        const { email, password, firstName, lastName, role, roleId, isActive, needsApproval, athleteId } = req.body;
         const user = await client.query('SELECT id FROM users WHERE id = $1', [id]);
         if (user.rows.length === 0) {
             return res.status(404).json({ error: 'User not found' });
@@ -146,10 +145,6 @@ const updateUser = async (req, res) => {
             updates.push(`needs_approval = $${paramCount++}`);
             values.push(needsApproval);
         }
-        if (probeId !== undefined) {
-            updates.push(`probe_id = $${paramCount++}`);
-            values.push(probeId);
-        }
         if (athleteId !== undefined) {
             updates.push(`athlete_id = $${paramCount++}`);
             values.push(athleteId);
@@ -159,7 +154,7 @@ const updateUser = async (req, res) => {
         }
         values.push(id);
         const result = await client.query(`UPDATE users SET ${updates.join(', ')} WHERE id = $${paramCount}
-       RETURNING id, email, first_name, last_name, role, role_id, is_active, needs_approval, probe_id, athlete_id, created_at`, values);
+       RETURNING id, email, first_name, last_name, role, role_id, is_active, needs_approval, athlete_id, created_at`, values);
         const updatedUser = result.rows[0];
         res.json({
             id: updatedUser.id,
@@ -170,7 +165,6 @@ const updateUser = async (req, res) => {
             roleId: updatedUser.role_id,
             isActive: updatedUser.is_active,
             needsApproval: updatedUser.needs_approval,
-            probeId: updatedUser.probe_id,
             athleteId: updatedUser.athlete_id,
             createdAt: updatedUser.created_at
         });
