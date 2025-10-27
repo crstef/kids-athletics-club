@@ -124,6 +124,20 @@ CREATE TABLE IF NOT EXISTS dashboards (
     FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
 );
 
+-- Components table (UI sections/widgets/actions)
+CREATE TABLE IF NOT EXISTS components (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(100) UNIQUE NOT NULL,
+    display_name VARCHAR(150) NOT NULL,
+    description TEXT,
+    component_type VARCHAR(50),
+    icon VARCHAR(50),
+    order_index INTEGER DEFAULT 0,
+    is_system BOOLEAN DEFAULT false,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Roles table
 CREATE TABLE IF NOT EXISTS roles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -150,6 +164,23 @@ CREATE TABLE IF NOT EXISTS role_dashboards (
     UNIQUE(role_id, dashboard_id),
     FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
     FOREIGN KEY (dashboard_id) REFERENCES dashboards(id) ON DELETE CASCADE
+);
+
+-- Component permissions (granular permissions per role per component)
+CREATE TABLE IF NOT EXISTS component_permissions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    role_id UUID NOT NULL,
+    component_id UUID NOT NULL,
+    can_view BOOLEAN DEFAULT false,
+    can_create BOOLEAN DEFAULT false,
+    can_edit BOOLEAN DEFAULT false,
+    can_delete BOOLEAN DEFAULT false,
+    can_export BOOLEAN DEFAULT false,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(role_id, component_id),
+    FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
+    FOREIGN KEY (component_id) REFERENCES components(id) ON DELETE CASCADE
 );
 
 -- Role permissions (many-to-many)
