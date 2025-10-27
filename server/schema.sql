@@ -124,6 +124,18 @@ CREATE TABLE IF NOT EXISTS dashboards (
     FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
 );
 
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'dashboards_name_key'
+          AND conrelid = 'dashboards'::regclass
+    ) THEN
+        ALTER TABLE dashboards
+            ADD CONSTRAINT dashboards_name_key UNIQUE (name);
+    END IF;
+END$$;
+
 -- Components table (UI sections/widgets/actions)
 CREATE TABLE IF NOT EXISTS components (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -137,6 +149,18 @@ CREATE TABLE IF NOT EXISTS components (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'components_name_key'
+          AND conrelid = 'components'::regclass
+    ) THEN
+        ALTER TABLE components
+            ADD CONSTRAINT components_name_key UNIQUE (name);
+    END IF;
+END$$;
 
 -- Roles table
 CREATE TABLE IF NOT EXISTS roles (
@@ -166,6 +190,18 @@ CREATE TABLE IF NOT EXISTS role_dashboards (
     FOREIGN KEY (dashboard_id) REFERENCES dashboards(id) ON DELETE CASCADE
 );
 
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'role_dashboards_role_id_dashboard_id_key'
+          AND conrelid = 'role_dashboards'::regclass
+    ) THEN
+        ALTER TABLE role_dashboards
+            ADD CONSTRAINT role_dashboards_role_id_dashboard_id_key UNIQUE (role_id, dashboard_id);
+    END IF;
+END$$;
+
 -- Component permissions (granular permissions per role per component)
 CREATE TABLE IF NOT EXISTS component_permissions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -182,6 +218,18 @@ CREATE TABLE IF NOT EXISTS component_permissions (
     FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
     FOREIGN KEY (component_id) REFERENCES components(id) ON DELETE CASCADE
 );
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'component_permissions_role_id_component_id_key'
+          AND conrelid = 'component_permissions'::regclass
+    ) THEN
+        ALTER TABLE component_permissions
+            ADD CONSTRAINT component_permissions_role_id_component_id_key UNIQUE (role_id, component_id);
+    END IF;
+END$$;
 
 -- Role permissions (many-to-many)
 CREATE TABLE IF NOT EXISTS role_permissions (
