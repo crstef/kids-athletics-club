@@ -114,9 +114,11 @@ CREATE TABLE IF NOT EXISTS dashboards (
     name VARCHAR(100) UNIQUE NOT NULL,
     display_name VARCHAR(150) NOT NULL,
     description TEXT,
+    component_name VARCHAR(150),
     icon VARCHAR(50),
     route VARCHAR(100),
     is_active BOOLEAN DEFAULT true,
+    is_system BOOLEAN DEFAULT false,
     sort_order INTEGER DEFAULT 0,
     created_by UUID,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -135,6 +137,25 @@ BEGIN
             ADD CONSTRAINT dashboards_name_key UNIQUE (name);
     END IF;
 END$$;
+
+    DO $$
+    BEGIN
+        IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'dashboards'
+              AND column_name = 'component_name'
+        ) THEN
+            ALTER TABLE dashboards ADD COLUMN component_name VARCHAR(150);
+        END IF;
+
+        IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'dashboards'
+              AND column_name = 'is_system'
+        ) THEN
+            ALTER TABLE dashboards ADD COLUMN is_system BOOLEAN DEFAULT false;
+        END IF;
+    END$$;
 
 -- Components table (UI sections/widgets/actions)
 CREATE TABLE IF NOT EXISTS components (
@@ -263,6 +284,18 @@ CREATE TABLE IF NOT EXISTS user_permissions (
     FOREIGN KEY (granted_by) REFERENCES users(id) ON DELETE SET NULL
 );
 
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'user_permissions_user_id_permission_id_key'
+          AND conrelid = 'user_permissions'::regclass
+    ) THEN
+        ALTER TABLE user_permissions
+            ADD CONSTRAINT user_permissions_user_id_permission_id_key UNIQUE (user_id, permission_id);
+    END IF;
+END$$;
+
 -- Account approval requests
 CREATE TABLE IF NOT EXISTS approval_requests (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -288,7 +321,7 @@ CREATE TABLE IF NOT EXISTS approval_requests (
 -- Age categories table
 CREATE TABLE IF NOT EXISTS age_categories (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(50) NOT NULL,
+    name VARCHAR(50) UNIQUE NOT NULL,
     age_from INTEGER NOT NULL,
     age_to INTEGER NOT NULL,
     gender VARCHAR(1),
@@ -299,6 +332,18 @@ CREATE TABLE IF NOT EXISTS age_categories (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
 );
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'age_categories_name_key'
+          AND conrelid = 'age_categories'::regclass
+    ) THEN
+        ALTER TABLE age_categories
+            ADD CONSTRAINT age_categories_name_key UNIQUE (name);
+    END IF;
+END$$;
 
 -- Coach probes (specializations)
 CREATE TABLE IF NOT EXISTS coach_probes (
