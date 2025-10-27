@@ -10,7 +10,7 @@ const hashPassword = (password) => {
     return crypto_1.default.createHash('sha256').update(password).digest('hex');
 };
 /**
- * Initialize database with roles, permissions, age categories, and probes
+ * Initialize database with roles, permissions, age categories, and components
  * GET /api/setup/initialize-data
  * Optional query param: ?reset_permissions=true to delete and recreate role permissions
  */
@@ -24,7 +24,6 @@ const initializeData = async (req, res) => {
             rolePermissions: 0,
             userPermissions: 0,
             ageCategories: 0,
-            probes: 0,
             dashboardsCreated: 0,
             roleDashboardsCreated: 0
         };
@@ -60,9 +59,12 @@ const initializeData = async (req, res) => {
         FOREIGN KEY (dashboard_id) REFERENCES dashboards(id) ON DELETE CASCADE
       )
     `);
-        // If reset_permissions is true, delete existing role permissions
+        // If reset_permissions is true, delete existing role permissions and component permissions
         if (resetPermissions) {
             await client.query(`DELETE FROM role_permissions WHERE role_id IN (
+        SELECT id FROM roles WHERE name IN ('superadmin', 'coach', 'parent', 'athlete')
+      )`);
+            await client.query(`DELETE FROM component_permissions WHERE role_id IN (
         SELECT id FROM roles WHERE name IN ('superadmin', 'coach', 'parent', 'athlete')
       )`);
         }
@@ -100,10 +102,10 @@ const initializeData = async (req, res) => {
       ('results.create', 'Poate adăuga rezultate noi', NOW(), NOW()),
       ('results.edit', 'Poate edita rezultate', NOW(), NOW()),
       ('results.delete', 'Poate șterge rezultate', NOW(), NOW()),
-  ('events.view', 'Poate vizualiza probe', NOW(), NOW()),
-  ('events.create', 'Poate crea probe noi', NOW(), NOW()),
-  ('events.edit', 'Poate edita probe', NOW(), NOW()),
-  ('events.delete', 'Poate șterge probe', NOW(), NOW()),
+  ('probes.view', 'Poate vizualiza probe', NOW(), NOW()),
+  ('probes.create', 'Poate crea probe noi', NOW(), NOW()),
+  ('probes.edit', 'Poate edita probe', NOW(), NOW()),
+  ('probes.delete', 'Poate șterge probe', NOW(), NOW()),
       ('messages.view', 'Poate vizualiza mesaje', NOW(), NOW()),
       ('messages.create', 'Poate trimite mesaje', NOW(), NOW()),
       ('messages.delete', 'Poate șterge mesaje', NOW(), NOW()),
@@ -155,7 +157,7 @@ const initializeData = async (req, res) => {
         'athletes.view', 'athletes.view.own', 'athletes.create', 'athletes.edit', 'athletes.delete',
         'athletes.avatar.view', 'athletes.avatar.upload',
         'results.view', 'results.view.own', 'results.create', 'results.edit', 'results.delete',
-        'events.view', 'events.create', 'events.edit', 'events.delete',
+        'probes.view', 'probes.create', 'probes.edit', 'probes.delete',
         'messages.view', 'messages.create',
         'approval_requests.view.own', 'approval_requests.approve.own',
         'requests.view.own',
@@ -175,7 +177,7 @@ const initializeData = async (req, res) => {
         'athletes.view', 'athletes.view.own',
         'athletes.avatar.view',
         'results.view', 'results.view.own',
-        'events.view',
+        'probes.view',
         'messages.view', 'messages.create',
         'access_requests.view'
       )
@@ -191,7 +193,7 @@ const initializeData = async (req, res) => {
       AND p.name IN (
         'dashboard.view', 'dashboard.view.athlete',
         'results.view',
-        'events.view',
+        'probes.view',
         'messages.view'
       )
       ON CONFLICT DO NOTHING
@@ -221,28 +223,9 @@ const initializeData = async (req, res) => {
       ('U14', 12, 13, 'Categorie sub 14 ani', NOW(), NOW()),
       ('U16', 14, 15, 'Categorie sub 16 ani', NOW(), NOW()),
       ('U18', 16, 17, 'Categorie sub 18 ani', NOW(), NOW())
+      ON CONFLICT (name) DO NOTHING
     `);
         results.ageCategories = 5;
-        // 7. Insert Coach Probes
-        await client.query(`
-      INSERT INTO coach_probes (name, description, created_at, updated_at) VALUES
-      ('60m', 'Alergare 60 metri', NOW(), NOW()),
-      ('100m', 'Alergare 100 metri', NOW(), NOW()),
-      ('200m', 'Alergare 200 metri', NOW(), NOW()),
-      ('400m', 'Alergare 400 metri', NOW(), NOW()),
-      ('800m', 'Alergare 800 metri', NOW(), NOW()),
-      ('1500m', 'Alergare 1500 metri', NOW(), NOW()),
-      ('3000m', 'Alergare 3000 metri', NOW(), NOW()),
-      ('Săritură în lungime', 'Săritură în lungime', NOW(), NOW()),
-      ('Săritură în înălțime', 'Săritură în înălțime', NOW(), NOW()),
-      ('Triplu salt', 'Triplu salt', NOW(), NOW()),
-      ('Aruncare bile', 'Aruncare bile', NOW(), NOW()),
-      ('Aruncare disc', 'Aruncare disc', NOW(), NOW()),
-      ('Aruncare suliță', 'Aruncare suliță', NOW(), NOW()),
-      ('60m garduri', 'Alergare 60m cu garduri', NOW(), NOW()),
-      ('100m garduri', 'Alergare 100m cu garduri', NOW(), NOW())
-    `);
-        results.probes = 15;
         // 3. Insert dashboards - UNIFIED SYSTEM: One layout for all roles
         const dashboardsResult = await client.query(`
       INSERT INTO dashboards (name, display_name, description, component_name, icon, is_active, is_system, created_at, updated_at) VALUES
@@ -414,7 +397,7 @@ const addSampleData = async (req, res) => {
         ($5, 'Shot Put', 10.2, 'meters', '2024-07-05', NOW())
         ON CONFLICT DO NOTHING
       `;
-            const resultsData = await client.query(resultsQuery, athletes.rows.map(a => a.id));
+            const resultsData = await client.query(resultsQuery, athletes.rows.map((a) => a.id));
             results.results = resultsData.rowCount || 0;
         }
         res.json({
@@ -587,7 +570,7 @@ const fixUserRoles = async (req, res) => {
             success: true,
             message: `Fixed ${updatedCount} users`,
             updatedUsers: updatedCount,
-            users: verification.rows.map(u => ({
+            users: verification.rows.map((u) => ({
                 email: u.email,
                 role: u.role,
                 roleId: u.role_id,
@@ -618,7 +601,7 @@ const addModernDashboards = async (_req, res) => {
       SELECT name FROM dashboards 
       WHERE name IN ('athlete-performance', 'coach-team', 'parent-progress')
     `);
-        const existingNames = new Set(existing.rows.map(r => r.name));
+        const existingNames = new Set(existing.rows.map((r) => r.name));
         const dashboards = [
             {
                 name: 'athlete-performance',
@@ -713,7 +696,7 @@ const addCategoryToPermissions = async (req, res) => {
       SET category = CASE
         WHEN name LIKE 'athletes.%' THEN 'athletes'
         WHEN name LIKE 'results.%' THEN 'results'
-        WHEN name LIKE 'events.%' THEN 'events'
+        WHEN name LIKE 'probes.%' THEN 'probes'
         WHEN name LIKE 'messages.%' THEN 'messages'
         WHEN name LIKE 'access_requests.%' THEN 'access_requests'
         WHEN name LIKE 'users.%' THEN 'users'
@@ -879,9 +862,8 @@ const resetDatabase = async (req, res) => {
         await client.query('DROP TABLE IF EXISTS access_requests CASCADE');
         await client.query('DROP TABLE IF EXISTS messages CASCADE');
         await client.query('DROP TABLE IF EXISTS results CASCADE');
-        await client.query('DROP TABLE IF EXISTS events CASCADE');
+        await client.query('DROP TABLE IF EXISTS probes CASCADE');
         await client.query('DROP TABLE IF EXISTS athletes CASCADE');
-        await client.query('DROP TABLE IF EXISTS coach_probes CASCADE');
         await client.query('DROP TABLE IF EXISTS age_categories CASCADE');
         await client.query('DROP TABLE IF EXISTS users CASCADE');
         await client.query('DROP TABLE IF EXISTS roles CASCADE');
@@ -902,7 +884,6 @@ const resetDatabase = async (req, res) => {
         needs_approval BOOLEAN DEFAULT true,
         approved_by UUID,
         approved_at TIMESTAMP,
-        probe_id UUID,
         athlete_id UUID,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -1068,7 +1049,7 @@ const resetDatabase = async (req, res) => {
       )
     `);
         await client.query(`
-      CREATE TABLE events (
+      CREATE TABLE probes (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         name VARCHAR(100) NOT NULL,
         category VARCHAR(50) NOT NULL,
@@ -1124,18 +1105,6 @@ const resetDatabase = async (req, res) => {
         age_from INTEGER NOT NULL,
         age_to INTEGER NOT NULL,
         gender VARCHAR(1),
-        description TEXT,
-        is_active BOOLEAN DEFAULT true,
-        created_by UUID,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
-      )
-    `);
-        await client.query(`
-      CREATE TABLE coach_probes (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        name VARCHAR(100) NOT NULL,
         description TEXT,
         is_active BOOLEAN DEFAULT true,
         created_by UUID,
@@ -1215,8 +1184,8 @@ const resetDatabase = async (req, res) => {
             ['results-delete', 'Ștergere Rezultat', 'Delete result', 'action', 'Trash2', 3],
             ['messages', 'Mesaje', 'Messaging tab', 'tab', 'MessageSquare', 3],
             ['messages-send', 'Trimitere Mesaj', 'Send message', 'action', 'Send', 1],
-            ['events', 'Probe', 'Event types management tab', 'tab', 'Calendar', 4],
-            ['events-create', 'Creare Probă', 'Create event type', 'action', 'Plus', 1],
+            ['probes', 'Probe', 'Event types management tab', 'tab', 'Calendar', 4],
+            ['probes-create', 'Creare Probă', 'Create event type', 'action', 'Plus', 1],
             ['access-requests', 'Cereri de Acces', 'Access requests tab', 'tab', 'Lock', 6],
             ['access-requests-approve', 'Aprobare Cereri', 'Approve/reject requests', 'action', 'CheckCircle', 1],
             ['categories', 'Categorii', 'Age categories tab', 'tab', 'Grid', 7],
@@ -1228,7 +1197,20 @@ const resetDatabase = async (req, res) => {
             ['roles', 'Roluri', 'Roles management tab', 'tab', 'Shield', 11],
             ['roles-manage', 'Gestionare Roluri', 'Manage roles', 'action', 'Settings', 1],
             ['permissions', 'Permisiuni', 'Permissions management tab', 'tab', 'Lock', 12],
-            ['permissions-manage', 'Gestionare Permisiuni', 'Manage permissions', 'action', 'Settings', 1]
+            ['permissions-manage', 'Gestionare Permisiuni', 'Manage permissions', 'action', 'Settings', 1],
+            // Dashboard widgets for different user roles
+            ['widget-stats-users', 'Widget Utilizatori', 'Statistici utilizatori', 'widget', 'Users', 100],
+            ['widget-stats-athletes', 'Widget Atleți', 'Statistici atleți', 'widget', 'Users', 101],
+            ['widget-stats-events', 'Widget Evenimente', 'Statistici evenimente', 'widget', 'Calendar', 102],
+            ['widget-stats-permissions', 'Widget Permisiuni', 'Statistici permisiuni', 'widget', 'Shield', 103],
+            ['widget-recent-users', 'Utilizatori Recenți', 'Lista utilizatorilor înregistrați recent', 'widget', 'UserPlus', 104],
+            ['widget-recent-results', 'Rezultate Recente', 'Ultimele rezultate înregistrate', 'widget', 'TrendingUp', 105],
+            ['widget-recent-events', 'Evenimente Recente', 'Evenimente recente', 'widget', 'Calendar', 106],
+            ['widget-pending-requests', 'Cereri în Așteptare', 'Cereri de acces în așteptare', 'widget', 'Clock', 107],
+            ['widget-performance-chart', 'Grafic Performanță', 'Grafic de performanță', 'widget', 'BarChart', 108],
+            ['widget-performance-evolution', 'Evoluția Performanței', 'Evoluția performanței în timp', 'widget', 'TrendingUp', 109],
+            ['widget-personal-best', 'Recorduri Personale', 'Recordurile personale ale atletului', 'widget', 'Award', 110],
+            ['widget-age-distribution', 'Distribuția Vârstelor', 'Distribuția vârstelor atleților', 'widget', 'PieChart', 111]
         ];
         for (const comp of componentsData) {
             await client.query(`INSERT INTO components (name, display_name, description, component_type, icon, order_index, is_system)
@@ -1244,9 +1226,9 @@ const resetDatabase = async (req, res) => {
       SELECT r.id, c.id, true, true, true, true, NOW(), NOW()
       FROM roles r, components c
       WHERE r.name = 'superadmin'
-      ON CONFLICT DO NOTHING
+      ON CONFLICT (role_id, component_id) DO NOTHING
     `);
-        // Coach - Athletes, Results, Messages, Events, Access Requests
+        // Coach - Athletes, Results, Messages, Events, Access Requests + Coach widgets
         await client.query(`
       INSERT INTO component_permissions (role_id, component_id, can_view, can_create, can_edit, can_delete, created_at, updated_at)
       SELECT r.id, c.id, true, true, true, false, NOW(), NOW()
@@ -1254,16 +1236,20 @@ const resetDatabase = async (req, res) => {
       WHERE r.name = 'coach'
         AND c.name IN ('dashboard', 'athletes', 'athletes-create', 'athletes-edit', 
                        'results', 'results-create', 'results-edit', 'messages', 'messages-send',
-                       'events', 'events-create', 'access-requests', 'access-requests-approve')
-      ON CONFLICT DO NOTHING
+                       'probes', 'probes-create', 'access-requests', 'access-requests-approve',
+                       'widget-stats-athletes', 'widget-recent-results', 'widget-performance-chart',
+                       'widget-performance-evolution', 'widget-age-distribution')
+      ON CONFLICT (role_id, component_id) DO NOTHING
     `);
-        // Parent - Athletes, Results, Messages (view only, can send messages)
+        // Parent - Athletes, Results, Messages (view only, can send messages) + Parent widgets
         await client.query(`
       INSERT INTO component_permissions (role_id, component_id, can_view, can_create, can_edit, can_delete, created_at, updated_at)
       SELECT r.id, c.id, true, false, false, false, NOW(), NOW()
       FROM roles r, components c
       WHERE r.name = 'parent'
-        AND c.name IN ('dashboard', 'athletes', 'results', 'messages')
+        AND c.name IN ('dashboard', 'athletes', 'results', 'messages',
+                       'widget-recent-results', 'widget-personal-best', 'widget-performance-evolution')
+      ON CONFLICT (role_id, component_id) DO NOTHING
     `);
         // Parent can send messages (create)
         await client.query(`
@@ -1272,15 +1258,17 @@ const resetDatabase = async (req, res) => {
       FROM roles r, components c
       WHERE r.name = 'parent'
         AND c.name = 'messages-send'
-      ON CONFLICT DO NOTHING
+      ON CONFLICT (role_id, component_id) DO NOTHING
     `);
-        // Athlete - Results, Messages, Events (view only, can send messages)
+        // Athlete - Results, Messages, Events (view only, can send messages) + Athlete widgets
         await client.query(`
       INSERT INTO component_permissions (role_id, component_id, can_view, can_create, can_edit, can_delete, created_at, updated_at)
       SELECT r.id, c.id, true, false, false, false, NOW(), NOW()
       FROM roles r, components c
       WHERE r.name = 'athlete'
-        AND c.name IN ('dashboard', 'results', 'messages', 'events')
+        AND c.name IN ('dashboard', 'results', 'messages', 'probes',
+                       'widget-personal-best', 'widget-performance-evolution', 'widget-performance-chart')
+      ON CONFLICT (role_id, component_id) DO NOTHING
     `);
         // Athlete can send messages (create)
         await client.query(`
@@ -1289,7 +1277,7 @@ const resetDatabase = async (req, res) => {
       FROM roles r, components c
       WHERE r.name = 'athlete'
         AND c.name = 'messages-send'
-      ON CONFLICT DO NOTHING
+      ON CONFLICT (role_id, component_id) DO NOTHING
     `);
         console.log('Component permissions assigned');
         // Insert permissions
@@ -1461,14 +1449,6 @@ const resetDatabase = async (req, res) => {
             if (athleteRecords.rows.length >= 2 && athlete1.rows.length > 0) {
                 await client.query('UPDATE users SET athlete_id = $1 WHERE email = $2', [athleteRecords.rows[0].id, 'athlete1@kidsathletics.ro']);
                 await client.query('UPDATE users SET athlete_id = $1 WHERE email = $2', [athleteRecords.rows[1].id, 'athlete2@kidsathletics.ro']);
-                // Link coach users to their coach probes
-                await client.query(`INSERT INTO coach_probes (name, description, is_active, created_by)
-           VALUES ($1, $2, true, $3)
-           ON CONFLICT DO NOTHING`, ['Sprint', 'Short distance running', adminUser.rows[0]?.id || null]);
-                const probe = await client.query('SELECT id FROM coach_probes LIMIT 1');
-                if (probe.rows.length > 0) {
-                    await client.query('UPDATE users SET probe_id = $1 WHERE role = $2 AND email IN ($3, $4)', [probe.rows[0].id, 'coach', 'coach1@kidsathletics.ro', 'coach2@kidsathletics.ro']);
-                }
             }
         }
         console.log('Data inserted');
