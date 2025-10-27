@@ -264,6 +264,12 @@ CREATE TABLE IF NOT EXISTS coach_probes (
     FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
 );
 
+-- Reset user table foreign keys to allow reruns
+ALTER TABLE users DROP CONSTRAINT IF EXISTS fk_users_role;
+ALTER TABLE users DROP CONSTRAINT IF EXISTS fk_users_probe;
+ALTER TABLE users DROP CONSTRAINT IF EXISTS fk_users_athlete;
+ALTER TABLE users DROP CONSTRAINT IF EXISTS fk_users_approved_by;
+
 -- Add foreign key for users.role_id
 ALTER TABLE users
     ADD CONSTRAINT fk_users_role FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE SET NULL,
@@ -299,6 +305,21 @@ END;
 $$ language 'plpgsql';
 
 -- Create triggers for updated_at
+DROP TRIGGER IF EXISTS update_users_updated_at ON users;
+DROP TRIGGER IF EXISTS update_athletes_updated_at ON athletes;
+DROP TRIGGER IF EXISTS update_results_updated_at ON results;
+DROP TRIGGER IF EXISTS update_events_updated_at ON events;
+DROP TRIGGER IF EXISTS update_access_requests_updated_at ON access_requests;
+DROP TRIGGER IF EXISTS update_messages_updated_at ON messages;
+DROP TRIGGER IF EXISTS update_permissions_updated_at ON permissions;
+DROP TRIGGER IF EXISTS update_roles_updated_at ON roles;
+DROP TRIGGER IF EXISTS update_user_permissions_updated_at ON user_permissions;
+DROP TRIGGER IF EXISTS update_approval_requests_updated_at ON approval_requests;
+DROP TRIGGER IF EXISTS update_age_categories_updated_at ON age_categories;
+DROP TRIGGER IF EXISTS update_coach_probes_updated_at ON coach_probes;
+DROP TRIGGER IF EXISTS update_dashboards_updated_at ON dashboards;
+DROP TRIGGER IF EXISTS update_role_dashboards_updated_at ON role_dashboards;
+
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_athletes_updated_at BEFORE UPDATE ON athletes FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_results_updated_at BEFORE UPDATE ON results FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
