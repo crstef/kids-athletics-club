@@ -12,7 +12,7 @@ const router = (0, express_1.Router)();
 router.get('/debug/test-user', async (req, res) => {
     const client = await database_1.default.connect();
     try {
-        console.log('Debug endpoint hit - testing user query');
+        console.log('DEBUG v2.0 - NO PROBE_ID - testing user query');
         // Test basic user query
         const result = await client.query(`SELECT id, email, first_name, last_name, role, role_id, is_active, needs_approval, athlete_id
        FROM users WHERE email = $1`, ['admin@clubatletism.ro']);
