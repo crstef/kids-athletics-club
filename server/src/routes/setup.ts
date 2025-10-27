@@ -937,6 +937,8 @@ export const resetDatabase = async (req: Request, res: Response) => {
     console.log('Dropping ALL tables completely...');
     
     // Drop EVERYTHING in proper order
+    await client.query('DROP TABLE IF EXISTS component_permissions CASCADE');
+    await client.query('DROP TABLE IF EXISTS components CASCADE');
     await client.query('DROP TABLE IF EXISTS role_dashboards CASCADE');
     await client.query('DROP TABLE IF EXISTS user_permissions CASCADE');
     await client.query('DROP TABLE IF EXISTS role_permissions CASCADE');
