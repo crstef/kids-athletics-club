@@ -14,7 +14,7 @@ const getAllUsers = async (req, res) => {
     const { user: currentUser } = req;
     try {
         let query = `SELECT u.id, u.email, u.first_name, u.last_name, u.role, u.role_id, u.is_active, u.needs_approval, 
-                        u.probe_id, u.athlete_id, u.approved_by, u.approved_at, u.created_at,
+                        u.athlete_id, u.approved_by, u.approved_at, u.created_at,
                         r.name as role_name
                  FROM users u
                  LEFT JOIN roles r ON u.role_id = r.id`;
@@ -44,7 +44,6 @@ const getAllUsers = async (req, res) => {
             roleName: user.role_name,
             isActive: user.is_active,
             needsApproval: user.needs_approval,
-            probeId: user.probe_id,
             athleteId: user.athlete_id,
             approvedBy: user.approved_by,
             approvedAt: user.approved_at,
