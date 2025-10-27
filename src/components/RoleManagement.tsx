@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -14,6 +14,7 @@ import { toast } from 'sonner'
 import type { Role, Permission, PermissionName, ResourceType } from '@/lib/types'
 import { RoleDashboardWidgetsModal } from './RoleDashboardWidgetsModal'
 import { useAuth } from '@/lib/auth-context'
+import { apiClient } from '@/lib/api-client'
 
 interface RoleManagementProps {
   roles: Role[]
@@ -22,6 +23,34 @@ interface RoleManagementProps {
   onAddRole: (roleData: Omit<Role, 'id' | 'createdAt' | 'createdBy'>) => void
   onUpdateRole: (roleId: string, updates: Partial<Role>) => void
   onDeleteRole: (roleId: string) => void
+}
+
+type WidgetGroupKey = 'general' | 'admin' | 'coach' | 'parent' | 'athlete'
+
+interface WidgetPermissionEntry {
+  componentId: string
+  componentName: string
+  displayName: string
+  description?: string
+  canView: boolean
+  group: WidgetGroupKey
+}
+
+const PERMISSION_WIDGET_GROUP_MAP: Record<string, WidgetGroupKey> = {
+  'dashboard.view': 'general',
+  'dashboard.view.superadmin': 'admin',
+  'dashboard.view.coach': 'coach',
+  'dashboard.view.parent': 'parent',
+  'dashboard.view.athlete': 'athlete'
+}
+
+const determineWidgetGroup = (name: string, displayName: string): WidgetGroupKey => {
+  const key = `${name} ${displayName}`.toLowerCase()
+  if (key.includes('coach')) return 'coach'
+  if (key.includes('parent')) return 'parent'
+  if (key.includes('athlete')) return 'athlete'
+  if (key.includes('admin') || key.includes('super')) return 'admin'
+  return 'general'
 }
 
 export function RoleManagement({ 
@@ -38,6 +67,9 @@ export function RoleManagement({
   const [deleteRoleId, setDeleteRoleId] = useState<string | null>(null)
   const [widgetsModalOpen, setWidgetsModalOpen] = useState(false)
   const [widgetsRole, setWidgetsRole] = useState<Role | null>(null)
+  const [widgetEntries, setWidgetEntries] = useState<WidgetPermissionEntry[]>([])
+  const [widgetsLoading, setWidgetsLoading] = useState(false)
+  const [widgetsDirty, setWidgetsDirty] = useState(false)
   
   const [formData, setFormData] = useState({
     name: '',
@@ -55,6 +87,84 @@ export function RoleManagement({
     acc[resource].push(perm)
     return acc
   }, {} as Record<ResourceType, Permission[]>)
+
+  useEffect(() => {
+    if (!dialogOpen || !editingRole || !canManageWidgets) {
+      setWidgetEntries([])
+      setWidgetsDirty(false)
+      return
+    }
+
+    let cancelled = false
+    setWidgetsLoading(true)
+
+    ;(async () => {
+      try {
+        const response = await apiClient.getRoleComponentPermissions(editingRole.id)
+        const rawList = Array.isArray(response) ? response : response?.permissions ?? []
+
+        const normalized = rawList
+          .map((component: any) => {
+            const componentId = component.componentId ?? component.component_id ?? component.id
+            if (!componentId) return null
+
+            const componentName = component.componentName ?? component.component_name ?? component.name ?? ''
+            const displayName = component.displayName ?? component.display_name ?? componentName || 'Componentă'
+            const rawType = (component.componentType ?? component.component_type ?? '').toString().toLowerCase()
+            if (!rawType.includes('widget')) return null
+
+            return {
+              componentId,
+              componentName,
+              displayName,
+              description: component.description ?? '',
+              canView: Boolean(component.canView ?? component.can_view ?? component.isAssigned),
+              group: determineWidgetGroup(componentName, displayName)
+            } as WidgetPermissionEntry
+          })
+          .filter((entry): entry is WidgetPermissionEntry => entry !== null)
+
+        if (!cancelled) {
+          setWidgetEntries(normalized)
+          setWidgetsDirty(false)
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Failed to load role widgets', error)
+          toast.error('Eroare la încărcarea widget-urilor rolului')
+          setWidgetEntries([])
+        }
+      } finally {
+        if (!cancelled) {
+          setWidgetsLoading(false)
+        }
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [dialogOpen, editingRole, canManageWidgets])
+
+  const widgetsByGroup = useMemo(() => {
+    const groups: Record<WidgetGroupKey, WidgetPermissionEntry[]> = {
+      general: [],
+      admin: [],
+      coach: [],
+      parent: [],
+      athlete: []
+    }
+
+    widgetEntries.forEach((entry) => {
+      groups[entry.group].push(entry)
+    })
+
+    (Object.keys(groups) as WidgetGroupKey[]).forEach((key) => {
+      groups[key] = groups[key].sort((a, b) => a.displayName.localeCompare(b.displayName))
+    })
+
+    return groups
+  }, [widgetEntries])
 
   const handleOpenAdd = () => {
     setEditingRole(null)
@@ -80,39 +190,70 @@ export function RoleManagement({
     setDialogOpen(true)
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!formData.name || !formData.displayName) {
       toast.error('Completează toate câmpurile obligatorii')
       return
     }
 
-    if (editingRole) {
-      onUpdateRole(editingRole.id, {
-        displayName: formData.displayName,
-        description: formData.description,
-        isActive: formData.isActive,
-        permissions: formData.permissions,
-        updatedAt: new Date().toISOString(),
-        updatedBy: currentUserId
-      })
-    } else {
-      const nameExists = roles.some(r => r.name === formData.name.toLowerCase().replace(/\s+/g, '_'))
-      if (nameExists) {
-        toast.error('Există deja un rol cu acest nume')
-        return
+    try {
+      if (editingRole) {
+        const maybePromise = onUpdateRole(editingRole.id, {
+          displayName: formData.displayName,
+          description: formData.description,
+          isActive: formData.isActive,
+          permissions: formData.permissions,
+          updatedAt: new Date().toISOString(),
+          updatedBy: currentUserId
+        })
+
+        await awaitIfPromise(maybePromise)
+
+        if (canManageWidgets && widgetsDirty && widgetEntries.length > 0) {
+          try {
+            const payload = widgetEntries.map((entry) => ({
+              componentId: entry.componentId,
+              can_view: entry.canView,
+              can_create: false,
+              can_edit: false,
+              can_delete: false,
+              can_export: false
+            }))
+
+            await apiClient.updateRoleComponentPermissions(editingRole.id, payload)
+            window.dispatchEvent(new CustomEvent('components:refresh'))
+            toast.success('Widget-urile dashboard au fost actualizate')
+          } catch (error) {
+            console.error('Failed to save widget permissions', error)
+            toast.error('Nu s-au putut salva widget-urile rolului')
+            return
+          }
+        }
+      } else {
+        const normalizedName = formData.name.toLowerCase().replace(/\s+/g, '_')
+        const nameExists = roles.some(r => r.name === normalizedName)
+        if (nameExists) {
+          toast.error('Există deja un rol cu acest nume')
+          return
+        }
+
+        const maybePromise = onAddRole({
+          name: normalizedName,
+          displayName: formData.displayName,
+          description: formData.description,
+          isSystem: false,
+          isActive: formData.isActive,
+          permissions: formData.permissions
+        })
+
+        await awaitIfPromise(maybePromise)
       }
 
-      onAddRole({
-        name: formData.name.toLowerCase().replace(/\s+/g, '_'),
-        displayName: formData.displayName,
-        description: formData.description,
-        isSystem: false,
-        isActive: formData.isActive,
-        permissions: formData.permissions
-      })
+      setDialogOpen(false)
+    } catch (error) {
+      console.error('Failed to save role', error)
+      toast.error('Eroare la salvarea rolului')
     }
-    
-    setDialogOpen(false)
   }
 
   const handleTogglePermission = (permName: PermissionName) => {
@@ -122,6 +263,21 @@ export function RoleManagement({
         ? prev.permissions.filter(p => p !== permName)
         : [...prev.permissions, permName]
     }))
+  }
+
+  const handleToggleWidgetPermission = (componentId: string) => {
+    setWidgetEntries(prev => prev.map(entry =>
+      entry.componentId === componentId
+        ? { ...entry, canView: !entry.canView }
+        : entry
+    ))
+    setWidgetsDirty(true)
+  }
+
+  const awaitIfPromise = async (maybePromise: any) => {
+    if (maybePromise && typeof maybePromise.then === 'function') {
+      await maybePromise
+    }
   }
 
   const handleSelectAllInResource = (resource: ResourceType) => {
@@ -152,7 +308,7 @@ export function RoleManagement({
 
   const deleteRole = roles.find(r => r.id === deleteRoleId)
 
-  const resourceLabels: Record<ResourceType, string> = {
+  const resourceLabels: Record<string, string> = {
     athletes: 'Atleți',
     results: 'Rezultate',
     events: 'Probe',
@@ -162,7 +318,8 @@ export function RoleManagement({
     roles: 'Roluri',
     messages: 'Mesaje',
     access_requests: 'Cereri Acces',
-    approvals: 'Aprobări'
+    approvals: 'Aprobări',
+    dashboard: 'Dashboard'
   }
 
   return (
@@ -362,26 +519,96 @@ export function RoleManagement({
                           {perms.filter(p => formData.permissions.includes(p.name)).length}/{perms.length}
                         </Badge>
                       </div>
-                      <div className="grid gap-2 pl-6 sm:grid-cols-2">
-                        {perms.map((perm) => (
-                          <div key={perm.id} className="flex items-start gap-2">
-                            <Checkbox
-                              id={perm.id}
-                              checked={formData.permissions.includes(perm.name)}
-                              onCheckedChange={() => handleTogglePermission(perm.name)}
-                              disabled={!perm.isActive}
-                            />
-                            <Label 
-                              htmlFor={perm.id} 
-                              className="text-sm cursor-pointer leading-tight"
-                            >
-                              {perm.description}
-                              {!perm.isActive && (
-                                <Badge variant="secondary" className="ml-2 text-xs">Inactiv</Badge>
+                      <div className={resource === 'dashboard' ? 'space-y-3 pl-6' : 'grid gap-2 pl-6 sm:grid-cols-2'}>
+                        {perms.map((perm) => {
+                          if (resource !== 'dashboard') {
+                            return (
+                              <div key={perm.id} className="flex items-start gap-2">
+                                <Checkbox
+                                  id={perm.id}
+                                  checked={formData.permissions.includes(perm.name)}
+                                  onCheckedChange={() => handleTogglePermission(perm.name)}
+                                  disabled={!perm.isActive}
+                                />
+                                <Label 
+                                  htmlFor={perm.id} 
+                                  className="text-sm cursor-pointer leading-tight"
+                                >
+                                  {perm.description}
+                                  {!perm.isActive && (
+                                    <Badge variant="secondary" className="ml-2 text-xs">Inactiv</Badge>
+                                  )}
+                                </Label>
+                              </div>
+                            )
+                          }
+
+                          const isSelected = formData.permissions.includes(perm.name)
+                          const widgetGroup = PERMISSION_WIDGET_GROUP_MAP[perm.name]
+                          const groupWidgets = widgetGroup ? widgetsByGroup[widgetGroup] : []
+                          const showWidgets = Boolean(editingRole && canManageWidgets && widgetGroup)
+
+                          return (
+                            <div key={perm.id} className="space-y-2">
+                              <div className="flex items-start gap-2">
+                                <Checkbox
+                                  id={perm.id}
+                                  checked={isSelected}
+                                  onCheckedChange={() => handleTogglePermission(perm.name)}
+                                  disabled={!perm.isActive}
+                                />
+                                <Label 
+                                  htmlFor={perm.id} 
+                                  className="text-sm cursor-pointer leading-tight"
+                                >
+                                  {perm.description}
+                                  {!perm.isActive && (
+                                    <Badge variant="secondary" className="ml-2 text-xs">Inactiv</Badge>
+                                  )}
+                                </Label>
+                              </div>
+
+                              {showWidgets && widgetGroup && (
+                                <div className="ml-6 border-l pl-3 space-y-1">
+                                  <div className="text-xs font-semibold text-muted-foreground">
+                                    Widget-uri vizibile
+                                  </div>
+                                  {widgetsLoading ? (
+                                    <div className="text-xs text-muted-foreground">
+                                      Se încarcă widget-uri...
+                                    </div>
+                                  ) : groupWidgets.length > 0 ? (
+                                    groupWidgets.map((widget) => (
+                                      <label
+                                        key={widget.componentId}
+                                        className="flex items-center gap-2 text-xs cursor-pointer"
+                                      >
+                                        <Checkbox
+                                          checked={widget.canView}
+                                          onCheckedChange={() => handleToggleWidgetPermission(widget.componentId)}
+                                          disabled={!isSelected}
+                                        />
+                                        <span>{widget.displayName}</span>
+                                      </label>
+                                    ))
+                                  ) : (
+                                    <div className="text-xs text-muted-foreground">
+                                      {widgetGroup === 'general'
+                                        ? 'Nu există widget-uri configurate pentru acest dashboard.'
+                                        : 'Nu există widget-uri dedicate pentru acest dashboard. Configurează-le din lista pentru "Poate vizualiza dashboard".'}
+                                    </div>
+                                  )}
+
+                                  {!isSelected && (
+                                    <div className="text-xs text-muted-foreground">
+                                      Activează permisiunea pentru a modifica widget-urile.
+                                    </div>
+                                  )}
+                                </div>
                               )}
-                            </Label>
-                          </div>
-                        ))}
+                            </div>
+                          )
+                        })}
                       </div>
                     </div>
                   )
