@@ -79,9 +79,6 @@ exports.getMyComponents = getMyComponents;
 const getAllComponents = async (req, res) => {
     const client = await database_1.default.connect();
     try {
-        if (req.user?.role !== 'superadmin') {
-            return res.status(403).json({ error: 'Only superadmin can view all components' });
-        }
         const result = await client.query(`
       SELECT 
         id,
@@ -128,9 +125,6 @@ exports.getAllComponents = getAllComponents;
 const getRoleComponentPermissions = async (req, res) => {
     const client = await database_1.default.connect();
     try {
-        if (req.user?.role !== 'superadmin') {
-            return res.status(403).json({ error: 'Only superadmin can view role permissions' });
-        }
         const { roleId } = req.params;
         // Return ALL components with permission flags for this role
         const result = await client.query(`
@@ -184,9 +178,6 @@ exports.getRoleComponentPermissions = getRoleComponentPermissions;
 const updateRoleComponentPermission = async (req, res) => {
     const client = await database_1.default.connect();
     try {
-        if (req.user?.role !== 'superadmin') {
-            return res.status(403).json({ error: 'Only superadmin can update permissions' });
-        }
         const { roleId } = req.params;
         const { componentId, can_view, can_create, can_edit, can_delete, can_export } = req.body;
         if (!componentId) {
@@ -230,9 +221,6 @@ exports.updateRoleComponentPermission = updateRoleComponentPermission;
 const updateRoleComponentPermissions = async (req, res) => {
     const client = await database_1.default.connect();
     try {
-        if (req.user?.role !== 'superadmin') {
-            return res.status(403).json({ error: 'Only superadmin can update permissions' });
-        }
         const { roleId } = req.params;
         const { permissions } = req.body; // Array of { componentId, can_view, can_create, can_edit, can_delete, can_export }
         if (!Array.isArray(permissions)) {
