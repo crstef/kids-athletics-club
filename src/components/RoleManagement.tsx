@@ -101,7 +101,10 @@ export function RoleManagement({
     ;(async () => {
       try {
         const response = await apiClient.getRoleComponentPermissions(editingRole.id)
-        const rawList = Array.isArray(response) ? response : response?.permissions ?? []
+        console.log('API Response:', response) // Debug log
+        
+        const rawList = Array.isArray(response) ? response : (response as any)?.permissions ?? []
+        console.log('Raw list:', rawList) // Debug log
         
         // Ensure rawList is actually an array
         if (!Array.isArray(rawList)) {
@@ -163,18 +166,21 @@ export function RoleManagement({
     }
 
     // Safety check: ensure widgetEntries is an array
+    const entriesArray = Array.isArray(widgetEntries) ? widgetEntries : []
     if (!Array.isArray(widgetEntries)) {
       console.warn('widgetEntries is not an array:', widgetEntries)
       return groups
     }
 
-    widgetEntries.forEach((entry) => {
+    // Use traditional for loop to avoid TypeScript issues
+    for (const entry of entriesArray) {
       groups[entry.group].push(entry)
-    })
+    }
 
-    (Object.keys(groups) as WidgetGroupKey[]).forEach((key) => {
+    // Sort each group
+    for (const key of Object.keys(groups) as WidgetGroupKey[]) {
       groups[key] = groups[key].sort((a, b) => a.displayName.localeCompare(b.displayName))
-    })
+    }
 
     return groups
   }, [widgetEntries])
@@ -222,7 +228,7 @@ export function RoleManagement({
 
         await awaitIfPromise(maybePromise)
 
-        if (canManageWidgets && widgetsDirty && widgetEntries.length > 0) {
+        if (canManageWidgets && widgetsDirty && Array.isArray(widgetEntries) && widgetEntries.length > 0) {
           try {
             const payload = widgetEntries.map((entry) => ({
               componentId: entry.componentId,
@@ -279,11 +285,17 @@ export function RoleManagement({
   }
 
   const handleToggleWidgetPermission = (componentId: string) => {
-    setWidgetEntries(prev => prev.map(entry =>
-      entry.componentId === componentId
-        ? { ...entry, canView: !entry.canView }
-        : entry
-    ))
+    setWidgetEntries(prev => {
+      if (!Array.isArray(prev)) {
+        console.warn('widgetEntries is not an array in toggle:', prev)
+        return []
+      }
+      return prev.map(entry =>
+        entry.componentId === componentId
+          ? { ...entry, canView: !entry.canView }
+          : entry
+      )
+    })
     setWidgetsDirty(true)
   }
 
