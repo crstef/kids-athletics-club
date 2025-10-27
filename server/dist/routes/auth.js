@@ -38,6 +38,11 @@ router.get('/debug/test-user', async (req, res) => {
         client.release();
     }
 });
+router.post('/register', authController_1.register);
+router.post('/login', authController_1.login);
+router.post('/logout', auth_1.authenticate, authController_1.logout);
+router.get('/me', auth_1.authenticate, authController_1.getCurrentUser);
+exports.default = router;
 // Debug endpoint to inspect role component permissions without frontend formatting
 router.get('/debug/role-components/:roleId', async (req, res) => {
     const client = await database_1.default.connect();
@@ -74,8 +79,3 @@ router.get('/debug/role-components/:roleId', async (req, res) => {
         client.release();
     }
 });
-router.post('/register', authController_1.register);
-router.post('/login', authController_1.login);
-router.post('/logout', auth_1.authenticate, authController_1.logout);
-router.get('/me', auth_1.authenticate, authController_1.getCurrentUser);
-exports.default = router;
