@@ -204,6 +204,10 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
   const isParentUser = currentUser.role === 'parent'
 
   const allowedWidgetSet = useMemo(() => new Set(allowedWidgetIds), [allowedWidgetIds])
+  const safeEnabledWidgets = useMemo(
+    () => enabledWidgets.filter((id): id is string => typeof id === 'string' && id.length > 0),
+    [enabledWidgets]
+  )
 
   const displayTabs = useMemo(() => {
     if (!isParentUser) {
@@ -324,7 +328,13 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
         }
 
         setAllowedWidgetIds(Array.from(allowedSet))
-        setEnabledWidgets(Array.from(new Set(initialWidgets)))
+        const canonicalInitial = Array.from(new Set(
+          initialWidgets
+            .map(id => normalizeWidgetId(id) ?? id)
+            .filter((id): id is string => typeof id === 'string' && id.length > 0)
+        ))
+
+        setEnabledWidgets(canonicalInitial)
       } catch (error) {
         console.error('Failed to load widgets:', error)
         setAllowedWidgetIds([...DEFAULT_WIDGET_IDS])
@@ -344,7 +354,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
       try {
         const allowedSetLocal = new Set(allowedWidgetIds)
 
-        const canonicalIds = enabledWidgets
+        const canonicalIds = safeEnabledWidgets
           .map(id => normalizeWidgetId(id))
           .filter((id): id is string => Boolean(id))
           .filter(id => allowedSetLocal.size === 0 || allowedSetLocal.has(id))
@@ -363,24 +373,26 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
     }
 
     saveWidgets()
-  }, [enabledWidgets, widgetsLoaded, allowedWidgetIds])
+  }, [safeEnabledWidgets, widgetsLoaded, allowedWidgetIds])
 
   const toggleWidget = (widgetId: string) => {
-    if (allowedWidgetSet.size > 0 && !allowedWidgetSet.has(widgetId)) {
+    const canonicalId = normalizeWidgetId(widgetId) ?? widgetId
+
+    if (allowedWidgetSet.size > 0 && !allowedWidgetSet.has(canonicalId)) {
       return
     }
 
     setEnabledWidgets(prev => 
-      prev.includes(widgetId) 
-        ? prev.filter(id => id !== widgetId)
-        : [...prev, widgetId]
+      prev.includes(canonicalId) 
+        ? prev.filter(id => id !== canonicalId)
+        : [...prev, canonicalId]
     )
   }
 
   // Render dashboard with dynamic widgets
   const renderDashboard = () => {
     // If no widgets configured, show default message
-    if (enabledWidgets.length === 0) {
+    if (safeEnabledWidgets.length === 0) {
       return (
         <div className="space-y-6">
           <div className="text-center py-12">
@@ -417,7 +429,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 auto-rows-auto">
-          {enabledWidgets.map(widgetId => {
+          {safeEnabledWidgets.map(widgetId => {
             const widgetConfig = WIDGET_REGISTRY[widgetId]
             if (!widgetConfig) return null
             
@@ -743,7 +755,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
                 <div key={widget.id} className="flex items-center gap-4 p-4 border rounded-lg">
                   <Checkbox
                     id={`widget-${widget.id}`}
-                    checked={enabledWidgets.includes(widget.id)}
+                    checked={safeEnabledWidgets.includes(widget.id)}
                     onCheckedChange={() => toggleWidget(widget.id)}
                   />
                   <Label htmlFor={`widget-${widget.id}`} className="flex-1 cursor-pointer">
