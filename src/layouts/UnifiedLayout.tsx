@@ -42,6 +42,38 @@ interface DashboardWidget {
   config?: any
 }
 
+const DEFAULT_WIDGET_IDS = ['stats-users', 'stats-athletes', 'stats-probes', 'recent-results', 'performance-chart']
+
+const LEGACY_WIDGET_ID_MAP: Record<string, string> = {
+  statistics: 'stats-users',
+  probes: 'stats-probes',
+  messages: 'recent-users',
+  'stats-events': 'stats-probes',
+  'recent-events': 'recent-probes',
+  'performance-evolution': 'performance-chart',
+  'personal-best': 'personal-bests'
+}
+
+const normalizeWidgetId = (raw?: string | null): string | null => {
+  if (!raw) return null
+  let candidate = raw.trim().toLowerCase()
+  if (!candidate) return null
+
+  if (candidate.startsWith('widget-')) {
+    candidate = candidate.replace(/^widget-/, '')
+  }
+
+  if (candidate in LEGACY_WIDGET_ID_MAP) {
+    candidate = LEGACY_WIDGET_ID_MAP[candidate]
+  }
+
+  if (candidate in WIDGET_REGISTRY) {
+    return candidate
+  }
+
+  return null
+}
+
 interface UnifiedLayoutProps {
   currentUser: User
   logout: () => void
@@ -168,7 +200,10 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
   const [customizeOpen, setCustomizeOpen] = useState(false)
   const [enabledWidgets, setEnabledWidgets] = useState<string[]>([])
   const [widgetsLoaded, setWidgetsLoaded] = useState(false)
+  const [allowedWidgetIds, setAllowedWidgetIds] = useState<string[]>([])
   const isParentUser = currentUser.role === 'parent'
+
+  const allowedWidgetSet = useMemo(() => new Set(allowedWidgetIds), [allowedWidgetIds])
 
   const displayTabs = useMemo(() => {
     if (!isParentUser) {
@@ -236,21 +271,64 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
   useEffect(() => {
     const loadWidgets = async () => {
       try {
-        const savedWidgets = await apiClient.getUserWidgets()
-        if (savedWidgets && savedWidgets.length > 0) {
-          const widgetNames = savedWidgets
-            .filter((w: any) => w.isEnabled)
-            .sort((a: any, b: any) => a.sortOrder - b.sortOrder)
-            .map((w: any) => w.widgetName)
-          setEnabledWidgets(widgetNames)
-        } else {
-          // Default widgets if none saved
-          setEnabledWidgets(['statistics', 'probes', 'messages'])
+        const [savedWidgetsResponse, myComponentsResponse] = await Promise.all([
+          apiClient.getUserWidgets().catch(() => []),
+          apiClient.getMyComponents().catch(() => ({ components: [] }))
+        ])
+
+        const rawComponents = Array.isArray(myComponentsResponse)
+          ? myComponentsResponse
+          : (myComponentsResponse as any)?.components ?? []
+
+        const allowedSet = new Set<string>()
+        for (const component of rawComponents) {
+          const rawType = (component.componentType ?? component.component_type ?? '').toString().toLowerCase()
+          if (!rawType.includes('widget')) continue
+
+          const canView = Boolean(
+            component.permissions?.canView ??
+            component.permissions?.can_view ??
+            component.canView ??
+            component.can_view ??
+            component.isAssigned
+          )
+          if (!canView) continue
+
+          const nameCandidate = component.name ?? component.componentName ?? component.component_name ?? component.displayName ?? ''
+          const widgetId = normalizeWidgetId(nameCandidate)
+          if (widgetId) {
+            allowedSet.add(widgetId)
+          }
         }
-      } catch (_error) {
-        console.error('Failed to load widgets:', _error)
-        // Fallback to default widgets
-        setEnabledWidgets(['statistics', 'probes', 'messages'])
+
+        let normalizedSaved: string[] = []
+        if (Array.isArray(savedWidgetsResponse) && savedWidgetsResponse.length > 0) {
+          normalizedSaved = savedWidgetsResponse
+            .filter((w: any) => w && (w.isEnabled ?? w.is_enabled ?? true))
+            .map((w: any) => normalizeWidgetId(w.widgetName ?? w.widget_name ?? w.id))
+            .filter((id): id is string => Boolean(id))
+        }
+
+        if (allowedSet.size > 0) {
+          normalizedSaved = normalizedSaved.filter(id => allowedSet.has(id))
+        }
+
+        let initialWidgets = normalizedSaved
+        if (initialWidgets.length === 0) {
+          const allowedDefaults = DEFAULT_WIDGET_IDS.filter(id => allowedSet.size === 0 || allowedSet.has(id))
+          initialWidgets = allowedDefaults.length > 0 ? allowedDefaults : Array.from(allowedSet)
+        }
+
+        if (initialWidgets.length === 0) {
+          initialWidgets = DEFAULT_WIDGET_IDS
+        }
+
+        setAllowedWidgetIds(Array.from(allowedSet))
+        setEnabledWidgets(Array.from(new Set(initialWidgets)))
+      } catch (error) {
+        console.error('Failed to load widgets:', error)
+        setAllowedWidgetIds([...DEFAULT_WIDGET_IDS])
+        setEnabledWidgets([...DEFAULT_WIDGET_IDS])
       } finally {
         setWidgetsLoaded(true)
       }
@@ -260,26 +338,38 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
 
   // Save widgets when changed (but only after initial load)
   useEffect(() => {
-    if (widgetsLoaded && enabledWidgets.length > 0) {
-      const saveWidgets = async () => {
-        try {
-          await apiClient.saveUserWidgets(
-            enabledWidgets.map((widgetName, index) => ({
-              widgetName,
-              isEnabled: true,
-              sortOrder: index,
-              config: {}
-            }))
-          )
-        } catch (_error) {
-          console.error('Failed to save widgets:', _error)
-        }
+    if (!widgetsLoaded) return
+
+    const saveWidgets = async () => {
+      try {
+        const allowedSetLocal = new Set(allowedWidgetIds)
+
+        const canonicalIds = enabledWidgets
+          .map(id => normalizeWidgetId(id))
+          .filter((id): id is string => Boolean(id))
+          .filter(id => allowedSetLocal.size === 0 || allowedSetLocal.has(id))
+
+        await apiClient.saveUserWidgets(
+          canonicalIds.map((widgetName, index) => ({
+            widgetName,
+            isEnabled: true,
+            sortOrder: index,
+            config: {}
+          }))
+        )
+      } catch (_error) {
+        console.error('Failed to save widgets:', _error)
       }
-      saveWidgets()
     }
-  }, [enabledWidgets, widgetsLoaded])
+
+    saveWidgets()
+  }, [enabledWidgets, widgetsLoaded, allowedWidgetIds])
 
   const toggleWidget = (widgetId: string) => {
+    if (allowedWidgetSet.size > 0 && !allowedWidgetSet.has(widgetId)) {
+      return
+    }
+
     setEnabledWidgets(prev => 
       prev.includes(widgetId) 
         ? prev.filter(id => id !== widgetId)
@@ -333,6 +423,10 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
             
             // Check permission
             if (!userCanAccessWidget(widgetId, currentUser.permissions || [])) {
+              return null
+            }
+
+            if (allowedWidgetSet.size > 0 && !allowedWidgetSet.has(widgetId)) {
               return null
             }
 
@@ -639,6 +733,9 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
             {Object.values(WIDGET_REGISTRY).map((widget) => {
               // Only show widgets user has permission for
               if (!userCanAccessWidget(widget.id, currentUser.permissions || [])) {
+                return null
+              }
+              if (allowedWidgetSet.size > 0 && !allowedWidgetSet.has(widget.id)) {
                 return null
               }
               
