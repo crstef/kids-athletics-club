@@ -577,7 +577,11 @@ export function RoleManagement({
 
                           const isSelected = formData.permissions.includes(perm.name)
                           const widgetGroup = PERMISSION_WIDGET_GROUP_MAP[perm.name]
-                          const groupWidgets = widgetGroup ? widgetGroups[widgetGroup] : []
+                          const baseWidgets = widgetGroup ? widgetGroups[widgetGroup] : []
+                          const groupWidgets =
+                            baseWidgets.length === 0 && widgetGroup && widgetGroup !== 'general'
+                              ? widgetGroups.general
+                              : baseWidgets
                           const showWidgets = Boolean(editingRole && canManageWidgets && widgetGroup)
 
                           return (

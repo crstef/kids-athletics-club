@@ -53,4 +53,16 @@
   .zoom-in {
     animation: zoom-in 0.4s ease-out;
   }
+
+  input[type='password']::-ms-reveal,
+  input[type='password']::-ms-clear {
+    display: none;
+  }
+
+  input[type='password']::-webkit-textfield-decoration-container,
+  input[type='password']::-webkit-credentials-auto-fill-button {
+    display: none !important;
+    visibility: hidden;
+    pointer-events: none;
+  }
 }
