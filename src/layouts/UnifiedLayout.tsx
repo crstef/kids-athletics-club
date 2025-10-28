@@ -74,6 +74,39 @@ const normalizeWidgetId = (raw?: string | null): string | null => {
   return null
 }
 
+const resolveTabLabel = (label: unknown, fallback: string): React.ReactNode => {
+  if (typeof label === 'string') {
+    const trimmed = label.trim()
+    return trimmed.length > 0 ? trimmed : fallback
+  }
+
+  if (React.isValidElement(label)) {
+    return label
+  }
+
+  if (typeof label === 'function') {
+    const displayName = (label as any).displayName ?? label.name
+    return displayName && typeof displayName === 'string' ? displayName : fallback
+  }
+
+  if (label && typeof label === 'object') {
+    const candidate =
+      (label as any).label ??
+      (label as any).displayName ??
+      (label as any).name
+
+    if (typeof candidate === 'string' && candidate.trim().length > 0) {
+      return candidate.trim()
+    }
+  }
+
+  if (label != null) {
+    console.warn('[UnifiedLayout] Unexpected tab label payload, falling back to id:', label)
+  }
+
+  return fallback
+}
+
 interface UnifiedLayoutProps {
   currentUser: User
   logout: () => void
@@ -492,17 +525,20 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
       <main className="flex-1 container mx-auto px-4 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="w-full justify-start overflow-x-auto">
-            {displayTabs.map((tab) => (
-              <TabsTrigger key={tab.id} value={tab.id} className="gap-2">
-                {tab.label}
-                {tab.id === 'approvals' && pendingRequestsCount > 0 && (
-                  <Badge variant="destructive" className="ml-2">{pendingRequestsCount}</Badge>
-                )}
-                {tab.id === 'messages' && unreadMessagesCount > 0 && (
-                  <Badge variant="destructive" className="ml-2">{unreadMessagesCount}</Badge>
-                )}
-              </TabsTrigger>
-            ))}
+            {displayTabs.map((tab) => {
+              const labelContent = resolveTabLabel(tab.label, tab.id)
+              return (
+                <TabsTrigger key={tab.id} value={tab.id} className="gap-2">
+                  {labelContent}
+                  {tab.id === 'approvals' && pendingRequestsCount > 0 && (
+                    <Badge variant="destructive" className="ml-2">{pendingRequestsCount}</Badge>
+                  )}
+                  {tab.id === 'messages' && unreadMessagesCount > 0 && (
+                    <Badge variant="destructive" className="ml-2">{unreadMessagesCount}</Badge>
+                  )}
+                </TabsTrigger>
+              )
+            })}
           </TabsList>
 
           {/* Dashboard Tab */}
