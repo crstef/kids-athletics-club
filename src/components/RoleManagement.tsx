@@ -9,10 +9,9 @@ import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Switch } from '@/components/ui/switch'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
-import { Plus, Pencil, Trash, ShieldCheck, Lock, UserGear, Layout } from '@phosphor-icons/react'
+import { Plus, Pencil, Trash, ShieldCheck, Lock, UserGear } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import type { Role, Permission, PermissionName, ResourceType } from '@/lib/types'
-import { RoleDashboardWidgetsModal } from './RoleDashboardWidgetsModal'
 import { useAuth } from '@/lib/auth-context'
 import { apiClient } from '@/lib/api-client'
 
@@ -65,8 +64,6 @@ export function RoleManagement({
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingRole, setEditingRole] = useState<Role | null>(null)
   const [deleteRoleId, setDeleteRoleId] = useState<string | null>(null)
-  const [widgetsModalOpen, setWidgetsModalOpen] = useState(false)
-  const [widgetsRole, setWidgetsRole] = useState<Role | null>(null)
   const [widgetEntries, setWidgetEntries] = useState<WidgetPermissionEntry[]>([])
   const [widgetsLoading, setWidgetsLoading] = useState(false)
   const [widgetsDirty, setWidgetsDirty] = useState(false)
@@ -100,20 +97,42 @@ export function RoleManagement({
 
     ;(async () => {
       try {
-        const response = await apiClient.getRoleComponentPermissions(editingRole.id)
-        console.log('API Response:', response) // Debug log
-        
-        const rawList = Array.isArray(response) ? response : (response as any)?.permissions ?? []
-        console.log('Raw list:', rawList) // Debug log
-        
-        // Ensure rawList is actually an array
-        if (!Array.isArray(rawList)) {
-          console.warn('getRoleComponentPermissions returned non-array data:', rawList)
+        const [allComponentsResponse, rolePermissionsResponse] = await Promise.all([
+          apiClient.getAllComponents().catch((error) => {
+            console.error('Failed to load all components', error)
+            return []
+          }),
+          apiClient.getRoleComponentPermissions(editingRole.id).catch((error) => {
+            console.error('Failed to load role component permissions', error)
+            return []
+          })
+        ])
+
+        const rawComponents = Array.isArray(allComponentsResponse)
+          ? allComponentsResponse
+          : (allComponentsResponse as any)?.components ?? []
+
+        const roleAssignmentsRaw = Array.isArray(rolePermissionsResponse)
+          ? rolePermissionsResponse
+          : (rolePermissionsResponse as any)?.permissions ?? []
+
+        if (!Array.isArray(rawComponents)) {
+          console.warn('getAllComponents returned non-array data:', rawComponents)
           setWidgetEntries([])
           return
         }
 
-        const normalized = rawList
+        const roleAssignmentMap = new Map<string, any>()
+        if (Array.isArray(roleAssignmentsRaw)) {
+          for (const assignment of roleAssignmentsRaw) {
+            const componentId = assignment.componentId ?? assignment.component_id ?? assignment.id
+            if (componentId) {
+              roleAssignmentMap.set(componentId, assignment)
+            }
+          }
+        }
+
+        const normalized = rawComponents
           .map((component: any) => {
             const componentId = component.componentId ?? component.component_id ?? component.id
             if (!componentId) return null
@@ -123,12 +142,14 @@ export function RoleManagement({
             const rawType = (component.componentType ?? component.component_type ?? '').toString().toLowerCase()
             if (!rawType.includes('widget')) return null
 
+            const roleAssignment = roleAssignmentMap.get(componentId)
+
             return {
               componentId,
               componentName,
               displayName,
               description: component.description ?? '',
-              canView: Boolean(component.canView ?? component.can_view ?? component.isAssigned),
+              canView: Boolean(roleAssignment?.canView ?? roleAssignment?.can_view ?? roleAssignment?.isAssigned),
               group: determineWidgetGroup(componentName, displayName)
             } as WidgetPermissionEntry
           })
@@ -402,20 +423,6 @@ export function RoleManagement({
               </div>
 
               <div className="flex gap-2 pt-2">
-                {canManageWidgets && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setWidgetsRole(role)
-                      setWidgetsModalOpen(true)
-                    }}
-                    className="flex-1"
-                  >
-                    <Layout size={14} className="mr-1" />
-                    Widgets
-                  </Button>
-                )}
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -690,17 +697,6 @@ export function RoleManagement({
         </AlertDialogContent>
       </AlertDialog>
 
-      {widgetsRole && (
-        <RoleDashboardWidgetsModal
-          open={widgetsModalOpen}
-          onClose={() => {
-            setWidgetsModalOpen(false)
-            setWidgetsRole(null)
-          }}
-          role={widgetsRole}
-          onSave={() => {}}
-        />
-      )}
     </div>
   )
 }
