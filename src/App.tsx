@@ -582,7 +582,14 @@ function AppContent() {
 
   const handleAddProbe = async (probeData: Omit<EventTypeCustom, 'id' | 'createdAt'>) => {
     try {
-      await apiClient.createProbe(probeData)
+      const payload = {
+        ...probeData,
+        name: probeData.name.trim(),
+        description: probeData.description?.trim() || undefined,
+        unit: probeData.unit?.trim() || undefined,
+        category: probeData.category?.trim() || undefined
+      }
+      await apiClient.createProbe(payload)
       await refetchProbes()
       toast.success('Probă adăugată cu succes!')
     } catch (error: any) {
@@ -593,7 +600,14 @@ function AppContent() {
 
   const handleEditProbe = async (id: string, probeData: Partial<EventTypeCustom>) => {
     try {
-      await apiClient.updateProbe(id, probeData)
+      const payload = {
+        ...probeData,
+        name: probeData.name?.trim(),
+        description: probeData.description?.trim(),
+        unit: probeData.unit?.trim(),
+        category: probeData.category?.trim()
+      }
+      await apiClient.updateProbe(id, payload)
       await refetchProbes()
       toast.success('Probă actualizată cu succes!')
     } catch (error: any) {

@@ -701,13 +701,13 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
           )}
 
           {isTabVisible('probes') && (
-            <TabsContent value="probes" className="mt-6">
+                <TabsContent value="probes" className="mt-6">
               <ProbeManagement
                 probes={probes}
                 currentUserId={currentUser.id}
-                onAddProbe={(data) => { void handleAddProbe(data) }}
-                onUpdateProbe={(id, updates) => { void handleEditProbe(id, updates) }}
-                onDeleteProbe={(id) => { void handleDeleteProbe(id) }}
+                onAddProbe={(data) => handleAddProbe(data)}
+                onUpdateProbe={(id, updates) => handleEditProbe(id, updates)}
+                onDeleteProbe={(id) => handleDeleteProbe(id)}
               />
             </TabsContent>
           )}
