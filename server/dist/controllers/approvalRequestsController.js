@@ -22,9 +22,9 @@ const calculateAge = (dateOfBirth) => {
 const determineCategory = (age) => {
     if (age === null || age < 0)
         return null;
-     if (age < 6)
+    if (age < 6)
         return 'U6';
-     if (age < 8)
+    if (age < 8)
         return 'U8';
     if (age < 10)
         return 'U10';
