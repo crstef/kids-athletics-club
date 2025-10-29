@@ -449,7 +449,23 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
       )
     }
 
-    const widgetsToRender = safeEnabledWidgets.slice(0, 1)
+    const resolvedLimit = (() => {
+      if (typeof window === 'undefined') {
+        return safeEnabledWidgets.length
+      }
+      const raw = (window as any).__WIDGET_DEBUG_LIMIT__
+      if (raw === undefined || raw === null) {
+        return safeEnabledWidgets.length
+      }
+      const parsed = Number(raw)
+      if (!Number.isFinite(parsed)) {
+        return safeEnabledWidgets.length
+      }
+      return Math.max(0, Math.min(safeEnabledWidgets.length, Math.floor(parsed)))
+    })()
+
+    const widgetsToRender = safeEnabledWidgets.slice(0, resolvedLimit)
+    console.log('[debug] widgetLimit', resolvedLimit, 'of', safeEnabledWidgets.length)
 
     return (
       <div className="space-y-6">
@@ -458,10 +474,10 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-3xl font-bold mb-2 bg-linear-to-r from-primary to-accent bg-clip-text text-transparent" style={{ fontFamily: 'Outfit', letterSpacing: '-0.02em' }}>
-                Dashboard (debug: first widget only)
+                Dashboard (debug: {widgetsToRender.length}/{safeEnabledWidgets.length})
               </h2>
               <p className="text-muted-foreground">
-                Temporar afișăm doar primul widget pentru a identifica eroarea.
+                Setează <code>window.__WIDGET_DEBUG_LIMIT__</code> în consola browser-ului pentru a ajusta câte widget-uri se randază.
               </p>
             </div>
             <Button variant="outline" onClick={() => setCustomizeOpen(true)}>
