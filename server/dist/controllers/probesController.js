@@ -34,10 +34,10 @@ const createProbe = async (req, res) => {
     const client = await database_1.default.connect();
     try {
         const { name, description, isActive, unit, category } = req.body;
-        const userId = req.user?.userId;
         const trimmedDescription = typeof description === 'string' ? description.trim() : null;
         const trimmedUnit = typeof unit === 'string' ? unit.trim() : null;
         const trimmedCategory = typeof category === 'string' ? category.trim() : null;
+        const userId = req.user?.userId;
         const result = await client.query('INSERT INTO coach_probes (name, description, unit, category, is_active, created_by) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *', [
             name,
             trimmedDescription,
