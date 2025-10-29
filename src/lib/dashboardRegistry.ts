@@ -10,6 +10,7 @@ import UnifiedLayout from '@/layouts/UnifiedLayout'
 import AthletePerformanceDashboard from '@/components/dashboards/AthletePerformanceDashboard'
 import CoachTeamDashboard from '@/components/dashboards/CoachTeamDashboard'
 import ParentProgressDashboard from '@/components/dashboards/ParentProgressDashboard'
+import type { Dashboard } from '@/lib/types'
 
 export const DASHBOARD_REGISTRY: Record<string, React.ComponentType<any>> = {
   // Unified layout for ALL users (permission-based visibility)
@@ -36,4 +37,15 @@ export const DASHBOARD_REGISTRY: Record<string, React.ComponentType<any>> = {
  */
 export function getDashboardComponent(componentName: string): React.ComponentType<any> | null {
   return DASHBOARD_REGISTRY[componentName] || null
+}
+
+// Fallback resolver used when a user has no dashboards assigned
+export const FALLBACK_DASHBOARD: Dashboard = {
+  id: 'fallback-unified-layout',
+  name: 'UnifiedLayout',
+  displayName: 'Unified Layout',
+  componentName: 'UnifiedLayout',
+  isActive: true,
+  isSystem: true,
+  createdAt: new Date().toISOString()
 }

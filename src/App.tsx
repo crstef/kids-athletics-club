@@ -10,8 +10,8 @@ import { useComponents } from '@/hooks/use-components'
 import { useInactivityLogout } from '@/hooks/use-inactivity-logout'
 import { hashPassword } from './lib/auth';
 import { DEFAULT_PERMISSIONS, DEFAULT_ROLES } from './lib/defaults'
-import type { Athlete, Result, AgeCategory, User, AccessRequest, Message, EventTypeCustom, Permission, UserPermission, Role, AgeCategoryCustom, Dashboard } from '@/lib/types'
-import { getDashboardComponent } from '@/lib/dashboardRegistry';
+import type { Athlete, Result, AgeCategory, User, AccessRequest, Message, EventTypeCustom, Permission, UserPermission, Role, AgeCategoryCustom } from '@/lib/types'
+import { getDashboardComponent, FALLBACK_DASHBOARD } from '@/lib/dashboardRegistry';
 import { generateTabsFromPermissions } from '@/lib/permission-tab-mapping'
 
 // TAB_CONFIGS is now generated dynamically from user permissions via generateTabsFromPermissions()
@@ -164,6 +164,12 @@ function AppContent() {
       console.log('[debug] visibleTabs computed:', visibleTabs)
     }
   }, [visibleTabs, currentUser])
+
+  useEffect(() => {
+    if (currentUser) {
+      console.log('[debug] currentUser dashboards', currentUser.dashboards)
+    }
+  }, [currentUser])
 
   // Fetch components when user logs in
   useEffect(() => {
@@ -984,20 +990,7 @@ function AppContent() {
     // Get user's dashboards from auth context
     const userDashboards = currentUser?.dashboards || [];
     
-    let dashboardToRender = userDashboards.find(d => d.isDefault) || userDashboards[0];
-
-    if (!dashboardToRender) {
-      console.warn('[renderDashboard] No dashboards assigned, falling back to UnifiedLayout');
-      dashboardToRender = {
-        id: 'fallback-unified-layout',
-        name: 'UnifiedLayout',
-        displayName: 'Unified Layout',
-        componentName: 'UnifiedLayout',
-        isActive: true,
-        isSystem: true,
-        createdAt: new Date().toISOString(),
-      } as Dashboard;
-    }
+    const dashboardToRender = userDashboards.find(d => d.isDefault) || userDashboards[0] || FALLBACK_DASHBOARD;
     
     if (dashboardToRender) {
       const Component = getDashboardComponent(dashboardToRender.componentName);

@@ -424,6 +424,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
 
   // Render dashboard with dynamic widgets
   const renderDashboard = () => {
+    console.log('[debug] renderDashboard safeEnabledWidgets:', safeEnabledWidgets)
     // If no widgets configured, show default message
     if (safeEnabledWidgets.length === 0) {
       return (
@@ -528,6 +529,14 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
             {displayTabs.map((tab) => {
               console.log('[debug] render tab', tab)
               const labelContent = resolveTabLabel(tab.label, tab.id)
+              if (
+                labelContent !== null &&
+                labelContent !== undefined &&
+                typeof labelContent !== 'string' &&
+                !React.isValidElement(labelContent)
+              ) {
+                console.error('[debug] unexpected labelContent', labelContent)
+              }
               return (
                 <TabsTrigger key={tab.id} value={tab.id} className="gap-2">
                   {labelContent}
@@ -597,7 +606,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
                   </div>
                 )}
 
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-4 md:grid-cols-2 lg-grid-cols-3">
                   {filteredAndSortedAthletes.map((athlete) => (
                     <AthleteCard
                       key={athlete.id}
@@ -619,153 +628,25 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
           )}
 
           {/* Users Tab */}
-          {isTabVisible('users') && (
-            <TabsContent value="users" className="mt-6">
-              <UserManagement
-                users={users}
-                roles={roles}
-                currentUserId={currentUser.id}
-                onAddUser={props.handleAddUser}
-                onUpdateUser={props.handleUpdateUser}
-                onDeleteUser={props.handleDeleteUser}
-              />
-            </TabsContent>
-          )}
+          {/* Users Tab temporarily disabled for debugging */}
 
           {/* Roles Tab */}
-          {isTabVisible('roles') && (
-            <TabsContent value="roles" className="mt-6">
-              <RoleManagement
-                roles={roles}
-                permissions={permissions}
-                currentUserId={currentUser.id}
-                onAddRole={props.handleAddRole}
-                onUpdateRole={props.handleUpdateRole}
-                onDeleteRole={props.handleDeleteRole}
-              />
-            </TabsContent>
-          )}
+          {/* Roles Tab temporarily disabled for debugging */}
 
           {/* Permissions Tab */}
-          {isTabVisible('permissions') && (
-            <TabsContent value="permissions" className="mt-6">
-              <PermissionsSystem
-                permissions={permissions}
-                currentUserId={currentUser.id}
-                onAddPermission={props.handleAddPermission}
-                onUpdatePermission={props.handleUpdatePermission}
-                onDeletePermission={props.handleDeletePermission}
-              />
-            </TabsContent>
-          )}
+          {/* Permissions Tab temporarily disabled for debugging */}
 
           {/* Categories Tab */}
-          {isTabVisible('categories') && (
-            <TabsContent value="categories" className="mt-6">
-              <AgeCategoryManagement
-                ageCategories={ageCategories}
-                currentUserId={currentUser.id}
-                onAddCategory={props.handleAddAgeCategory}
-                onUpdateCategory={props.handleUpdateAgeCategory}
-                onDeleteCategory={props.handleDeleteAgeCategory}
-              />
-            </TabsContent>
-          )}
+          {/* Categories Tab temporarily disabled for debugging */}
 
           {/* Probes Tab */}
-          {isTabVisible('probes') && (
-            <TabsContent value="probes" className="mt-6">
-              <ProbeManagement
-                probes={probes}
-                currentUserId={currentUser.id}
-                onAddProbe={props.handleAddProbe}
-                onUpdateProbe={props.handleEditProbe}
-                onDeleteProbe={props.handleDeleteProbe}
-              />
-            </TabsContent>
-          )}
+          {/* Probes Tab temporarily disabled for debugging */}
 
           {/* Messages Tab */}
-          {isTabVisible('messages') && (
-            <TabsContent value="messages" className="mt-6">
-              <MessagingPanel
-                currentUserId={currentUser.id}
-                messages={messages}
-                users={users}
-                availableUsers={messagingUsers}
-                onSendMessage={props.handleSendMessage}
-                onMarkAsRead={props.handleMarkAsRead}
-              />
-            </TabsContent>
-          )}
+          {/* Messages Tab temporarily disabled for debugging */}
 
           {/* Approvals Tab */}
-          {isTabVisible('approvals') && (
-            <TabsContent value="approvals" className="mt-6 space-y-6">
-              {showApprovalRequests && (
-                <CoachApprovalRequests
-                  coachId={currentUser.id}
-                  mode="admin"
-                  users={users}
-                  athletes={athletes}
-                  approvalRequests={props.approvalRequests}
-                  onApproveAccount={async (requestId: string) => {
-                    try {
-                      await apiClient.approveRequest(requestId)
-                      toast.success('Cerere aprobată cu succes')
-                      window.location.reload()
-                    } catch (_error) {
-                      toast.error('Eroare la aprobarea cererii')
-                    }
-                  }}
-                  onRejectAccount={async (requestId: string, reason?: string) => {
-                    try {
-                      await apiClient.rejectRequest(requestId, reason)
-                      toast.error('Cerere respinsă')
-                      window.location.reload()
-                    } catch (_error) {
-                      toast.error('Eroare la respingerea cererii')
-                    }
-                  }}
-                />
-              )}
-
-              {showAccessRequests && (
-                <CoachAccessRequests
-                  coachId={currentUser.id}
-                  mode="coach"
-                  users={users}
-                  athletes={athletes}
-                  parents={parents}
-                  accessRequests={accessRequests}
-                  onUpdateRequest={async (requestId: string, status: 'approved' | 'rejected') => {
-                    const request = accessRequests.find(r => r.id === requestId)
-                    if (!request) {
-                      toast.error('Cererea de acces nu a fost găsită')
-                      return
-                    }
-                    try {
-                      await props.handleUpdateAccessRequest(requestId, status)
-
-                      const parent = parents.find(p => p.id === request.parentId)
-                      const athlete = athletes.find(a => a.id === request.athleteId)
-                      if (status === 'approved') {
-                        if (parent && athlete) {
-                          toast.success(`Acces acordat: ${parent.firstName} ${parent.lastName} poate vizualiza datele lui ${athlete.firstName} ${athlete.lastName}`)
-                        } else {
-                          toast.success('Cerere de acces aprobată')
-                        }
-                      } else {
-                        toast.success('Cererea de acces a fost respinsă')
-                      }
-                    } catch (_error) {
-                      toast.error('Nu am putut actualiza cererea de acces')
-                    }
-                  }}
-                />
-              )}
-            </TabsContent>
-          )}
+          {/* Approvals Tab temporarily disabled for debugging */}
         </Tabs>
       </main>
 
