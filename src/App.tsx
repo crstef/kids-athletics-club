@@ -165,12 +165,6 @@ function AppContent() {
     }
   }, [visibleTabs, currentUser])
 
-  useEffect(() => {
-    if (currentUser) {
-      console.log('[debug] currentUser dashboards', currentUser.dashboards)
-    }
-  }, [currentUser])
-
   // Fetch components when user logs in
   useEffect(() => {
     if (currentUser && !authLoading) {

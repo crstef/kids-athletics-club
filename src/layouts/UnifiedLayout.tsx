@@ -313,6 +313,9 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
           apiClient.getMyComponents().catch(() => ({ components: [] }))
         ])
 
+        console.log('[debug] loadWidgets savedWidgetsResponse', savedWidgetsResponse)
+        console.log('[debug] loadWidgets myComponentsResponse', myComponentsResponse)
+
         const rawComponents = Array.isArray(myComponentsResponse)
           ? myComponentsResponse
           : (myComponentsResponse as any)?.components ?? []
@@ -360,12 +363,16 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
           initialWidgets = DEFAULT_WIDGET_IDS
         }
 
-        setAllowedWidgetIds(Array.from(allowedSet))
+        const allowedArray = Array.from(allowedSet)
+        console.log('[debug] loadWidgets allowedWidgetIds', allowedArray)
+        setAllowedWidgetIds(allowedArray)
         const canonicalInitial = Array.from(new Set(
           initialWidgets
             .map(id => normalizeWidgetId(id) ?? id)
             .filter((id): id is string => typeof id === 'string' && id.length > 0)
         ))
+
+        console.log('[debug] loadWidgets canonicalInitial', canonicalInitial)
 
         setEnabledWidgets(canonicalInitial)
       } catch (error) {
