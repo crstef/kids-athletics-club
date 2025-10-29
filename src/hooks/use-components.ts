@@ -104,6 +104,7 @@ export function useComponents() {
             component.componentType === 'tab' &&
             component.name !== 'permissions' &&
             component.name !== 'access-requests' &&
+            component.name !== 'results' &&
             component.permissions?.canView !== false
         ) as TabComponent[]
 
