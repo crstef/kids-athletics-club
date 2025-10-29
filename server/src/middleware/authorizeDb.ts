@@ -2,6 +2,50 @@ import { Response, NextFunction } from 'express'
 import { AuthRequest } from './auth'
 import pool from '../config/database'
 
+const PERMISSION_EQUIVALENTS: Record<string, string[]> = {
+  'probes.view': ['events.view'],
+  'probes.create': ['events.create', 'events.manage'],
+  'probes.edit': ['events.edit', 'events.manage'],
+  'probes.delete': ['events.delete', 'events.manage'],
+  'events.view': ['probes.view'],
+  'events.create': ['probes.create'],
+  'events.edit': ['probes.edit'],
+  'events.delete': ['probes.delete'],
+  'events.manage': ['probes.view', 'probes.create', 'probes.edit', 'probes.delete']
+}
+
+const OWN_SUFFIX = '.own'
+const ALL_SUFFIX = '.all'
+
+const expandPermissions = (permissions: string[]): string[] => {
+  const expanded = new Set<string>()
+  const stack = [...permissions]
+
+  while (stack.length > 0) {
+    const permission = stack.pop()!
+    if (!permission || expanded.has(permission)) continue
+
+    expanded.add(permission)
+
+    if (permission.endsWith(OWN_SUFFIX)) {
+      stack.push(permission.slice(0, -OWN_SUFFIX.length))
+    }
+
+    if (permission.endsWith(ALL_SUFFIX)) {
+      stack.push(permission.slice(0, -ALL_SUFFIX.length))
+    }
+
+    const equivalents = PERMISSION_EQUIVALENTS[permission]
+    if (equivalents) {
+      for (const equivalent of equivalents) {
+        stack.push(equivalent)
+      }
+    }
+  }
+
+  return Array.from(expanded)
+}
+
 // Database-backed authorization middleware
 // Allows if:
 // - user is superadmin
@@ -15,8 +59,9 @@ export const authorizeDb = (...permissions: string[]) => {
 
       if (user.role === 'superadmin') return next()
 
+      const expandedPermissions = expandPermissions(permissions)
       const tokenPermissions = Array.isArray(user.permissions) ? user.permissions : []
-      if (tokenPermissions.includes('*') || permissions.some((perm) => tokenPermissions.includes(perm))) {
+      if (tokenPermissions.includes('*') || expandedPermissions.some((perm) => tokenPermissions.includes(perm))) {
         return next()
       }
 
@@ -42,7 +87,7 @@ export const authorizeDb = (...permissions: string[]) => {
                )
              )
            LIMIT 1`,
-          [permissions, user.userId, user.roleId ?? null, user.role]
+          [expandedPermissions, user.userId, user.roleId ?? null, user.role]
         )
 
         if (result.rowCount && result.rowCount > 0) {
