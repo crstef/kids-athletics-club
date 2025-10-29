@@ -275,15 +275,21 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
   )
 
   const displayTabs = useMemo(() => {
-    if (!isParentUser) {
-      return visibleTabs
-    }
+    const transformed = !isParentUser
+      ? visibleTabs
+      : visibleTabs.map((tab) =>
+          tab.id === 'athletes'
+            ? { ...tab, label: 'Atlet' }
+            : tab
+        )
 
-    return visibleTabs.map((tab) =>
-      tab.id === 'athletes'
-        ? { ...tab, label: 'Atlet' }
-        : tab
-    )
+    const seen = new Set<string>()
+    return transformed.filter((tab) => {
+      const key = typeof tab.id === 'string' ? tab.id.toLowerCase() : tab.id
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
   }, [visibleTabs, isParentUser])
 
   const visibleTabIds = useMemo(() => new Set(displayTabs.map(tab => tab.id)), [displayTabs])

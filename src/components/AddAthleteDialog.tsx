@@ -105,8 +105,8 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
     setCategory('U10')
     setGender('M')
     setCoachId('')
-  setAvatarFile(null)
-  setAvatarPreview(null)
+    setAvatarFile(null)
+    setAvatarPreview(null)
     setOpen(false)
   }
 
@@ -176,25 +176,16 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
               </div>
             </>
           )}
-          <div className="space-y-2">
-            <Label htmlFor="gender">Gen *</Label>
-            <Select value={gender} onValueChange={(v) => setGender(v as Gender)}>
-              <SelectTrigger id="gender">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="M">Masculin</SelectItem>
-                <SelectItem value="F">Feminin</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
           <PermissionGate perm="athletes.avatar.upload">
             <div className="space-y-2">
               <Label htmlFor="avatar">Poză (opțional)</Label>
               <div className="flex items-center gap-4">
                 {avatarPreview && (
-                  <img src={avatarPreview} alt="preview" className="w-20 h-20 rounded-full object-cover border-2 border-primary" />
+                  <img
+                    src={avatarPreview}
+                    alt="preview"
+                    className="w-20 h-20 rounded-full object-cover border-2 border-primary"
+                  />
                 )}
                 <div className="flex-1">
                   <div className="relative">
@@ -203,8 +194,8 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
                       type="file"
                       accept="image/*"
                       onChange={(e) => {
-                        const f = e.target.files && e.target.files[0]
-                        if (f) setAvatarFile(f)
+                        const file = e.target.files?.[0]
+                        if (file) setAvatarFile(file)
                       }}
                       className="hidden"
                     />
@@ -218,11 +209,14 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
                     </Button>
                   </div>
                   {avatarPreview && (
-                    <Button 
+                    <Button
                       type="button"
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => { setAvatarFile(null); setAvatarPreview(null) }}
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setAvatarFile(null)
+                        setAvatarPreview(null)
+                      }}
                       className="mt-2 w-full text-destructive hover:text-destructive"
                     >
                       Șterge Poza
@@ -232,6 +226,18 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
               </div>
             </div>
           </PermissionGate>
+          <div className="space-y-2">
+            <Label htmlFor="gender">Gen *</Label>
+            <Select value={gender} onValueChange={(value) => setGender(value as Gender)}>
+              <SelectTrigger id="gender">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="M">Masculin</SelectItem>
+                <SelectItem value="F">Feminin</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           {coaches.length > 0 && (
             <div className="space-y-2">
               <Label htmlFor="coach">Antrenor (opțional)</Label>
