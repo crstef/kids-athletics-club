@@ -526,6 +526,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="w-full justify-start overflow-x-auto">
             {displayTabs.map((tab) => {
+              console.log('[debug] render tab', tab)
               const labelContent = resolveTabLabel(tab.label, tab.id)
               return (
                 <TabsTrigger key={tab.id} value={tab.id} className="gap-2">
