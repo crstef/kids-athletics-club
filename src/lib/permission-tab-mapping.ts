@@ -92,7 +92,7 @@ export const PERMISSION_TO_TAB_MAP: Record<string, TabConfig> = {
   }
 }
 
-const PERMISSION_ALIASES: Record<string, string> = {
+export const PERMISSION_ALIASES: Record<string, string> = {
   'approval_requests.view.own': 'approval_requests.view',
   'approval_requests.approve': 'approval_requests.view',
   'approval_requests.approve.own': 'approval_requests.view',
@@ -105,25 +105,93 @@ const PERMISSION_ALIASES: Record<string, string> = {
   'events.delete': 'probes.view'
 }
 
-const PERMISSION_ALIAS_ENTRIES = Object.entries(PERMISSION_ALIASES)
+const REVERSE_PERMISSION_ALIASES = Object.entries(PERMISSION_ALIASES).reduce<Record<string, string[]>>((acc, [alias, target]) => {
+  if (!acc[target]) {
+    acc[target] = []
+  }
+  acc[target].push(alias)
+  return acc
+}, {})
 
-export function userHasPermissionForTab(permission: string, userPermissions: string[]): boolean {
-  if (userPermissions.includes('*')) return true
-  if (userPermissions.includes(permission)) return true
+const PERMISSION_EQUIVALENTS: Record<string, string[]> = {
+  'probes.view': ['events.view'],
+  'events.view': ['probes.view'],
+  'probes.create': ['events.create', 'events.manage'],
+  'events.create': ['probes.create', 'events.manage'],
+  'probes.edit': ['events.edit', 'events.manage'],
+  'events.edit': ['probes.edit', 'events.manage'],
+  'probes.delete': ['events.delete', 'events.manage'],
+  'events.delete': ['probes.delete', 'events.manage'],
+  'events.manage': ['probes.view', 'probes.create', 'probes.edit', 'probes.delete'],
+  'dashboard.view': [
+    'dashboard.view.superadmin',
+    'dashboard.view.coach',
+    'dashboard.view.parent',
+    'dashboard.view.athlete'
+  ],
+  'dashboard.view.superadmin': ['dashboard.view'],
+  'dashboard.view.coach': ['dashboard.view'],
+  'dashboard.view.parent': ['dashboard.view'],
+  'dashboard.view.athlete': ['dashboard.view']
+}
 
-  const directAlias = PERMISSION_ALIASES[permission]
-  if (directAlias && userPermissions.includes(directAlias)) {
-    return true
+const OWN_SUFFIX = '.own'
+const ALL_SUFFIX = '.all'
+
+const collectEquivalentPermissions = (permission: string): Set<string> => {
+  const collected = new Set<string>()
+  const stack: string[] = [permission]
+
+  while (stack.length > 0) {
+    const candidate = stack.pop()!
+    if (!candidate || collected.has(candidate)) continue
+
+    collected.add(candidate)
+
+    if (candidate.endsWith(OWN_SUFFIX)) {
+      stack.push(candidate.slice(0, -OWN_SUFFIX.length))
+    }
+
+    if (candidate.endsWith(ALL_SUFFIX)) {
+      stack.push(candidate.slice(0, -ALL_SUFFIX.length))
+    }
+
+    const directAlias = PERMISSION_ALIASES[candidate]
+    if (directAlias) stack.push(directAlias)
+
+    const reverseAliases = REVERSE_PERMISSION_ALIASES[candidate]
+    if (reverseAliases) {
+      for (const reverseAlias of reverseAliases) {
+        stack.push(reverseAlias)
+      }
+    }
+
+    const equivalents = PERMISSION_EQUIVALENTS[candidate]
+    if (equivalents) {
+      for (const equivalent of equivalents) {
+        stack.push(equivalent)
+      }
+    }
   }
 
-  for (const [aliasPermission, targetPermission] of PERMISSION_ALIAS_ENTRIES) {
-    if (targetPermission === permission && userPermissions.includes(aliasPermission)) {
+  return collected
+}
+
+export function hasPermissionFromList(permission: string, userPermissions: string[]): boolean {
+  if (!Array.isArray(userPermissions) || userPermissions.length === 0) return false
+  if (userPermissions.includes('*')) return true
+
+  const collected = collectEquivalentPermissions(permission)
+  for (const candidate of collected) {
+    if (userPermissions.includes(candidate)) {
       return true
     }
   }
 
   return false
 }
+
+export const userHasPermissionForTab = hasPermissionFromList
 
 /**
  * Generate tabs from user permissions
