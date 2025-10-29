@@ -13,9 +13,12 @@ const getAllProbes = async (req, res) => {
             id: p.id,
             name: p.name,
             description: p.description,
+            unit: p.unit,
+            category: p.category,
             isActive: p.is_active,
             createdBy: p.created_by,
-            createdAt: p.created_at
+            createdAt: p.created_at,
+            updatedAt: p.updated_at
         })));
     }
     catch (_error) {
@@ -29,17 +32,30 @@ exports.getAllProbes = getAllProbes;
 const createProbe = async (req, res) => {
     const client = await database_1.default.connect();
     try {
-        const { name, description, isActive } = req.body;
+        const { name, description, isActive, unit, category } = req.body;
         const userId = req.user?.userId;
-        const result = await client.query('INSERT INTO coach_probes (name, description, is_active, created_by) VALUES ($1, $2, $3, $4) RETURNING *', [name, description || null, isActive ?? true, userId]);
+        const trimmedDescription = typeof description === 'string' ? description.trim() : null;
+        const trimmedUnit = typeof unit === 'string' ? unit.trim() : null;
+        const trimmedCategory = typeof category === 'string' ? category.trim() : null;
+        const result = await client.query('INSERT INTO coach_probes (name, description, unit, category, is_active, created_by) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *', [
+            name,
+            trimmedDescription,
+            trimmedUnit,
+            trimmedCategory,
+            isActive ?? true,
+            userId
+        ]);
         const p = result.rows[0];
         res.status(201).json({
             id: p.id,
             name: p.name,
             description: p.description,
+            unit: p.unit,
+            category: p.category,
             isActive: p.is_active,
             createdBy: p.created_by,
-            createdAt: p.created_at
+            createdAt: p.created_at,
+            updatedAt: p.updated_at
         });
     }
     catch (_error) {
@@ -53,7 +69,7 @@ exports.createProbe = createProbe;
 const updateProbe = async (req, res) => {
     const client = await database_1.default.connect();
     try {
-        const { name, description, isActive } = req.body;
+        const { name, description, isActive, unit, category } = req.body;
         const updates = [];
         const values = [];
         let paramCount = 1;
@@ -63,7 +79,15 @@ const updateProbe = async (req, res) => {
         }
         if (description !== undefined) {
             updates.push(`description = $${paramCount++}`);
-            values.push(description);
+            values.push(typeof description === 'string' ? description.trim() : null);
+        }
+        if (unit !== undefined) {
+            updates.push(`unit = $${paramCount++}`);
+            values.push(typeof unit === 'string' ? unit.trim() : null);
+        }
+        if (category !== undefined) {
+            updates.push(`category = $${paramCount++}`);
+            values.push(typeof category === 'string' ? category.trim() : null);
         }
         if (isActive !== undefined) {
             updates.push(`is_active = $${paramCount++}`);
@@ -79,9 +103,12 @@ const updateProbe = async (req, res) => {
             id: p.id,
             name: p.name,
             description: p.description,
+            unit: p.unit,
+            category: p.category,
             isActive: p.is_active,
             createdBy: p.created_by,
-            createdAt: p.created_at
+            createdAt: p.created_at,
+            updatedAt: p.updated_at
         });
     }
     catch (_error) {
