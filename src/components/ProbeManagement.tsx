@@ -69,8 +69,8 @@ export function ProbeManagement({
     setSelectedProbe(probe)
     setNewProbeName(probe.name)
     setNewProbeDescription(probe.description || '')
-    setNewProbeUnit(probe.unit)
-    setNewProbeCategory(probe.category)
+    setNewProbeUnit(probe.unit || 'points')
+    setNewProbeCategory(probe.category || 'other')
     setEditDialogOpen(true)
   }
 
@@ -167,7 +167,7 @@ export function ProbeManagement({
             {probes.map((probe) => (
               <TableRow key={probe.id}>
                 <TableCell>{probe.name}</TableCell>
-                <TableCell>{probe.unit}</TableCell>
+                <TableCell>{probe.unit ?? '—'}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <Button variant="outline" size="sm" onClick={() => openEditDialog(probe)}>

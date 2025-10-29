@@ -20,7 +20,7 @@ export const EVENT_UNITS: Record<EventType, 'seconds' | 'meters'> = {
   'Discus': 'meters'
 }
 
-export const AGE_CATEGORIES = ['U10', 'U12', 'U14', 'U16', 'U18'] as const
+export const AGE_CATEGORIES = ['U6', 'U8', 'U10', 'U12', 'U14', 'U16', 'U18'] as const
 
 export const AVATAR_COLORS = [
   'bg-blue-500',

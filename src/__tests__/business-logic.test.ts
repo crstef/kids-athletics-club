@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest'
 
 describe('Business Logic: Athlete Age Categories', () => {
   const calculateAgeCategory = (age: number): string => {
+    if (age >= 4 && age <= 5) return 'U6'
+    if (age >= 6 && age <= 7) return 'U8'
     if (age >= 8 && age <= 9) return 'U10'
     if (age >= 10 && age <= 11) return 'U12'
     if (age >= 12 && age <= 13) return 'U14'
@@ -9,6 +11,15 @@ describe('Business Logic: Athlete Age Categories', () => {
     if (age >= 16 && age <= 17) return 'U18'
     return 'Unknown'
   }
+  it('should assign U6 category correctly', () => {
+    expect(calculateAgeCategory(4)).toBe('U6')
+    expect(calculateAgeCategory(5)).toBe('U6')
+  })
+
+  it('should assign U8 category correctly', () => {
+    expect(calculateAgeCategory(6)).toBe('U8')
+    expect(calculateAgeCategory(7)).toBe('U8')
+  })
 
   it('should assign U10 category correctly', () => {
     expect(calculateAgeCategory(8)).toBe('U10')
@@ -36,9 +47,9 @@ describe('Business Logic: Athlete Age Categories', () => {
   })
 
   it('should handle edge cases', () => {
-    expect(calculateAgeCategory(7)).toBe('Unknown')
+    expect(calculateAgeCategory(3)).toBe('Unknown')
     expect(calculateAgeCategory(18)).toBe('Unknown')
-    expect(calculateAgeCategory(0)).toBe('Unknown')
+    expect(calculateAgeCategory(-1)).toBe('Unknown')
   })
 })
 

@@ -25,6 +25,8 @@ const calculateAge = (dateOfBirth: string): number | null => {
 
 const determineCategory = (age: number | null): string | null => {
   if (age === null || age < 0) return null;
+  if (age < 6) return 'U6';
+  if (age < 8) return 'U8';
   if (age < 10) return 'U10';
   if (age < 12) return 'U12';
   if (age < 14) return 'U14';
@@ -139,10 +141,10 @@ export const register = async (req: Request, res: Response) => {
       const derivedAge = calculateAge(profileDob);
       const derivedCategory = determineCategory(derivedAge);
 
-      if (derivedAge === null || derivedAge < 6 || derivedAge > 18 || !derivedCategory) {
+      if (derivedAge === null || derivedAge < 4 || derivedAge > 18 || !derivedCategory) {
         await client.query('ROLLBACK');
         transactionStarted = false;
-        return res.status(400).json({ error: 'Athlete age must be between 6 and 18 years' });
+        return res.status(400).json({ error: 'Athlete age must be between 4 and 18 years' });
       }
 
       const trimmedNotes = typeof approvalNotes === 'string' && approvalNotes.trim().length > 0 ? approvalNotes.trim() : null;

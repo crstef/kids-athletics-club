@@ -21,7 +21,7 @@ describe('Type validations', () => {
     })
 
     it('should validate age categories', () => {
-      const categories: AgeCategory[] = ['U10', 'U12', 'U14', 'U16', 'U18']
+  const categories: AgeCategory[] = ['U6', 'U8', 'U10', 'U12', 'U14', 'U16', 'U18']
       
       categories.forEach(category => {
         const athlete: Athlete = {

@@ -83,6 +83,8 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
   }
 
   const determineCategory = (age: number): string => {
+    if (age < 6) return 'U6'
+    if (age < 8) return 'U8'
     if (age < 10) return 'U10'
     if (age < 12) return 'U12'
     if (age < 14) return 'U14'
@@ -157,8 +159,8 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
         return
       }
 
-      if (athleteAge === null || athleteAge < 6 || athleteAge > 18) {
-        toast.error('Vârsta trebuie să fie între 6 și 18 ani')
+      if (athleteAge === null || athleteAge < 4 || athleteAge > 18) {
+        toast.error('Vârsta trebuie să fie între 4 și 18 ani')
         return
       }
     }

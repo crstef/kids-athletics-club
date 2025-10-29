@@ -27,6 +27,8 @@ function calculateAge(dateOfBirth: string): number {
 
 // Funcție pentru determinarea categoriei pe bază de vârstă
 function determineCategory(age: number): AgeCategory {
+  if (age < 6) return 'U6'
+  if (age < 8) return 'U8'
   if (age < 10) return 'U10'
   if (age < 12) return 'U12'
   if (age < 14) return 'U14'
@@ -47,7 +49,7 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
   const [lastName, setLastName] = useState('')
   const [age, setAge] = useState<number | null>(null)
   const [dateOfBirth, setDateOfBirth] = useState('')
-  const [category, setCategory] = useState<AgeCategory>('U10')
+  const [category, setCategory] = useState<AgeCategory>('U6')
   const [gender, setGender] = useState<Gender>('M')
   const [coachId, setCoachId] = useState<string>('')
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
@@ -82,8 +84,8 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
       return
     }
 
-    if (age < 6 || age > 18) {
-      toast.error('Vârsta trebuie să fie între 6 și 18 ani')
+    if (age < 4 || age > 18) {
+      toast.error('Vârsta trebuie să fie între 4 și 18 ani')
       return
     }
 
@@ -102,7 +104,7 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
     setLastName('')
     setAge(null)
     setDateOfBirth('')
-    setCategory('U10')
+  setCategory('U6')
     setGender('M')
     setCoachId('')
     setAvatarFile(null)

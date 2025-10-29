@@ -80,6 +80,8 @@ ON CONFLICT (name) DO NOTHING;
 -- Create default age categories
 INSERT INTO age_categories (name, age_from, age_to, description, is_active, created_by)
 VALUES
+  ('U6', 4, 5, 'Categoria Under 6 - Preșcolari', true, 'superadmin-1'),
+  ('U8', 6, 7, 'Categoria Under 8 - Copii', true, 'superadmin-1'),
   ('U10', 8, 9, 'Categoria Under 10 - Copii', true, 'superadmin-1'),
   ('U12', 10, 11, 'Categoria Under 12 - Copii', true, 'superadmin-1'),
   ('U14', 12, 13, 'Categoria Under 14 - Juniori IV', true, 'superadmin-1'),

@@ -158,6 +158,10 @@ export function useEvents() {
   return useApi<any[]>('events', [], { autoFetch: true });
 }
 
+export function useProbes(options: UseApiOptions = {}) {
+  return useApi<any[]>('coach-probes', [], { autoFetch: true, ...options });
+}
+
 export function useAccessRequests() {
   return useApi<any[]>('access-requests', [], { autoFetch: true });
 }
