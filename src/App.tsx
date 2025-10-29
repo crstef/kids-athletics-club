@@ -159,6 +159,12 @@ function AppContent() {
     }))
   }, [currentUser, apiTabs])
 
+  useEffect(() => {
+    if (currentUser) {
+      console.log('[debug] visibleTabs computed:', visibleTabs)
+    }
+  }, [visibleTabs, currentUser])
+
   // Fetch components when user logs in
   useEffect(() => {
     if (currentUser && !authLoading) {
