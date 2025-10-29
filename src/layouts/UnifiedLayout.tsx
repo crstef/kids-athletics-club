@@ -456,10 +456,10 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-3xl font-bold mb-2 bg-linear-to-r from-primary to-accent bg-clip-text text-transparent" style={{ fontFamily: 'Outfit', letterSpacing: '-0.02em' }}>
-                Dashboard
+                Dashboard (debug mode)
               </h2>
               <p className="text-muted-foreground">
-                Bine ai revenit, {currentUser.firstName}!
+                Widget rendering temporarily disabled for debugging.
               </p>
             </div>
             <Button variant="outline" onClick={() => setCustomizeOpen(true)}>
@@ -467,33 +467,6 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
               Personalizează
             </Button>
           </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 auto-rows-auto">
-          {safeEnabledWidgets.map(widgetId => {
-            const widgetConfig = WIDGET_REGISTRY[widgetId]
-            if (!widgetConfig) return null
-            
-            // Check permission
-            if (!userCanAccessWidget(widgetId, currentUser.permissions || [])) {
-              return null
-            }
-
-            if (allowedWidgetSet.size > 0 && !allowedWidgetSet.has(widgetId)) {
-              return null
-            }
-
-            const WidgetComponent = widgetConfig.component
-            
-            // Build props based on widget type
-            const widgetProps = buildWidgetProps(widgetId, props)
-            
-            return (
-              <div key={widgetId} className="col-span-1">
-                <WidgetComponent {...widgetProps} />
-              </div>
-            )
-          })}
         </div>
       </div>
     )
