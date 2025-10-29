@@ -12,7 +12,7 @@ import { hashPassword } from './lib/auth';
 import { DEFAULT_PERMISSIONS, DEFAULT_ROLES } from './lib/defaults'
 import type { Athlete, Result, AgeCategory, User, AccessRequest, Message, EventTypeCustom, Permission, UserPermission, Role, AgeCategoryCustom } from '@/lib/types'
 import { getDashboardComponent, FALLBACK_DASHBOARD } from '@/lib/dashboardRegistry';
-import { generateTabsFromPermissions } from '@/lib/permission-tab-mapping'
+import { generateTabsFromPermissions, userHasPermissionForTab } from '@/lib/permission-tab-mapping'
 
 // TAB_CONFIGS is now generated dynamically from user permissions via generateTabsFromPermissions()
 
@@ -107,8 +107,8 @@ function AppContent() {
   const visibleTabs = useMemo(() => {
     if (!currentUser) return []
 
-    const userPermissions = Array.isArray(currentUser.permissions) ? currentUser.permissions : []
-    const permissionTabs = generateTabsFromPermissions(userPermissions)
+    const sessionPermissions = Array.isArray(currentUser.permissions) ? currentUser.permissions : []
+    const permissionTabs = generateTabsFromPermissions(sessionPermissions)
     
     // Safety check to ensure permissionTabs is an array
     if (!Array.isArray(permissionTabs)) {
@@ -146,7 +146,9 @@ function AppContent() {
         .map(tab => tabById.get(tab.id))
         .filter((tab): tab is VisibleTabDescriptor => Boolean(tab))
 
-      const extras = apiTabEntries.filter(apiTab => !orderedByPermissions.some(tab => tab.id === apiTab.id))
+      const extras = apiTabEntries
+        .filter(apiTab => !orderedByPermissions.some(tab => tab.id === apiTab.id))
+        .filter(apiTab => userHasPermissionForTab(apiTab.permission, sessionPermissions))
 
       return [...orderedByPermissions, ...extras]
     }

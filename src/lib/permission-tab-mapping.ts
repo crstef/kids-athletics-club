@@ -105,6 +105,26 @@ const PERMISSION_ALIASES: Record<string, string> = {
   'events.delete': 'probes.view'
 }
 
+const PERMISSION_ALIAS_ENTRIES = Object.entries(PERMISSION_ALIASES)
+
+export function userHasPermissionForTab(permission: string, userPermissions: string[]): boolean {
+  if (userPermissions.includes('*')) return true
+  if (userPermissions.includes(permission)) return true
+
+  const directAlias = PERMISSION_ALIASES[permission]
+  if (directAlias && userPermissions.includes(directAlias)) {
+    return true
+  }
+
+  for (const [aliasPermission, targetPermission] of PERMISSION_ALIAS_ENTRIES) {
+    if (targetPermission === permission && userPermissions.includes(aliasPermission)) {
+      return true
+    }
+  }
+
+  return false
+}
+
 /**
  * Generate tabs from user permissions
  * @param userPermissions Array of permission strings the user has
