@@ -16,6 +16,44 @@ import { generateTabsFromPermissions } from '@/lib/permission-tab-mapping'
 
 // TAB_CONFIGS is now generated dynamically from user permissions via generateTabsFromPermissions()
 
+const coerceTabLabel = (label: unknown, fallback: string): string => {
+  if (typeof label === 'string') {
+    const trimmed = label.trim()
+    if (trimmed.length > 0) return trimmed
+  }
+
+  if (label && typeof label === 'object') {
+    const candidate =
+      (label as any).label ??
+      (label as any).displayName ??
+      (label as any).name
+
+    if (typeof candidate === 'string' && candidate.trim().length > 0) {
+      return candidate.trim()
+    }
+
+    if (typeof (label as any).toString === 'function') {
+      const asString = (label as any).toString()
+      if (typeof asString === 'string' && asString.trim().length > 0 && asString !== '[object Object]') {
+        return asString.trim()
+      }
+    }
+  }
+
+  if (typeof label === 'function') {
+    const candidate = (label as any).displayName ?? label.name
+    if (typeof candidate === 'string' && candidate.trim().length > 0) {
+      return candidate.trim()
+    }
+  }
+
+  if (label != null) {
+    console.warn('[visibleTabs] Unexpected label payload, falling back to id:', label)
+  }
+
+  return fallback
+}
+
 interface VisibleTabDescriptor {
   id: string
   label: string
@@ -83,7 +121,7 @@ function AppContent() {
         .filter(tab => tab.permissions?.canView !== false)
         .map(tab => ({
           id: tab.name,
-          label: tab.displayName,
+          label: coerceTabLabel(tab.displayName, tab.name),
           icon: tab.icon || 'LayoutDashboard',
           permission: `${tab.name}.view`
         }))
@@ -96,7 +134,7 @@ function AppContent() {
           if (!tabById.has(tab.id)) {
             tabById.set(tab.id, {
               id: tab.id,
-              label: tab.label,
+              label: coerceTabLabel(tab.label, tab.id),
               icon: tab.icon || 'LayoutDashboard',
               permission: tab.permission
             })
@@ -115,7 +153,7 @@ function AppContent() {
 
     return permissionTabs.map<VisibleTabDescriptor>((tab) => ({
       id: tab.id,
-      label: tab.label,
+      label: coerceTabLabel(tab.label, tab.id),
       icon: tab.icon || 'LayoutDashboard',
       permission: tab.permission
     }))
