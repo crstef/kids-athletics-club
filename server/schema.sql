@@ -375,6 +375,8 @@ CREATE TABLE IF NOT EXISTS coach_probes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(100) NOT NULL,
     description TEXT,
+    unit VARCHAR(50),
+    category VARCHAR(50),
     is_active BOOLEAN DEFAULT true,
     created_by UUID,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

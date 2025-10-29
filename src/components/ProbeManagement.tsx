@@ -10,13 +10,14 @@ import { toast } from 'sonner'
 import { EventTypeCustom } from '../lib/types'
 import { useAuth } from '@/lib/auth-context'
 import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table'
+import { Textarea } from '@/components/ui/textarea'
 
 interface ProbeManagementProps {
   probes: EventTypeCustom[]
   currentUserId: string
-  onAddProbe: (probe: Omit<EventTypeCustom, 'id' | 'createdAt' | 'createdBy'>) => void
-  onUpdateProbe: (probeId: string, updates: Partial<EventTypeCustom>) => void
-  onDeleteProbe: (probeId: string) => void
+  onAddProbe: (probe: Omit<EventTypeCustom, 'id' | 'createdAt' | 'createdBy'>) => Promise<void>
+  onUpdateProbe: (probeId: string, updates: Partial<EventTypeCustom>) => Promise<void>
+  onDeleteProbe: (probeId: string) => Promise<void>
 }
 
 export function ProbeManagement({
@@ -33,8 +34,8 @@ export function ProbeManagement({
   
   const [newProbeName, setNewProbeName] = useState('')
   const [newProbeDescription, setNewProbeDescription] = useState('')
-  const [newProbeUnit, setNewProbeUnit] = useState<string>('points')
-  const [newProbeCategory, setNewProbeCategory] = useState<string>('other')
+  const [newProbeUnit, setNewProbeUnit] = useState<string>('')
+  const [newProbeCategory, setNewProbeCategory] = useState<string>('')
 
   const { hasPermission } = useAuth()
   const canCreate = hasPermission('probes.create')
@@ -42,7 +43,14 @@ export function ProbeManagement({
   const canDelete = hasPermission('probes.delete')
 
 
-  const handleAdd = () => {
+  const resetFormState = () => {
+    setNewProbeName('')
+    setNewProbeDescription('')
+    setNewProbeUnit('')
+    setNewProbeCategory('')
+  }
+
+  const handleAdd = async () => {
     if (!canCreate) {
       toast.error('Nu ai permisiunea de a adăuga probe.')
       return
@@ -51,16 +59,21 @@ export function ProbeManagement({
       toast.error('Numele probei nu poate fi gol.')
       return
     }
-    onAddProbe({
-      name: newProbeName.trim(),
-      description: newProbeDescription.trim() || undefined,
-      unit: newProbeUnit as 'seconds' | 'meters' | 'points',
-      category: newProbeCategory as 'running' | 'jumping' | 'throwing' | 'other'
-    })
-    setAddDialogOpen(false)
+    try {
+      await onAddProbe({
+        name: newProbeName.trim(),
+        description: newProbeDescription.trim() || undefined,
+        unit: newProbeUnit.trim() || undefined,
+        category: newProbeCategory.trim() || undefined
+      })
+      resetFormState()
+      setAddDialogOpen(false)
+    } catch (error: any) {
+      toast.error(error?.message ?? 'Nu am putut adăuga proba')
+    }
   }
 
-  const handleEdit = () => {
+  const handleEdit = async () => {
     if (!canEdit) {
       toast.error('Nu ai permisiunea de a edita probe.')
       return
@@ -69,22 +82,26 @@ export function ProbeManagement({
       toast.error('Numele probei nu poate fi gol.')
       return
     }
-    onUpdateProbe(selectedProbe.id, {
-      name: newProbeName.trim(),
-      description: newProbeDescription.trim() || undefined,
-      unit: newProbeUnit as 'seconds' | 'meters' | 'points',
-      category: newProbeCategory as 'running' | 'jumping' | 'throwing' | 'other'
-    })
-    setEditDialogOpen(false)
-    setSelectedProbe(null)
+    try {
+      await onUpdateProbe(selectedProbe.id, {
+        name: newProbeName.trim(),
+        description: newProbeDescription.trim() || undefined,
+        unit: newProbeUnit.trim() || undefined,
+        category: newProbeCategory.trim() || undefined
+      })
+      setEditDialogOpen(false)
+      setSelectedProbe(null)
+    } catch (error: any) {
+      toast.error(error?.message ?? 'Nu am putut actualiza proba')
+    }
   }
 
   const openEditDialog = (probe: EventTypeCustom) => {
     setSelectedProbe(probe)
     setNewProbeName(probe.name)
-    setNewProbeDescription(probe.description || '')
-    setNewProbeUnit(probe.unit || 'points')
-    setNewProbeCategory(probe.category || 'other')
+  setNewProbeDescription(probe.description || '')
+  setNewProbeUnit(probe.unit || '')
+  setNewProbeCategory(probe.category || '')
     setEditDialogOpen(true)
   }
 
@@ -93,17 +110,19 @@ export function ProbeManagement({
     setDeleteDialogOpen(true)
   }
 
-  const handleDeleteProbe = () => {
+  const handleDeleteProbe = async () => {
     if (!canDelete) {
       toast.error('Nu ai permisiunea de a șterge probe.')
       return
     }
     if (!selectedProbe) return
-    
-    onDeleteProbe(selectedProbe.id)
-    setSelectedProbe(null)
-    setDeleteDialogOpen(false)
-    toast.success('Probă ștearsă cu succes!')
+    try {
+      await onDeleteProbe(selectedProbe.id)
+      setSelectedProbe(null)
+      setDeleteDialogOpen(false)
+    } catch (error: any) {
+      toast.error(error?.message ?? 'Nu am putut șterge proba')
+    }
   }
 
   return (
@@ -114,7 +133,15 @@ export function ProbeManagement({
           <p className="text-muted-foreground">Gestionează probele atletice</p>
         </div>
         {canCreate && (
-          <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+          <Dialog
+            open={addDialogOpen}
+            onOpenChange={(open) => {
+              setAddDialogOpen(open)
+              if (!open) {
+                resetFormState()
+              }
+            }}
+          >
             <DialogTrigger asChild>
               <Button className="gap-2">
                 <Plus size={20} weight="bold" />
@@ -138,7 +165,7 @@ export function ProbeManagement({
                   </Label>
                   <Input 
                     id="unit"
-                    placeholder="ex: minute, seconds, meters, points" 
+                    placeholder="ex: secunde, metri, puncte" 
                     value={newProbeUnit}
                     onChange={(e) => setNewProbeUnit(e.target.value)}
                     className="col-span-3"
@@ -150,10 +177,22 @@ export function ProbeManagement({
                   </Label>
                   <Input 
                     id="category"
-                    placeholder="ex: short track, long distance, speed" 
+                    placeholder="ex: Alergare, Aruncări, Sărituri" 
                     value={newProbeCategory}
                     onChange={(e) => setNewProbeCategory(e.target.value)}
                     className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-start gap-4">
+                  <Label htmlFor="description" className="text-right pt-2">
+                    Descriere
+                  </Label>
+                  <Textarea
+                    id="description"
+                    placeholder="Detalii suplimentare (opțional)"
+                    value={newProbeDescription}
+                    onChange={(e) => setNewProbeDescription(e.target.value)}
+                    className="col-span-3 min-h-[96px]"
                   />
                 </div>
               </div>
@@ -179,7 +218,9 @@ export function ProbeManagement({
           <TableHeader>
             <TableRow>
               <TableCell>Nume</TableCell>
+              <TableCell>Categorie</TableCell>
               <TableCell>Unitate</TableCell>
+              <TableCell>Descriere</TableCell>
               <TableCell>Acțiuni</TableCell>
             </TableRow>
           </TableHeader>
@@ -187,7 +228,9 @@ export function ProbeManagement({
             {probes.map((probe) => (
               <TableRow key={probe.id}>
                 <TableCell>{probe.name}</TableCell>
-                <TableCell>{probe.unit ?? '—'}</TableCell>
+                <TableCell>{probe.category?.trim() ? probe.category : '—'}</TableCell>
+                <TableCell>{probe.unit?.trim() ? probe.unit : '—'}</TableCell>
+                <TableCell className="max-w-[280px] whitespace-pre-wrap">{probe.description?.trim() ? probe.description : '—'}</TableCell>
                 <TableCell>
                   {(canEdit || canDelete) && (
                     <div className="flex items-center gap-2">
@@ -210,7 +253,15 @@ export function ProbeManagement({
         </Table>
       )}
 
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+      <Dialog
+        open={editDialogOpen}
+        onOpenChange={(open) => {
+          setEditDialogOpen(open)
+          if (!open) {
+            setSelectedProbe(null)
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Editează Probă</DialogTitle>
@@ -228,7 +279,7 @@ export function ProbeManagement({
               </Label>
               <Input 
                 id="unit-edit"
-                placeholder="ex: minute, seconds, meters, points" 
+                placeholder="ex: secunde, metri, puncte" 
                 value={newProbeUnit}
                 onChange={(e) => setNewProbeUnit(e.target.value)}
                 className="col-span-3"
@@ -240,10 +291,22 @@ export function ProbeManagement({
               </Label>
               <Input 
                 id="category-edit"
-                placeholder="ex: short track, long distance, speed" 
+                placeholder="ex: Alergare, Aruncări, Sărituri" 
                 value={newProbeCategory}
                 onChange={(e) => setNewProbeCategory(e.target.value)}
                 className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-start gap-4">
+              <Label htmlFor="description-edit" className="text-right pt-2">
+                Descriere
+              </Label>
+              <Textarea
+                id="description-edit"
+                placeholder="Detalii suplimentare (opțional)"
+                value={newProbeDescription}
+                onChange={(e) => setNewProbeDescription(e.target.value)}
+                className="col-span-3 min-h-[96px]"
               />
             </div>
           </div>
@@ -253,7 +316,15 @@ export function ProbeManagement({
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      <AlertDialog
+        open={deleteDialogOpen}
+        onOpenChange={(open) => {
+          setDeleteDialogOpen(open)
+          if (!open) {
+            setSelectedProbe(null)
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmare ștergere</AlertDialogTitle>
