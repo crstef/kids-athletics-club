@@ -47,7 +47,7 @@ export function StatsProbesWidget({ probes, onNavigateToTab }: StatsProbesWidget
 
   return (
     <StatWidget
-      icon={Target}
+      icon={<Target size={24} weight="fill" />}
       title="Probe Sportive"
       value={probes.length.toString()}
       onClick={() => onNavigateToTab?.('probes')}
