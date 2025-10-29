@@ -506,12 +506,21 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
             
             // Build props based on widget type
             const widgetProps = buildWidgetProps(widgetId, props)
-            
-            return (
-              <div key={widgetId} className="col-span-1">
-                <WidgetComponent {...widgetProps} />
-              </div>
-            )
+
+            try {
+              return (
+                <div key={widgetId} className="col-span-1">
+                  <WidgetComponent {...widgetProps} />
+                </div>
+              )
+            } catch (err) {
+              console.error('[debug] widget render error', widgetId, err)
+              return (
+                <div key={widgetId} className="col-span-1 border border-destructive rounded p-4 text-destructive">
+                  Widget {widgetId} failed to render.
+                </div>
+              )
+            }
           })}
         </div>
       </div>
