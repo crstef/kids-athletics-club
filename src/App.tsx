@@ -10,7 +10,7 @@ import { useComponents } from '@/hooks/use-components'
 import { useInactivityLogout } from '@/hooks/use-inactivity-logout'
 import { hashPassword } from './lib/auth';
 import { DEFAULT_PERMISSIONS, DEFAULT_ROLES } from './lib/defaults'
-import type { Athlete, Result, AgeCategory, User, AccessRequest, Message, EventTypeCustom, Permission, UserPermission, Role, AgeCategoryCustom } from '@/lib/types'
+import type { Athlete, Result, AgeCategory, User, AccessRequest, Message, EventTypeCustom, Permission, UserPermission, Role, AgeCategoryCustom, Dashboard } from '@/lib/types'
 import { getDashboardComponent } from '@/lib/dashboardRegistry';
 import { generateTabsFromPermissions } from '@/lib/permission-tab-mapping'
 
@@ -940,27 +940,20 @@ function AppContent() {
     // Get user's dashboards from auth context
     const userDashboards = currentUser?.dashboards || [];
     
-    // If no dashboards assigned, show error and logout
-    if (userDashboards.length === 0) {
-      console.error('User has no dashboards assigned');
-      return (
-        <div className="min-h-screen bg-background flex items-center justify-center">
-          <div className="text-center p-8 max-w-md">
-            <h2 className="text-2xl font-bold mb-2">Acces restricționat</h2>
-            <p className="text-muted-foreground mb-4">
-              Nu aveți permisiunile necesare pentru a vizualiza un dashboard.
-            </p>
-            <p className="text-sm text-muted-foreground mb-4">
-              Contactați administratorul pentru a vă asigna un rol și dashboards corespunzătoare.
-            </p>
-            <Button onClick={logout}>Deconectare</Button>
-          </div>
-        </div>
-      );
+    let dashboardToRender = userDashboards.find(d => d.isDefault) || userDashboards[0];
+
+    if (!dashboardToRender) {
+      console.warn('[renderDashboard] No dashboards assigned, falling back to UnifiedLayout');
+      dashboardToRender = {
+        id: 'fallback-unified-layout',
+        name: 'UnifiedLayout',
+        displayName: 'Unified Layout',
+        componentName: 'UnifiedLayout',
+        isActive: true,
+        isSystem: true,
+        createdAt: new Date().toISOString(),
+      } as Dashboard;
     }
-    
-    // Use default dashboard or first available
-    const dashboardToRender = userDashboards.find(d => d.isDefault) || userDashboards[0];
     
     if (dashboardToRender) {
       const Component = getDashboardComponent(dashboardToRender.componentName);
