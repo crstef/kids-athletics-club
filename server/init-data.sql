@@ -162,6 +162,8 @@ ON CONFLICT DO NOTHING;
 
 INSERT INTO age_categories (name, min_age, max_age, gender, description, created_at, updated_at) VALUES
 -- Categorii Băieți
+('U6 Băieți', 4, 5, 'M', 'Categorie sub 6 ani - Băieți', NOW(), NOW()),
+('U8 Băieți', 6, 7, 'M', 'Categorie sub 8 ani - Băieți', NOW(), NOW()),
 ('U10 Băieți', 8, 9, 'M', 'Categorie sub 10 ani - Băieți', NOW(), NOW()),
 ('U12 Băieți', 10, 11, 'M', 'Categorie sub 12 ani - Băieți', NOW(), NOW()),
 ('U14 Băieți', 12, 13, 'M', 'Categorie sub 14 ani - Băieți', NOW(), NOW()),
@@ -169,6 +171,8 @@ INSERT INTO age_categories (name, min_age, max_age, gender, description, created
 ('U18 Băieți', 16, 17, 'M', 'Categorie sub 18 ani - Băieți', NOW(), NOW()),
 
 -- Categorii Fete
+('U6 Fete', 4, 5, 'F', 'Categorie sub 6 ani - Fete', NOW(), NOW()),
+('U8 Fete', 6, 7, 'F', 'Categorie sub 8 ani - Fete', NOW(), NOW()),
 ('U10 Fete', 8, 9, 'F', 'Categorie sub 10 ani - Fete', NOW(), NOW()),
 ('U12 Fete', 10, 11, 'F', 'Categorie sub 12 ani - Fete', NOW(), NOW()),
 ('U14 Fete', 12, 13, 'F', 'Categorie sub 14 ani - Fete', NOW(), NOW()),

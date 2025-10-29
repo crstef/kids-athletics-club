@@ -5,7 +5,7 @@ import { Trophy, UserCircle } from '@phosphor-icons/react'
 import { AuthProvider, useAuth } from './lib/auth-context'
 import { AuthDialog } from '@/components/AuthDialog'
 import { apiClient } from '@/lib/api-client'
-import { useAthletes, useResults, useUsers, useAccessRequests, useMessages, useEvents, usePermissions, useUserPermissions, useApprovalRequests, useRoles, useAgeCategories } from '@/hooks/use-api'
+import { useAthletes, useResults, useUsers, useAccessRequests, useMessages, useProbes, usePermissions, useUserPermissions, useApprovalRequests, useRoles, useAgeCategories } from '@/hooks/use-api'
 import { useComponents } from '@/hooks/use-components'
 import { useInactivityLogout } from '@/hooks/use-inactivity-logout'
 import { hashPassword } from './lib/auth';
@@ -78,7 +78,7 @@ function AppContent() {
   const [users, setUsers, _usersLoading, _usersError, refetchUsers] = useUsers()
   const [accessRequests, setAccessRequests, _accessRequestsLoading, _accessRequestsError, refetchAccessRequests] = useAccessRequests()
   const [messages, _setMessages, _messagesLoading, _messagesError, refetchMessages] = useMessages()
-  const [probes, _setProbes, _probesLoading, _probesError, refetchProbes] = useEvents()
+  const [probes, _setProbes, _probesLoading, _probesError, refetchProbes] = useProbes()
   const [permissions, setPermissions, _permissionsLoading, _permissionsError, refetchPermissions] = usePermissions()
   const [userPermissions, setUserPermissions, _userPermissionsLoading, _userPermissionsError, refetchUserPermissions] = useUserPermissions()
   const [approvalRequests, setApprovalRequests, _approvalRequestsLoading, _approvalRequestsError, refetchApprovalRequests] = useApprovalRequests()
@@ -235,8 +235,8 @@ function AppContent() {
       // Refetch data based on permissions
       if (hasPermission('athletes.view')) refetchAthletes()
       if (hasPermission('results.view')) refetchResults()
-      if (hasPermission('age_categories.view')) refetchAgeCategories()
-      if (hasPermission('events.view')) refetchProbes()
+  if (hasPermission('age_categories.view')) refetchAgeCategories()
+  if (hasPermission('probes.view') || hasPermission('events.view')) refetchProbes()
       if (hasPermission('users.view')) refetchUsers()
       if (hasPermission('roles.view')) refetchRoles()
       if (hasPermission('permissions.view')) refetchPermissions()
@@ -256,7 +256,7 @@ function AppContent() {
     // Determine what data to fetch based on active tab
     const loadData = () => {
       switch (activeTab) {
-        case 'events':
+        case 'probes':
           if (probes.length === 0) refetchProbes()
           break
         case 'messages':
@@ -342,6 +342,27 @@ function AppContent() {
       const existingAgeCategories = ageCategories || []
       if (existingAgeCategories.length === 0) {
         const defaultAgeCategories: AgeCategoryCustom[] = [
+
+           {
+            id: `cat-${Date.now()}-1`,
+            name: 'U6',
+            ageFrom: 4,
+            ageTo: 5,
+            description: 'Categoria Under 10 - Copii',
+            isActive: true,
+            createdAt: new Date().toISOString(),
+            createdBy: 'system'
+          },
+           {
+            id: `cat-${Date.now()}-1`,
+            name: 'U8',
+            ageFrom: 6,
+            ageTo: 7,
+            description: 'Categoria Under 10 - Copii',
+            isActive: true,
+            createdAt: new Date().toISOString(),
+            createdBy: 'system'
+          },
           {
             id: `cat-${Date.now()}-1`,
             name: 'U10',

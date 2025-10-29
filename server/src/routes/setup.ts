@@ -229,6 +229,8 @@ export const initializeData = async (req: Request, res: Response) => {
     // 6. Insert Age Categories (fără gender - acesta e în tabelul athletes)
     await client.query(`
       INSERT INTO age_categories (name, age_from, age_to, description, created_at, updated_at) VALUES
+      ('U6', 4, 5, 'Categorie sub 6 ani', NOW(), NOW()),
+      ('U8', 6, 7, 'Categorie sub 8 ani', NOW(), NOW()),
       ('U10', 8, 9, 'Categorie sub 10 ani', NOW(), NOW()),
       ('U12', 10, 11, 'Categorie sub 12 ani', NOW(), NOW()),
       ('U14', 12, 13, 'Categorie sub 14 ani', NOW(), NOW()),
@@ -236,7 +238,7 @@ export const initializeData = async (req: Request, res: Response) => {
       ('U18', 16, 17, 'Categorie sub 18 ani', NOW(), NOW())
       ON CONFLICT (name) DO NOTHING
     `);
-    results.ageCategories = 5;
+  results.ageCategories = 7;
 
     // 3. Insert dashboards - UNIFIED SYSTEM: One layout for all roles
     const dashboardsResult = await client.query(`

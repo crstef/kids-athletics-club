@@ -56,6 +56,8 @@ export function EditAthleteDialog({ athlete, parents, coaches, onEdit, onUploadA
   }, [dateOfBirth])
 
   const calculatedCategory = useMemo((): AgeCategory => {
+    if (calculatedAge < 6) return 'U6'
+    if (calculatedAge < 8) return 'U8'
     if (calculatedAge < 10) return 'U10'
     if (calculatedAge < 12) return 'U12'
     if (calculatedAge < 14) return 'U14'

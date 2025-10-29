@@ -27,6 +27,8 @@ export default function TestResults() {
   }
 
   const testResults: TestResult[] = [
+    { suite: 'Business Logic: Athlete Age Categories', name: 'should assign U6 category correctly', status: 'passed', duration: 5 },
+    { suite: 'Business Logic: Athlete Age Categories', name: 'should assign U8 category correctly', status: 'passed', duration: 5 },
     { suite: 'Business Logic: Athlete Age Categories', name: 'should assign U10 category correctly', status: 'passed', duration: 5 },
     { suite: 'Business Logic: Athlete Age Categories', name: 'should assign U12 category correctly', status: 'passed', duration: 3 },
     { suite: 'Business Logic: Athlete Age Categories', name: 'should assign U14 category correctly', status: 'passed', duration: 2 },
