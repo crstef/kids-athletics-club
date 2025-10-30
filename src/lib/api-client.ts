@@ -316,6 +316,11 @@ class ApiClient {
     return this.request<any[]>('/probes');
   }
 
+  // Legacy name kept for dashboards/components still referring to "events"
+  async getEvents() {
+    return this.getProbes();
+  }
+
   async createProbe(data: any) {
     return this.request('/probes', {
       method: 'POST',

@@ -36,8 +36,9 @@ export function useApi<T>(
           result = await apiClient.getResults();
           break;
         case 'events':
-          result = await apiClient.getEvents();
-          break;
+        case 'coach-probes':
+            result = await apiClient.getProbes();
+            break;
         case 'access-requests':
           result = await apiClient.getAccessRequests();
           break;
