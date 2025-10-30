@@ -27,6 +27,8 @@ function calculateAge(dateOfBirth: string): number {
 
 // Funcție pentru determinarea categoriei pe bază de vârstă
 function determineCategory(age: number): AgeCategory {
+  if (age < 6) return 'U6'
+  if (age < 8) return 'U8'
   if (age < 10) return 'U10'
   if (age < 12) return 'U12'
   if (age < 14) return 'U14'
@@ -176,19 +178,6 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
               </div>
             </>
           )}
-          <div className="space-y-2">
-            <Label htmlFor="gender">Gen *</Label>
-            <Select value={gender} onValueChange={(v) => setGender(v as Gender)}>
-              <SelectTrigger id="gender">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="M">Masculin</SelectItem>
-                <SelectItem value="F">Feminin</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
           <PermissionGate perm="athletes.avatar.upload">
             <div className="space-y-2">
               <Label htmlFor="avatar">Poză (opțional)</Label>
@@ -232,6 +221,18 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
               </div>
             </div>
           </PermissionGate>
+          <div className="space-y-2">
+            <Label htmlFor="gender">Gen *</Label>
+            <Select value={gender} onValueChange={(v) => setGender(v as Gender)}>
+              <SelectTrigger id="gender">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="M">Masculin</SelectItem>
+                <SelectItem value="F">Feminin</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           {coaches.length > 0 && (
             <div className="space-y-2">
               <Label htmlFor="coach">Antrenor (opțional)</Label>

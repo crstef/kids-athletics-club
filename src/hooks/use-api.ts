@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
-import { apiClient } from '@/lib/api-client';
-import { useAuth } from '@/lib/auth-context';
- 
+import { useState, useEffect, useCallback } from "react";
+import { apiClient } from "@/lib/api-client";
+import { useAuth } from "@/lib/auth-context";
+
 interface UseApiOptions {
   autoFetch?: boolean;
   onError?: (error: Error) => void;
@@ -12,7 +12,7 @@ export function useApi<T>(
   initialValue: T,
   options: UseApiOptions = {}
 ): [T, (valueOrFn: T | ((current: T) => T)) => void, boolean, Error | null, () => Promise<void>] {
-  const { autoFetch = false, onError } = options; // Changed default to false
+  const { autoFetch = false, onError } = options;
   const { currentUser, loading: authLoading } = useAuth();
   const [data, setDataState] = useState<T>(initialValue);
   const [loading, setLoading] = useState<boolean>(autoFetch);
@@ -24,48 +24,46 @@ export function useApi<T>(
     setError(null);
     try {
       let result: any;
-      
+
       switch (key) {
-        case 'users':
+        case "users":
           result = await apiClient.getUsers();
           break;
-        case 'athletes':
+        case "athletes":
           result = await apiClient.getAthletes();
           break;
-        case 'results':
+        case "results":
           result = await apiClient.getResults();
           break;
-        case 'events':
+        case "events":
+        case "coach-probes":
           result = await apiClient.getEvents();
           break;
-        case 'access-requests':
+        case "access-requests":
           result = await apiClient.getAccessRequests();
           break;
-        case 'messages':
+        case "messages":
           result = await apiClient.getMessages();
           break;
-        case 'permissions':
+        case "permissions":
           result = await apiClient.getPermissions();
           break;
-        case 'roles':
+        case "roles":
           result = await apiClient.getRoles();
           break;
-        case 'approval-requests':
+        case "approval-requests":
           result = await apiClient.getApprovalRequests();
           break;
-        case 'age-categories':
+        case "age-categories":
           result = await apiClient.getAgeCategories();
           break;
-        case 'coach-probes':
-          result = await apiClient.getProbes();
-          break;
-        case 'user-permissions':
+        case "user-permissions":
           result = await apiClient.getUserPermissions();
           break;
         default:
           result = initialValue;
       }
-      
+
       setDataState(result);
       setHasFetched(true);
     } catch (err) {
@@ -78,7 +76,6 @@ export function useApi<T>(
   }, [key, onError]);
 
   useEffect(() => {
-    // Only fetch if autoFetch is true, auth is not loading, user is logged in, and we haven't fetched yet
     if (autoFetch && !authLoading && currentUser && !hasFetched) {
       fetchData();
     }
@@ -86,17 +83,16 @@ export function useApi<T>(
 
   const setData = useCallback((valueOrFn: T | ((current: T) => T)) => {
     setDataState(prevData => {
-      const newData = typeof valueOrFn === 'function' 
-        ? (valueOrFn as (current: T) => T)(prevData) 
-        : valueOrFn;
+      const newData =
+        typeof valueOrFn === "function"
+          ? (valueOrFn as (current: T) => T)(prevData)
+          : valueOrFn;
       return newData;
     });
   }, []);
 
   const forceRefetch = useCallback(async () => {
-    // Reset hasFetched to allow refetch, then call fetchData
     setHasFetched(false);
-    // Wait a tick for state to update
     await new Promise(resolve => setTimeout(resolve, 0));
     return fetchData();
   }, [fetchData]);
@@ -154,8 +150,8 @@ export function useResults() {
   return useApi<any[]>('results', [], { autoFetch: true });
 }
 
-export function useEvents() {
-  return useApi<any[]>('events', [], { autoFetch: true });
+export function useEvents(options: UseApiOptions = {}) {
+  return useApi<any[]>('events', [], { autoFetch: true, ...options });
 }
 
 export function useAccessRequests() {
