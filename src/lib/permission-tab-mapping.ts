@@ -35,10 +35,10 @@ export const PERMISSION_TO_TAB_MAP: Record<string, TabConfig> = {
     category: 'data',
     order: 10
   },
-  'probes.view': {
-    id: 'probes',
+  'events.view': {
+    id: 'events',
     label: 'Probe',
-    permission: 'probes.view',
+    permission: 'events.view',
     category: 'data',
     order: 20
   },
@@ -98,11 +98,11 @@ export const PERMISSION_ALIASES: Record<string, string> = {
   'approval_requests.approve.own': 'approval_requests.view',
   'requests.view.all': 'approval_requests.view',
   'requests.view.own': 'approval_requests.view',
-  'events.view': 'probes.view',
-  'events.manage': 'probes.view',
-  'events.create': 'probes.view',
-  'events.edit': 'probes.view',
-  'events.delete': 'probes.view'
+  'probes.view': 'events.view',
+  'probes.create': 'events.create',
+  'probes.edit': 'events.edit',
+  'probes.delete': 'events.delete',
+  'events.manage': 'events.view'
 }
 
 const REVERSE_PERMISSION_ALIASES = Object.entries(PERMISSION_ALIASES).reduce<Record<string, string[]>>((acc, [alias, target]) => {
@@ -114,15 +114,15 @@ const REVERSE_PERMISSION_ALIASES = Object.entries(PERMISSION_ALIASES).reduce<Rec
 }, {})
 
 const PERMISSION_EQUIVALENTS: Record<string, string[]> = {
-  'probes.view': ['events.view'],
   'events.view': ['probes.view'],
-  'probes.create': ['events.create', 'events.manage'],
+  'probes.view': ['events.view'],
   'events.create': ['probes.create', 'events.manage'],
-  'probes.edit': ['events.edit', 'events.manage'],
+  'probes.create': ['events.create', 'events.manage'],
   'events.edit': ['probes.edit', 'events.manage'],
-  'probes.delete': ['events.delete', 'events.manage'],
+  'probes.edit': ['events.edit', 'events.manage'],
   'events.delete': ['probes.delete', 'events.manage'],
-  'events.manage': ['probes.view', 'probes.create', 'probes.edit', 'probes.delete'],
+  'probes.delete': ['events.delete', 'events.manage'],
+  'events.manage': ['events.view', 'events.create', 'events.edit', 'events.delete'],
   'dashboard.view': [
     'dashboard.view.superadmin',
     'dashboard.view.coach',

@@ -6,15 +6,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.authorizeDb = void 0;
 const database_1 = __importDefault(require("../config/database"));
 const PERMISSION_EQUIVALENTS = {
-    'probes.view': ['events.view'],
-    'probes.create': ['events.create', 'events.manage'],
-    'probes.edit': ['events.edit', 'events.manage'],
-    'probes.delete': ['events.delete', 'events.manage'],
     'events.view': ['probes.view'],
-    'events.create': ['probes.create'],
-    'events.edit': ['probes.edit'],
-    'events.delete': ['probes.delete'],
-    'events.manage': ['probes.view', 'probes.create', 'probes.edit', 'probes.delete']
+    'probes.view': ['events.view'],
+    'events.create': ['probes.create', 'events.manage'],
+    'probes.create': ['events.create', 'events.manage'],
+    'events.edit': ['probes.edit', 'events.manage'],
+    'probes.edit': ['events.edit', 'events.manage'],
+    'events.delete': ['probes.delete', 'events.manage'],
+    'probes.delete': ['events.delete', 'events.manage'],
+    'events.manage': ['events.view', 'events.create', 'events.edit', 'events.delete']
 };
 const OWN_SUFFIX = '.own';
 const ALL_SUFFIX = '.all';

@@ -38,9 +38,9 @@ export function ProbeManagement({
   const [newProbeCategory, setNewProbeCategory] = useState<string>('')
 
   const { hasPermission } = useAuth()
-  const canCreate = hasPermission('probes.create')
-  const canEdit = hasPermission('probes.edit')
-  const canDelete = hasPermission('probes.delete')
+  const canCreate = hasPermission('events.create')
+  const canEdit = hasPermission('events.edit')
+  const canDelete = hasPermission('events.delete')
 
 
   const resetFormState = () => {
@@ -57,6 +57,14 @@ export function ProbeManagement({
     }
     if (!newProbeName.trim()) {
       toast.error('Numele probei nu poate fi gol.')
+      return
+    }
+    if (!newProbeUnit.trim()) {
+      toast.error('Unitatea de măsură este obligatorie.')
+      return
+    }
+    if (!newProbeCategory.trim()) {
+      toast.error('Categoria este obligatorie.')
       return
     }
     try {
@@ -80,6 +88,14 @@ export function ProbeManagement({
     }
     if (!selectedProbe || !newProbeName.trim()) {
       toast.error('Numele probei nu poate fi gol.')
+      return
+    }
+    if (!newProbeUnit.trim()) {
+      toast.error('Unitatea de măsură este obligatorie.')
+      return
+    }
+    if (!newProbeCategory.trim()) {
+      toast.error('Categoria este obligatorie.')
       return
     }
     try {
@@ -169,6 +185,7 @@ export function ProbeManagement({
                     value={newProbeUnit}
                     onChange={(e) => setNewProbeUnit(e.target.value)}
                     className="col-span-3"
+                    required
                   />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
@@ -181,6 +198,7 @@ export function ProbeManagement({
                     value={newProbeCategory}
                     onChange={(e) => setNewProbeCategory(e.target.value)}
                     className="col-span-3"
+                    required
                   />
                 </div>
                 <div className="grid grid-cols-4 items-start gap-4">
@@ -283,6 +301,7 @@ export function ProbeManagement({
                 value={newProbeUnit}
                 onChange={(e) => setNewProbeUnit(e.target.value)}
                 className="col-span-3"
+                required
               />
             </div>
              <div className="grid grid-cols-4 items-center gap-4">
@@ -295,6 +314,7 @@ export function ProbeManagement({
                 value={newProbeCategory}
                 onChange={(e) => setNewProbeCategory(e.target.value)}
                 className="col-span-3"
+                required
               />
             </div>
             <div className="grid grid-cols-4 items-start gap-4">

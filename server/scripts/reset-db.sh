@@ -24,7 +24,7 @@ BEGIN
     WHERE schemaname = current_schema()
       AND tablename IN (
         'user_permissions','role_permissions','approval_requests','messages','access_requests',
-        'results','athletes','users','roles','permissions','events','age_categories','coach_probes'
+  'results','athletes','users','roles','permissions','events','age_categories'
       )
   );
 END $$;'
@@ -38,7 +38,7 @@ psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 
 echo "Schema re-applied."
 
 if [[ "${1:-}" == "--seed" ]]; then
-  echo "Seeding baseline data via SQL (roles/permissions/categories/probes)..."
+  echo "Seeding baseline data via SQL (roles/permissions/categories/events)..."
   # Provide minimal seed: rely on API endpoints or write a small SQL seed here.
   # For full seed you can run the app and hit:
   #   curl -X GET http://localhost:3001/api/setup/initialize-data

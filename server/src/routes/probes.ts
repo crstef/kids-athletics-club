@@ -6,9 +6,9 @@ import authorizeDb from '../middleware/authorizeDb';
 const router = Router();
 router.use(authenticate);
 
-router.get('/', authorizeDb('probes.view'), getAllProbes);
-router.post('/', authorizeDb('probes.create'), createProbe);
-router.put('/:id', authorizeDb('probes.edit'), updateProbe);
-router.delete('/:id', authorizeDb('probes.delete'), deleteProbe);
+router.get('/', authorizeDb('events.view'), getAllProbes);
+router.post('/', authorizeDb('events.create'), createProbe);
+router.put('/:id', authorizeDb('events.edit'), updateProbe);
+router.delete('/:id', authorizeDb('events.delete'), deleteProbe);
 
 export default router;

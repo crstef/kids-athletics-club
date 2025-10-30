@@ -5,7 +5,7 @@ import { Trophy, UserCircle } from '@phosphor-icons/react'
 import { AuthProvider, useAuth } from './lib/auth-context'
 import { AuthDialog } from '@/components/AuthDialog'
 import { apiClient } from '@/lib/api-client'
-import { useAthletes, useResults, useUsers, useAccessRequests, useMessages, useProbes, usePermissions, useUserPermissions, useApprovalRequests, useRoles, useAgeCategories } from '@/hooks/use-api'
+import { useAthletes, useResults, useUsers, useAccessRequests, useMessages, useEvents, usePermissions, useUserPermissions, useApprovalRequests, useRoles, useAgeCategories } from '@/hooks/use-api'
 import { useComponents } from '@/hooks/use-components'
 import { useInactivityLogout } from '@/hooks/use-inactivity-logout'
 import { hashPassword } from './lib/auth';
@@ -78,7 +78,7 @@ function AppContent() {
   const [users, setUsers, _usersLoading, _usersError, refetchUsers] = useUsers()
   const [accessRequests, setAccessRequests, _accessRequestsLoading, _accessRequestsError, refetchAccessRequests] = useAccessRequests()
   const [messages, _setMessages, _messagesLoading, _messagesError, refetchMessages] = useMessages()
-  const [probes, _setProbes, _probesLoading, _probesError, refetchProbes] = useProbes()
+  const [probes, _setProbes, _probesLoading, _probesError, refetchProbes] = useEvents()
   const [permissions, setPermissions, _permissionsLoading, _permissionsError, refetchPermissions] = usePermissions()
   const [userPermissions, setUserPermissions, _userPermissionsLoading, _userPermissionsError, refetchUserPermissions] = useUserPermissions()
   const [approvalRequests, setApprovalRequests, _approvalRequestsLoading, _approvalRequestsError, refetchApprovalRequests] = useApprovalRequests()
@@ -240,7 +240,7 @@ function AppContent() {
       if (hasPermission('athletes.view')) refetchAthletes()
       if (hasPermission('results.view')) refetchResults()
   if (hasPermission('age_categories.view')) refetchAgeCategories()
-  if (hasPermission('probes.view') || hasPermission('events.view')) refetchProbes()
+  if (hasPermission('events.view')) refetchProbes()
       if (hasPermission('users.view')) refetchUsers()
       if (hasPermission('roles.view')) refetchRoles()
       if (hasPermission('permissions.view')) refetchPermissions()
@@ -260,7 +260,7 @@ function AppContent() {
     // Determine what data to fetch based on active tab
     const loadData = () => {
       switch (activeTab) {
-        case 'probes':
+        case 'events':
           if (probes.length === 0) refetchProbes()
           break
         case 'messages':
@@ -589,6 +589,14 @@ function AppContent() {
         unit: probeData.unit?.trim() || undefined,
         category: probeData.category?.trim() || undefined
       }
+      if (!payload.unit) {
+        toast.error('Unitatea de măsură este obligatorie pentru probe.')
+        return
+      }
+      if (!payload.category) {
+        toast.error('Categoria probei este obligatorie.')
+        return
+      }
       await apiClient.createProbe(payload)
       await refetchProbes()
       toast.success('Probă adăugată cu succes!')
@@ -600,12 +608,16 @@ function AppContent() {
 
   const handleEditProbe = async (id: string, probeData: Partial<EventTypeCustom>) => {
     try {
+      const trimmedName = probeData.name?.trim()
+      const trimmedDescription = probeData.description?.trim()
+      const trimmedUnit = probeData.unit?.trim()
+      const trimmedCategory = probeData.category?.trim()
       const payload = {
         ...probeData,
-        name: probeData.name?.trim(),
-        description: probeData.description?.trim(),
-        unit: probeData.unit?.trim(),
-        category: probeData.category?.trim()
+        name: trimmedName,
+        description: trimmedDescription || undefined,
+        unit: trimmedUnit || undefined,
+        category: trimmedCategory || undefined
       }
       await apiClient.updateProbe(id, payload)
       await refetchProbes()

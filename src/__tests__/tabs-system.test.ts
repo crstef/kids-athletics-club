@@ -15,7 +15,7 @@ describe('Permission to Tab Mapping System', () => {
   describe('PERMISSION_TO_TAB_MAP completeness', () => {
     it('should have all required tabs mapped', () => {
       // NOTE: 'permissions' tab removed - permissions now managed via Roluri modal
-  const requiredTabs = ['dashboard', 'athletes', 'probes', 'approvals', 'messages', 'users', 'roles', 'categories']
+  const requiredTabs = ['dashboard', 'athletes', 'events', 'approvals', 'messages', 'users', 'roles', 'categories']
       
       for (const tabId of requiredTabs) {
         const found = Object.values(PERMISSION_TO_TAB_MAP).some(tab => tab.id === tabId)
@@ -55,7 +55,7 @@ describe('Permission to Tab Mapping System', () => {
 
   describe('generateTabsFromPermissions function', () => {
     it('should always include dashboard for authenticated users', () => {
-      const permissions = ['athletes.view', 'probes.view']
+  const permissions = ['athletes.view', 'events.view']
       const tabs = generateTabsFromPermissions(permissions)
       
       expect(tabs.some(t => t.id === 'dashboard')).toBe(true)
@@ -66,7 +66,7 @@ describe('Permission to Tab Mapping System', () => {
       const tabs = generateTabsFromPermissions(permissions)
       
       // Should include all mapped tabs (excluding permissions tab which was removed)
-  const expectedTabs = ['dashboard', 'athletes', 'probes', 'approvals', 'messages', 'users', 'roles', 'categories']
+  const expectedTabs = ['dashboard', 'athletes', 'events', 'approvals', 'messages', 'users', 'roles', 'categories']
       for (const tabId of expectedTabs) {
         expect(tabs.some(t => t.id === tabId)).toBe(true)
       }
@@ -82,10 +82,10 @@ describe('Permission to Tab Mapping System', () => {
       ]
       const tabs = generateTabsFromPermissions(coachPermissions)
       
-      // Coach should have: dashboard, athletes, events, requests, messages
+  // Coach should have: dashboard, athletes, events, requests, messages
       const coachTabIds = tabs.map(t => t.id)
       expect(coachTabIds).toContain('athletes')
-      expect(coachTabIds).toContain('events')
+  expect(coachTabIds).toContain('events')
   expect(coachTabIds).toContain('messages')
   expect(coachTabIds).toContain('approvals')
       
@@ -127,7 +127,7 @@ describe('Permission to Tab Mapping System', () => {
     })
 
     it('should return sorted tabs by order', () => {
-      const permissions = ['users.view', 'athletes.view', 'permissions.view', 'events.view']
+  const permissions = ['users.view', 'athletes.view', 'permissions.view', 'events.view']
       const tabs = generateTabsFromPermissions(permissions)
       
       for (let i = 0; i < tabs.length - 1; i++) {
@@ -144,7 +144,7 @@ describe('Permission to Tab Mapping System', () => {
     })
 
     it('should ignore unknown permissions', () => {
-      const permissions = ['athletes.view', 'unknown.permission', 'events.view']
+  const permissions = ['athletes.view', 'unknown.permission', 'events.view']
       const tabs = generateTabsFromPermissions(permissions)
       
       // Should still work with known permissions
@@ -166,7 +166,7 @@ describe('Permission to Tab Mapping System', () => {
     it('should return correct permission for each tab', () => {
       const testCases = [
         { tabId: 'athletes', expectedPermission: 'athletes.view' },
-        { tabId: 'events', expectedPermission: 'events.view' },
+  { tabId: 'events', expectedPermission: 'events.view' },
         { tabId: 'users', expectedPermission: 'users.view' },
         { tabId: 'roles', expectedPermission: 'roles.view' },
         { tabId: 'categories', expectedPermission: 'age_categories.view' },
@@ -186,7 +186,7 @@ describe('Permission to Tab Mapping System', () => {
     })
 
     it('should be reversible with generateTabsFromPermissions', () => {
-      const testPermissions = ['athletes.view', 'users.view', 'roles.view']
+  const testPermissions = ['athletes.view', 'users.view', 'roles.view', 'events.view']
       
       for (const permission of testPermissions) {
         // Get tab from permission
@@ -248,7 +248,7 @@ describe('Permission to Tab Mapping System', () => {
   describe('FIX 2: Universal Data Loading', () => {
     it('should map each tab to its data loading needs', () => {
       const tabToDataMap: Record<string, string[]> = {
-        'events': ['probes'],
+  'events': ['events'],
         'messages': ['messages'],
         'users': ['users'],
         'roles': ['roles', 'userPermissions'],
@@ -302,7 +302,7 @@ describe('Permission to Tab Mapping System', () => {
       
       // Should have
       expect(coachTabIds.has('athletes')).toBe(true)
-      expect(coachTabIds.has('events')).toBe(true)
+  expect(coachTabIds.has('events')).toBe(true)
       expect(coachTabIds.has('messages')).toBe(true)
   expect(coachTabIds.has('approvals')).toBe(true)
       

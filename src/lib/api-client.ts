@@ -311,32 +311,32 @@ class ApiClient {
     return this.request(`/age-categories/${id}`, { method: 'DELETE' });
   }
 
-  // Probes
+  // Probes (backed by events API)
   async getProbes() {
-    return this.request<any[]>('/probes');
+    return this.request<any[]>('/events');
   }
 
   // Legacy name kept for dashboards/components still referring to "events"
   async getEvents() {
-    return this.getProbes();
+    return this.request<any[]>('/events');
   }
 
   async createProbe(data: any) {
-    return this.request('/probes', {
+    return this.request('/events', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
   async updateProbe(id: string, data: any) {
-    return this.request(`/probes/${id}`, {
+    return this.request(`/events/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
   }
 
   async deleteProbe(id: string) {
-    return this.request(`/probes/${id}`, { method: 'DELETE' });
+    return this.request(`/events/${id}`, { method: 'DELETE' });
   }
 
   // User Permissions

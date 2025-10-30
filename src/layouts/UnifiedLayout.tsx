@@ -700,8 +700,8 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
             </TabsContent>
           )}
 
-          {isTabVisible('probes') && (
-                <TabsContent value="probes" className="mt-6">
+      {isTabVisible('events') && (
+        <TabsContent value="events" className="mt-6">
               <ProbeManagement
                 probes={probes}
                 currentUserId={currentUser.id}

@@ -51,8 +51,8 @@ export function useComponents() {
 
         for (const component of response.components as Component[]) {
           const originalName = component.name
-          const canonicalName = originalName === 'events' ? 'probes' : originalName
-          const canonicalDisplayName = canonicalName === 'probes' ? 'Probe' : component.displayName
+          const canonicalName = originalName === 'probes' ? 'events' : originalName
+          const canonicalDisplayName = canonicalName === 'events' ? 'Probe' : component.displayName
 
           const transformed: NormalizedComponent = {
             ...component,
@@ -75,7 +75,7 @@ export function useComponents() {
             continue
           }
 
-          const shouldPreferCurrent = existing.originalName === 'events' && originalName !== 'events'
+          const shouldPreferCurrent = existing.originalName === 'probes' && originalName !== 'probes'
           const base = shouldPreferCurrent ? transformed : existing
           const other = shouldPreferCurrent ? existing : transformed
 
@@ -109,7 +109,7 @@ export function useComponents() {
         ) as TabComponent[]
 
         const normalizedTabs = tabComponents.map((tab) =>
-          tab.name === 'probes'
+          tab.name === 'events'
             ? { ...tab, displayName: 'Probe' }
             : tab
         ) as TabComponent[]

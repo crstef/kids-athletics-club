@@ -36,9 +36,11 @@ export function useApi<T>(
           result = await apiClient.getResults();
           break;
         case 'events':
+          result = await apiClient.getEvents();
+          break;
         case 'coach-probes':
-            result = await apiClient.getProbes();
-            break;
+          result = await apiClient.getEvents();
+          break;
         case 'access-requests':
           result = await apiClient.getAccessRequests();
           break;
@@ -155,12 +157,8 @@ export function useResults() {
   return useApi<any[]>('results', [], { autoFetch: true });
 }
 
-export function useEvents() {
-  return useApi<any[]>('events', [], { autoFetch: true });
-}
-
-export function useProbes(options: UseApiOptions = {}) {
-  return useApi<any[]>('coach-probes', [], { autoFetch: true, ...options });
+export function useEvents(options: UseApiOptions = {}) {
+  return useApi<any[]>('events', [], { autoFetch: true, ...options });
 }
 
 export function useAccessRequests() {

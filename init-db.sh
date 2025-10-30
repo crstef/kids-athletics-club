@@ -89,13 +89,13 @@ VALUES
   ('U18', 16, 17, 'Categoria Under 18 - Juniori II', true, 'superadmin-1')
 ON CONFLICT DO NOTHING;
 
--- Create default coach probes
-INSERT INTO coach_probes (name, description, is_active, created_by)
+-- Create default athletics events
+INSERT INTO events (name, category, unit, description)
 VALUES
-  ('Sprint', 'Antrenori specializați în alergări de viteză', true, 'superadmin-1'),
-  ('Sărituri', 'Antrenori specializați în sărituri (lungime, înălțime)', true, 'superadmin-1'),
-  ('Alergări Lungi', 'Antrenori specializați în alergări de semifond și fond', true, 'superadmin-1'),
-  ('Aruncări', 'Antrenori specializați în aruncări (disc, suliță, greutate)', true, 'superadmin-1')
+  ('60m', 'sprint', 'seconds', 'Alergare 60 metri'),
+  ('100m', 'sprint', 'seconds', 'Alergare 100 metri'),
+  ('Aruncare greutate', 'throw', 'meters', 'Aruncare greutate (shot put)'),
+  ('Săritură în înălțime', 'jump', 'meters', 'Săritură în înălțime')
 ON CONFLICT DO NOTHING;
 
 EOF

@@ -87,10 +87,12 @@ INSERT INTO permissions (name, description, resource, action, created_at, update
 ('age_categories.view', 'Poate vizualiza categorii de vârstă', 'age_categories', 'view', NOW(), NOW()),
 ('age_categories.manage', 'Poate gestiona categorii de vârstă', 'age_categories', 'manage', NOW(), NOW());
 
--- Permisiuni pentru Probes (discipline atletice)
+-- Permisiuni pentru Probe (discipline atletice)
 INSERT INTO permissions (name, description, resource, action, created_at, updated_at) VALUES
-('probes.view', 'Poate vizualiza probe atletice', 'probes', 'view', NOW(), NOW()),
-('probes.manage', 'Poate gestiona probe atletice', 'probes', 'manage', NOW(), NOW());
+('events.view', 'Poate vizualiza probe atletice', 'events', 'view', NOW(), NOW()),
+('events.create', 'Poate crea probe atletice', 'events', 'create', NOW(), NOW()),
+('events.edit', 'Poate edita probe atletice', 'events', 'edit', NOW(), NOW()),
+('events.delete', 'Poate șterge probe atletice', 'events', 'delete', NOW(), NOW());
 
 -- =====================================================
 -- 3. ASOCIERE PERMISIUNI LA ROLURI
@@ -112,9 +114,8 @@ WHERE r.name = 'coach'
 AND p.name IN (
     'athletes.view', 'athletes.create', 'athletes.edit',
     'results.view', 'results.create', 'results.edit',
-    'events.view',
+    'events.view', 'events.create', 'events.edit', 'events.delete',
     'messages.view', 'messages.create',
-    'probes.view',
     'age_categories.view'
 );
 
@@ -180,10 +181,10 @@ INSERT INTO age_categories (name, min_age, max_age, gender, description, created
 ('U18 Fete', 16, 17, 'F', 'Categorie sub 18 ani - Fete', NOW(), NOW());
 
 -- =====================================================
--- 6. PROBE ATLETICE (Athletics disciplines)
+-- 6. EVENIMENTE ATLETICE (Athletics disciplines)
 -- =====================================================
 
-INSERT INTO probes (name, category, unit, description, created_at, updated_at) VALUES
+INSERT INTO events (name, category, unit, description, created_at, updated_at) VALUES
 -- Alergare Sprint
 ('60m', 'sprint', 'seconds', 'Alergare 60 metri', NOW(), NOW()),
 ('100m', 'sprint', 'seconds', 'Alergare 100 metri', NOW(), NOW()),
