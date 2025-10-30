@@ -26,11 +26,21 @@ const expandPermissions = (permissions) => {
         if (!permission || expanded.has(permission))
             continue;
         expanded.add(permission);
-        if (permission.endsWith(OWN_SUFFIX)) {
-            stack.push(permission.slice(0, -OWN_SUFFIX.length));
+        const isOwn = permission.endsWith(OWN_SUFFIX);
+        const isAll = permission.endsWith(ALL_SUFFIX);
+        const basePermission = isOwn
+            ? permission.slice(0, -OWN_SUFFIX.length)
+            : isAll
+                ? permission.slice(0, -ALL_SUFFIX.length)
+                : permission;
+        if (isOwn || isAll) {
+            stack.push(basePermission);
         }
-        if (permission.endsWith(ALL_SUFFIX)) {
-            stack.push(permission.slice(0, -ALL_SUFFIX.length));
+        if (!isOwn) {
+            stack.push(`${basePermission}${OWN_SUFFIX}`);
+        }
+        if (!isAll) {
+            stack.push(`${basePermission}${ALL_SUFFIX}`);
         }
         const equivalents = PERMISSION_EQUIVALENTS[permission];
         if (equivalents) {
