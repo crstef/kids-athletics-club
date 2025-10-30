@@ -14,6 +14,7 @@ import { getInitials, getAvatarColor, formatResult } from '@/lib/constants'
 import type { Athlete, Result, EventType, PerformanceData } from '@/lib/types'
 import { useState, useMemo } from 'react'
 import { PermissionGate } from './PermissionGate'
+import { resolveMediaUrl } from '@/lib/media'
 
 interface AthleteDetailsDialogProps {
   athlete: Athlete | null
@@ -56,13 +57,15 @@ export function AthleteDetailsDialog({
       .map(r => ({
         date: r.date,
         value: r.value,
-        notes: r.notes
+        notes: r.notes,
+        unit: r.unit
       }))
   }, [athleteResults, selectedEvent])
 
   if (!athlete) return null
 
   const avatarColor = getAvatarColor(athlete.id)
+  const avatarSrc = resolveMediaUrl(athlete.avatar)
 
   return (
     <Dialog open={!!athlete} onOpenChange={() => onClose()}>
@@ -70,9 +73,9 @@ export function AthleteDetailsDialog({
         <DialogHeader className="p-6 pb-4">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
-              <Avatar className="h-16 w-16 border">
-                {athlete.avatar && (
-                  <AvatarImage src={athlete.avatar} alt={`${athlete.firstName} ${athlete.lastName}`} />
+              <Avatar className="h-20 w-20 border">
+                {avatarSrc && (
+                  <AvatarImage src={avatarSrc} alt={`${athlete.firstName} ${athlete.lastName}`} />
                 )}
                 <AvatarFallback className={`${avatarColor} text-white font-semibold text-xl`}>
                   {getInitials(athlete.firstName, athlete.lastName)}
@@ -87,6 +90,11 @@ export function AthleteDetailsDialog({
                   <span className="text-gray-300">|</span>
                   <Badge variant="outline" className="font-normal">{athlete.category}</Badge>
                 </div>
+                {athlete.notes?.trim() && (
+                  <p className="mt-2 text-sm text-muted-foreground max-w-xl whitespace-pre-wrap">
+                    {athlete.notes}
+                  </p>
+                )}
               </div>
             </div>
           </div>

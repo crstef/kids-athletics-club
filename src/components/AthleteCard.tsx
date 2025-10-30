@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { ChartLine, Trash, Trophy } from '@phosphor-icons/react'
 import { EditAthleteDialog } from './EditAthleteDialog'
 import { getInitials, getAvatarColor } from '@/lib/constants'
+import { resolveMediaUrl } from '@/lib/media'
 import type { Athlete, User } from '@/lib/types'
 
 interface AthleteCardProps {
@@ -23,6 +24,7 @@ interface AthleteCardProps {
 
 export function AthleteCard({ athlete, resultsCount, parents, coaches, onViewDetails, onViewChart, onEdit, onUploadAvatar, onDelete, hideDelete, hideEdit }: AthleteCardProps) {
   const avatarColor = getAvatarColor(athlete.id)
+  const avatarSrc = resolveMediaUrl(athlete.avatar)
   
   const coachName = athlete.coachId && coaches && coaches.length > 0 
     ? `${coaches.find(c => c.id === athlete.coachId)?.firstName || ''} ${coaches.find(c => c.id === athlete.coachId)?.lastName || ''}`.trim()
@@ -34,9 +36,9 @@ export function AthleteCard({ athlete, resultsCount, parents, coaches, onViewDet
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <div className="relative">
-              <Avatar className="h-12 w-12 ring-2 ring-background group-hover:ring-primary/20 transition-all overflow-hidden">
-                {athlete.avatar ? (
-                  <AvatarImage src={athlete.avatar} alt={`${athlete.firstName} ${athlete.lastName}`} />
+              <Avatar className="h-16 w-16 ring-2 ring-background group-hover:ring-primary/20 transition-all overflow-hidden">
+                {avatarSrc ? (
+                  <AvatarImage src={avatarSrc} alt={`${athlete.firstName} ${athlete.lastName}`} />
                 ) : (
                   <AvatarFallback className={`${avatarColor} text-white font-semibold`}>
                     {getInitials(athlete.firstName, athlete.lastName)}
@@ -71,7 +73,7 @@ export function AthleteCard({ athlete, resultsCount, parents, coaches, onViewDet
           )}
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Trophy size={16} className="text-muted-foreground" />
@@ -120,6 +122,9 @@ export function AthleteCard({ athlete, resultsCount, parents, coaches, onViewDet
             )}
           </div>
         </div>
+        {athlete.notes?.trim() && (
+          <p className="text-sm text-muted-foreground">{athlete.notes}</p>
+        )}
       </CardContent>
     </Card>
   )

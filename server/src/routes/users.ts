@@ -1,6 +1,7 @@
 import { Router } from 'express';
-import { getAllUsers, createUser, updateUser, deleteUser } from '../controllers/usersController';
+import { getAllUsers, createUser, updateUser, deleteUser, uploadUserAvatar } from '../controllers/usersController';
 import { authenticate, requireRole } from '../middleware/auth';
+import { userAvatarUpload } from '../middleware/upload';
 
 const router = Router();
 
@@ -10,5 +11,6 @@ router.get('/', getAllUsers);
 router.post('/', requireRole('superadmin'), createUser);
 router.put('/:id', requireRole('superadmin'), updateUser);
 router.delete('/:id', requireRole('superadmin'), deleteUser);
+router.post('/:id/avatar', userAvatarUpload.single('avatar'), uploadUserAvatar);
 
 export default router;

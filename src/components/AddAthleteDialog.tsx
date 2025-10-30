@@ -10,6 +10,7 @@ import { toast } from 'sonner'
 import type { Athlete, AgeCategory, Gender, User } from '@/lib/types'
 import { useAuth } from '@/lib/auth-context'
 import { PermissionGate } from './PermissionGate'
+import { Textarea } from '@/components/ui/textarea'
 
 // Funcție pentru calcularea vârstei din data nașterii
 function calculateAge(dateOfBirth: string): number {
@@ -54,6 +55,7 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
   const [coachId, setCoachId] = useState<string>('')
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const [notes, setNotes] = useState('')
 
   // Calculează automat vârsta și categoria când se schimbă data nașterii
   useEffect(() => {
@@ -97,7 +99,8 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
       category,
       gender,
       dateJoined: new Date().toISOString(),
-      coachId: coachId || undefined
+      coachId: coachId || undefined,
+      notes: notes.trim() ? notes.trim() : undefined
     }, avatarFile)
 
     setFirstName('')
@@ -109,6 +112,7 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
     setCoachId('')
     setAvatarFile(null)
     setAvatarPreview(null)
+    setNotes('')
     setOpen(false)
   }
 
@@ -258,6 +262,16 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
               </Select>
             </div>
           )}
+          <div className="space-y-2">
+            <Label htmlFor="notes">Observații (opțional)</Label>
+            <Textarea
+              id="notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Detalii utile despre sportiv (ex: preferințe, obiective, accidentări)"
+              rows={3}
+            />
+          </div>
           <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Anulează

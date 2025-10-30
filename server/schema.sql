@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
     approved_at TIMESTAMP,
     probe_id UUID,
     athlete_id UUID,
+    avatar TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -32,6 +33,7 @@ CREATE TABLE IF NOT EXISTS athletes (
     avatar TEXT,
     coach_id UUID,
     parent_id UUID,
+    notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (coach_id) REFERENCES users(id) ON DELETE SET NULL,

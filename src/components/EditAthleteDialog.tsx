@@ -8,6 +8,8 @@ import { PencilSimple } from '@phosphor-icons/react'
 import type { Athlete, User, AgeCategory } from '@/lib/types'
 import { useAuth } from '@/lib/auth-context'
 import { PermissionGate } from './PermissionGate'
+import { Textarea } from '@/components/ui/textarea'
+import { resolveMediaUrl } from '@/lib/media'
 
 interface EditAthleteDialogProps {
   athlete: Athlete
@@ -41,6 +43,7 @@ export function EditAthleteDialog({ athlete, parents, coaches, onEdit, onUploadA
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(athlete.avatar || null)
   const [deleteAvatar, setDeleteAvatar] = useState(false)
+  const [notes, setNotes] = useState(athlete.notes || '')
 
   // Calculate age and category from date of birth
   const calculatedAge = useMemo(() => {
@@ -64,6 +67,7 @@ export function EditAthleteDialog({ athlete, parents, coaches, onEdit, onUploadA
     if (calculatedAge < 16) return 'U16'
     return 'U18'
   }, [calculatedAge])
+  const avatarSrc = deleteAvatar ? null : (avatarPreview || resolveMediaUrl(athlete.avatar))
 
   // Reset form when dialog opens with athlete data
   useEffect(() => {
@@ -74,8 +78,9 @@ export function EditAthleteDialog({ athlete, parents, coaches, onEdit, onUploadA
       setGender(athlete.gender)
       setCoachId(athlete.coachId || '')
       setParentId(parentIds.has(athlete.parentId || '') ? athlete.parentId || '' : '')
-      setAvatarPreview(athlete.avatar || null)
+      setAvatarPreview(athlete.avatar ? resolveMediaUrl(athlete.avatar) : null)
       setDeleteAvatar(false)
+      setNotes(athlete.notes || '')
     }
   }, [open, athlete, parentIds])
 
@@ -101,11 +106,12 @@ export function EditAthleteDialog({ athlete, parents, coaches, onEdit, onUploadA
       category: calculatedCategory,
       gender,
       coachId: coachId || undefined,
-      parentId: parentId || undefined
+      parentId: parentId || undefined,
+      notes: notes.trim() ? notes.trim() : null
     };
     
     if (deleteAvatar) {
-      updateData.avatar = null as any; // Set to null to delete avatar
+      updateData.avatar = null
     }
     
     onEdit(athlete.id, updateData)
@@ -134,9 +140,9 @@ export function EditAthleteDialog({ athlete, parents, coaches, onEdit, onUploadA
             <div className="space-y-2">
               <Label htmlFor="edit-avatar">Poză (opțional)</Label>
               <div className="flex items-center gap-4">
-                {(avatarPreview || athlete.avatar) && (
+                {avatarSrc && (
                   <img 
-                    src={avatarPreview || athlete.avatar || ''} 
+                    src={avatarSrc} 
                     alt="preview" 
                     className="w-20 h-20 rounded-full object-cover border-2 border-primary" 
                     onError={(e) => {
@@ -153,7 +159,10 @@ export function EditAthleteDialog({ athlete, parents, coaches, onEdit, onUploadA
                       accept="image/*"
                       onChange={(e) => {
                         const f = e.target.files?.[0]
-                        if (f) setAvatarFile(f)
+                        if (f) {
+                          setAvatarFile(f)
+                          setDeleteAvatar(false)
+                        }
                       }}
                       className="hidden"
                     />
@@ -243,39 +252,51 @@ export function EditAthleteDialog({ athlete, parents, coaches, onEdit, onUploadA
               </SelectContent>
             </Select>
           </div>
-          {coaches && coaches.length > 0 && (
-            <div className="space-y-2">
-              <Label htmlFor="edit-coachId">Antrenor (opțional)</Label>
-              <Select value={coachId || 'none'} onValueChange={(val) => setCoachId(val === 'none' ? '' : val)}>
-                <SelectTrigger id="edit-coachId">
-                  <SelectValue placeholder="Selectează antrenorul" />
+          <div className="grid gap-4 md:grid-cols-2">
+            {coaches && coaches.length > 0 && (
+              <div className="space-y-2">
+                <Label htmlFor="edit-coachId">Antrenor (opțional)</Label>
+                <Select value={coachId || 'none'} onValueChange={(val) => setCoachId(val === 'none' ? '' : val)}>
+                  <SelectTrigger id="edit-coachId">
+                    <SelectValue placeholder="Selectează antrenorul" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Fără antrenor</SelectItem>
+                    {coaches.map((coach) => (
+                      <SelectItem key={coach.id} value={coach.id}>
+                        {coach.firstName} {coach.lastName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div className={`space-y-2 ${!(coaches && coaches.length > 0) ? 'md:col-span-2' : ''}`}>
+              <Label htmlFor="edit-parentId">Părinte (opțional)</Label>
+              <Select value={parentId || 'none'} onValueChange={(val) => setParentId(val === 'none' ? '' : val)}>
+                <SelectTrigger id="edit-parentId">
+                  <SelectValue placeholder="Selectează părintele" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Fără antrenor</SelectItem>
-                  {coaches.map((coach) => (
-                    <SelectItem key={coach.id} value={coach.id}>
-                      {coach.firstName} {coach.lastName}
+                  <SelectItem value="none">Fără părinte</SelectItem>
+                  {parents.map((parent) => (
+                    <SelectItem key={parent.id} value={parent.id}>
+                      {parent.firstName} {parent.lastName}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-          )}
+          </div>
           <div className="space-y-2">
-            <Label htmlFor="edit-parentId">Părinte (opțional)</Label>
-            <Select value={parentId || 'none'} onValueChange={(val) => setParentId(val === 'none' ? '' : val)}>
-              <SelectTrigger id="edit-parentId">
-                <SelectValue placeholder="Selectează părintele" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Fără părinte</SelectItem>
-                {parents.map((parent) => (
-                  <SelectItem key={parent.id} value={parent.id}>
-                    {parent.firstName} {parent.lastName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label htmlFor="edit-notes">Observații (opțional)</Label>
+            <Textarea
+              id="edit-notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Detalii utile despre sportiv (ex: preferințe, obiective, accidentări)"
+              rows={3}
+            />
           </div>
           <div className="flex gap-2 pt-4">
             <Button type="submit" className="flex-1">

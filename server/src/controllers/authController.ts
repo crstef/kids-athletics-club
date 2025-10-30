@@ -221,7 +221,7 @@ export const login = async (req: Request, res: Response) => {
 
     // Get user
     const result = await client.query(
-      `SELECT id, email, password, first_name, last_name, role, role_id, is_active, needs_approval, athlete_id
+      `SELECT id, email, password, first_name, last_name, role, role_id, is_active, needs_approval, athlete_id, avatar
        FROM users WHERE email = $1`,
       [email.toLowerCase()]
     );
@@ -382,6 +382,7 @@ export const login = async (req: Request, res: Response) => {
         isActive: user.is_active,
         needsApproval: user.needs_approval,
         athleteId: user.athlete_id,
+        avatar: user.avatar,
         permissions,
         dashboards,
         defaultDashboardId
@@ -411,7 +412,7 @@ export const getCurrentUser = async (req: Request, res: Response) => {
     }
 
     const result = await client.query(
-      `SELECT id, email, first_name, last_name, role, role_id, is_active, needs_approval, athlete_id, created_at
+      `SELECT id, email, first_name, last_name, role, role_id, is_active, needs_approval, athlete_id, created_at, avatar
        FROM users WHERE id = $1`,
       [userId]
     );
@@ -548,8 +549,9 @@ export const getCurrentUser = async (req: Request, res: Response) => {
       role: user.role,
       roleId: user.role_id,
       isActive: user.is_active,
-      needsApproval: user.needs_approval,
+  needsApproval: user.needs_approval,
       athleteId: user.athlete_id,
+  avatar: user.avatar,
       createdAt: user.created_at,
       permissions,
       dashboards,

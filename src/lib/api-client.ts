@@ -1,5 +1,26 @@
 const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || (typeof window !== 'undefined' && window.location.hostname !== 'localhost' ? '/api' : 'http://localhost:3001/api');
 
+export function getApiBaseUrl(): string {
+  return API_BASE_URL
+}
+
+export function getApiOrigin(): string {
+  if (API_BASE_URL.startsWith('http')) {
+    try {
+      const url = new URL(API_BASE_URL)
+      return url.origin
+    } catch {
+      // ignore malformed URLs and fall back to window origin
+    }
+  }
+
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return window.location.origin
+  }
+
+  return ''
+}
+
 class ApiClient {
   private token: string | null = null;
   private useLocalStorage: boolean = false;
@@ -157,6 +178,26 @@ class ApiClient {
       throw new Error(error.error || 'Upload failed');
     }
     return res.json();
+  }
+
+  async uploadUserAvatar(id: string, file: File) {
+    const form = new FormData()
+    form.append('avatar', file)
+    const headers: HeadersInit = {}
+    if (this.token) headers['Authorization'] = `Bearer ${this.token}`
+
+    const res = await fetch(`${API_BASE_URL}/users/${id}/avatar`, {
+      method: 'POST',
+      headers,
+      body: form,
+    })
+
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({}))
+      throw new Error(error.error || 'Upload failed')
+    }
+
+    return res.json()
   }
 
   // Results

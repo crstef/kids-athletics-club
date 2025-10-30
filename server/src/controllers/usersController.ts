@@ -2,6 +2,8 @@ import { Response } from 'express';
 import pool from '../config/database';
 import { AuthRequest } from '../middleware/auth';
 import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
 
 const hashPassword = (password: string): string => {
   return crypto.createHash('sha256').update(password).digest('hex');
@@ -12,8 +14,8 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
   const { user: currentUser } = req;
   
   try {
-    let query = `SELECT u.id, u.email, u.first_name, u.last_name, u.role, u.role_id, u.is_active, u.needs_approval, 
-                        u.athlete_id, u.approved_by, u.approved_at, u.created_at,
+  let query = `SELECT u.id, u.email, u.first_name, u.last_name, u.role, u.role_id, u.is_active, u.needs_approval, 
+            u.athlete_id, u.approved_by, u.approved_at, u.avatar, u.created_at,
                         r.name as role_name
                  FROM users u
                  LEFT JOIN roles r ON u.role_id = r.id`;
@@ -49,7 +51,8 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
       athleteId: user.athlete_id,
       approvedBy: user.approved_by,
       approvedAt: user.approved_at,
-      createdAt: user.created_at
+      createdAt: user.created_at,
+      avatar: user.avatar
     }));
 
     res.json(users);
@@ -89,7 +92,7 @@ export const createUser = async (req: AuthRequest, res: Response) => {
     const result = await client.query(
       `INSERT INTO users (email, password, first_name, last_name, role, role_id, is_active, needs_approval)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-       RETURNING id, email, first_name, last_name, role, role_id, is_active, needs_approval, created_at`,
+       RETURNING id, email, first_name, last_name, role, role_id, is_active, needs_approval, avatar, created_at`,
       [email.toLowerCase(), hashedPassword, firstName, lastName, role, roleId || null,
        isActive ?? true, needsApproval ?? false]
     );
@@ -105,7 +108,8 @@ export const createUser = async (req: AuthRequest, res: Response) => {
       roleId: user.role_id,
       isActive: user.is_active,
       needsApproval: user.needs_approval,
-      createdAt: user.created_at
+      createdAt: user.created_at,
+      avatar: user.avatar
     });
   } catch (error) {
     console.error('Create user error:', error);
@@ -120,7 +124,7 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
   
   try {
     const { id } = req.params;
-    const { email, password, firstName, lastName, role, roleId, isActive, needsApproval, athleteId } = req.body;
+  const { email, password, firstName, lastName, role, roleId, isActive, needsApproval, athleteId, avatar } = req.body;
 
     const user = await client.query('SELECT id FROM users WHERE id = $1', [id]);
     if (user.rows.length === 0) {
@@ -169,14 +173,19 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
       values.push(athleteId);
     }
 
+    if (avatar !== undefined) {
+      updates.push(`avatar = $${paramCount++}`);
+      values.push(avatar === '' ? null : avatar);
+    }
+
     if (updates.length === 0) {
       return res.status(400).json({ error: 'No fields to update' });
     }
 
     values.push(id);
     const result = await client.query(
-      `UPDATE users SET ${updates.join(', ')} WHERE id = $${paramCount}
-       RETURNING id, email, first_name, last_name, role, role_id, is_active, needs_approval, athlete_id, created_at`,
+  `UPDATE users SET ${updates.join(', ')} WHERE id = $${paramCount}
+   RETURNING id, email, first_name, last_name, role, role_id, is_active, needs_approval, athlete_id, avatar, created_at`,
       values
     );
 
@@ -192,7 +201,8 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
       isActive: updatedUser.is_active,
       needsApproval: updatedUser.needs_approval,
       athleteId: updatedUser.athlete_id,
-      createdAt: updatedUser.created_at
+      createdAt: updatedUser.created_at,
+      avatar: updatedUser.avatar
     });
   } catch (error) {
     console.error('Update user error:', error);
@@ -201,6 +211,91 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
     client.release();
   }
 };
+
+export const uploadUserAvatar = async (req: AuthRequest, res: Response) => {
+  const client = await pool.connect()
+  try {
+    const { id } = req.params
+  const file = (req as any).file as { filename: string; path: string } | undefined
+
+    if (!file) {
+      return res.status(400).json({ error: 'No file uploaded' })
+    }
+
+    const requester = req.user
+    if (!requester || (requester.role !== 'superadmin' && requester.userId !== id)) {
+      // Remove uploaded file if requester is not allowed
+      try {
+        fs.unlinkSync(file.path)
+      } catch {
+        // ignore cleanup errors
+      }
+      return res.status(403).json({ error: 'Not authorized to update this avatar' })
+    }
+
+    const existing = await client.query('SELECT avatar FROM users WHERE id = $1', [id])
+    if (existing.rows.length === 0) {
+      try {
+        fs.unlinkSync(file.path)
+      } catch {
+        // noop
+      }
+      return res.status(404).json({ error: 'User not found' })
+    }
+
+    const previousAvatar: string | null = existing.rows[0].avatar
+    const avatarPath = `/uploads/users/${file.filename}`
+
+    const result = await client.query(
+      `UPDATE users SET avatar = $1 WHERE id = $2
+       RETURNING id, email, first_name, last_name, role, role_id, is_active, needs_approval, athlete_id, avatar, created_at`,
+      [avatarPath, id]
+    )
+
+    const updatedUser = result.rows[0]
+
+    if (!updatedUser) {
+      try {
+        fs.unlinkSync(file.path)
+      } catch {
+        // noop
+      }
+      return res.status(404).json({ error: 'User not found' })
+    }
+
+    if (previousAvatar && previousAvatar !== avatarPath) {
+      const normalizedPath = previousAvatar.startsWith('/') ? `.${previousAvatar}` : previousAvatar
+      const absolutePath = path.resolve(process.cwd(), normalizedPath)
+      const uploadsDir = path.resolve(process.cwd(), 'uploads', 'users')
+      if (absolutePath.startsWith(uploadsDir)) {
+        fs.promises.unlink(absolutePath).catch((err) => {
+          if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
+            console.warn('Failed to delete previous user avatar:', err)
+          }
+        })
+      }
+    }
+
+    res.json({
+      id: updatedUser.id,
+      email: updatedUser.email,
+      firstName: updatedUser.first_name,
+      lastName: updatedUser.last_name,
+      role: updatedUser.role,
+      roleId: updatedUser.role_id,
+      isActive: updatedUser.is_active,
+      needsApproval: updatedUser.needs_approval,
+      athleteId: updatedUser.athlete_id,
+      avatar: updatedUser.avatar,
+      createdAt: updatedUser.created_at,
+    })
+  } catch (error) {
+    console.error('Upload user avatar error:', error)
+    res.status(500).json({ error: 'Internal server error' })
+  } finally {
+    client.release()
+  }
+}
 
 export const deleteUser = async (req: AuthRequest, res: Response) => {
   const client = await pool.connect();

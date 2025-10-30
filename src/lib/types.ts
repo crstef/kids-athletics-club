@@ -125,6 +125,7 @@ export interface User {
   permissions?: string[]
   dashboards?: Dashboard[]
   defaultDashboardId?: string
+  avatar?: string | null
 }
 
 export interface SuperAdmin extends User {
@@ -169,6 +170,7 @@ export interface Athlete {
   avatar?: string
   coachId?: string
   parentId?: string
+  notes?: string | null
 }
 
 export interface Result {
@@ -176,7 +178,21 @@ export interface Result {
   athleteId: string
   eventType: string  // Probe name from events table
   value: number
-  unit: 'seconds' | 'meters' | 'points'
+  unit:
+    | 'seconds'
+    | 'meters'
+    | 'points'
+    | 'secunde'
+    | 'minute_secunde'
+    | 'minute-secunde'
+    | 'minute,secunde'
+    | 'minute+secunde'
+    | 'metri'
+    | 'metri_centimetri'
+    | 'metri-centimetri'
+    | 'metri,centimetri'
+    | 'puncte'
+    | string
   date: string
   notes?: string
 }
@@ -185,6 +201,7 @@ export interface PerformanceData {
   date: string
   value: number
   notes?: string
+  unit?: Result['unit']
 }
 
 export interface AccessRequest {
