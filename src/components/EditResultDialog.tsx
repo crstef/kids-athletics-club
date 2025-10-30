@@ -23,11 +23,11 @@ export function EditResultDialog({ result, athleteName, onUpdate }: EditResultDi
   const [notes, setNotes] = useState(result.notes || '')
   const [unit, setUnit] = useState<Result['unit']>(result.unit)
 
-  const [probes, , loading, , refetchProbes] = useEvents()
+  const [probes, , loading, , refetchEvents] = useEvents()
 
   useEffect(() => {
-    if (open) refetchProbes()
-  }, [open, refetchProbes])
+    if (open) refetchEvents()
+  }, [open, refetchEvents])
 
   useEffect(() => {
     // sync unit with selected event if found

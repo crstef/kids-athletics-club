@@ -16,6 +16,7 @@ import { RecentResultsWidget } from '@/components/widgets/RecentResultsWidget'
 import { PendingRequestsWidget } from '@/components/widgets/PendingRequestsWidget'
 import AgeDistributionWidget from '@/components/widgets/AgeDistributionWidget'
 import PersonalBestWidget from '@/components/widgets/PersonalBestWidget'
+import { hasPermissionFromList } from '@/lib/permission-tab-mapping'
 
 export interface WidgetConfig {
   id: string
@@ -52,7 +53,7 @@ export const WIDGET_REGISTRY: Record<string, WidgetConfig> = {
     id: 'stats-probes',
     name: 'Probe Sportive',
     component: StatsProbesWidget,
-    requiredPermission: 'probes.view',
+    requiredPermission: 'events.view',
     defaultSize: 'small',
     description: 'Probe sportive configurate'
   },
@@ -76,7 +77,7 @@ export const WIDGET_REGISTRY: Record<string, WidgetConfig> = {
     id: 'recent-probes',
     name: 'Probe Recente',
     component: RecentProbesWidget,
-    requiredPermission: 'probes.view',
+    requiredPermission: 'events.view',
     defaultSize: 'medium',
     description: 'Ultimele probe configurate'
   },
@@ -147,6 +148,6 @@ export function userCanAccessWidget(widgetId: string, userPermissions: string[])
   // If no permission required, widget is accessible to all
   if (!widget.requiredPermission) return true
   
-  // Check if user has the required permission or wildcard
-  return userPermissions.includes('*') || userPermissions.includes(widget.requiredPermission)
+  // Check if user has the required permission (alias-aware) or wildcard
+  return userPermissions.includes('*') || hasPermissionFromList(widget.requiredPermission, userPermissions)
 }

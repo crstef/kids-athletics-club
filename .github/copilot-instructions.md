@@ -1,31 +1,40 @@
-## AI Contributor Quick Guide — Kids Athletics Club
+## Kids Athletics Copilot Playbook
 
-Short, practical notes for an AI coding agent to be productive immediately.
+- **Architecture & Deploy**: React 19 + Vite + TypeScript lives under `src/`, Express/TypeScript API sits in `server/src/`, and PostgreSQL backs the data; production serves through `app.cjs`/`app.js` with committed `dist/` and `server/dist/` bundles.
+  Deploy scripts expect hashed assets copied into the repo root, so never delete `index-*.js/css` or vendor chunks without replacing them via the build pipeline.
 
-- Big picture: React (Vite, TypeScript) frontend + Express/TypeScript backend + PostgreSQL. RBAC is database-driven: permissions (strings) → UI tabs and route guards.
+- **Entry Points & Layout**: `src/main.tsx` mounts `App.tsx`, which orchestrates tabs, dialogs, and data fetching; wrap new UI with `AuthProvider` from `src/lib/auth-context.tsx` to access session state.
+  Backend bootstraps from `server/src/index.ts`, wiring modular routers in `server/src/routes/**` plus setup endpoints that seed roles, permissions, and dashboards.
 
-- First files to open:
-  - Frontend: `src/lib/api-client.ts`, `src/lib/auth-context.tsx`, `src/lib/permission-tab-mapping.ts`, `src/lib/types.ts`, `src/hooks/use-api.ts`.
-  - Backend: `server/src/middleware/authorizeDb.ts`, `server/src/middleware/auth.ts`, `server/src/routes/setup.ts`, `server/migrations/`, `server/schema.sql`.
+- **API Access**: All HTTP traffic flows through `src/lib/api-client.ts`, which attaches JWT tokens, handles 401s, and supports `FormData` uploads (`uploadAthleteAvatar`).
+  Fetch data via `src/hooks/use-api.ts` key switches (`users`, `athletes`, etc.) so shared loading/error logic and refetch helpers remain consistent.
 
-- Essential rules (enforce these in code changes):
-  - All frontend API calls must use `apiClient` (handles JWT, snake↔camel conversion, 401s). Don’t call fetch in components.
-  - UI visibility is permission-based: use `hasPermission('resource.action')` and `PERMISSION_TO_TAB_MAP` for tabs — do not hardcode tabs by role.
-  - Protect backend routes with `authenticate` + (`requireRole` OR `authorizeDb('perm.name')`). Prefer `authorizeDb` for granular checks.
+- **Auth & Authorization**: `AuthContext` manages tokens (sessionStorage vs localStorage when remember-me is set) and exposes `hasPermission`; logout clears both stores plus session state.
+  On the server, protect routes with `authenticate` and prefer `authorizeDb('perm')` for granular checks, falling back to `requireRole` only when role-wide access is intentional.
 
-- Common commands:
-  - Dev: `npm run dev` (root) and `cd server && npm run dev`.
-  - Init DB: `./init-db.sh` (first time/setup).
-  - Reseed permissions after schema changes: `curl "http://localhost:3001/api/setup/initialize-data?reset_permissions=true"`.
-  - Tests: `npm test` (Vitest). Coverage ≥ 70% for lines/functions/branches/statements.
+- **Permission Lifecycle**: Seeded defaults live in `server/src/routes/setup.ts`; when introducing a new permission, update those inserts, hit `/api/setup/initialize-data?reset_permissions=true`, and extend the `PermissionName` union in `src/lib/types.ts`.
+  Mirror the change in frontend guards (`PermissionGate`, `generateTabsFromPermissions`) so permission strings stay aligned across DB, API, and UI.
 
-- Conventions & gotchas:
-  - Frontend uses camelCase; backend uses snake_case — `apiClient` converts shapes.
-  - IDs are UUID strings; tokens: `rememberMe=true` → localStorage, else sessionStorage.
-  - Build outputs (`dist/`, `server/dist/`) are committed.
+- **Tabs & Dashboards**: Navigation is computed from `PERMISSION_TO_TAB_MAP` (`src/lib/permission-tab-mapping.ts`) merged with component metadata returned by `useComponents` (`src/hooks/use-components.ts`).
+  Add tabs by updating that mapping (and aliases/equivalents for fallback permissions) plus ensuring the backend exposes matching component records or seeded permissions.
 
-- Quick implementation checklist examples:
-  - Add permission: edit `server/src/routes/setup.ts` DEFAULT_PERMISSIONS, reseed, add to `PermissionName` in `src/lib/types.ts`, protect routes with `authorizeDb(...)`.
-  - Add tab: add mapping in `src/lib/permission-tab-mapping.ts`, create component in `src/components/`, ensure permission seeded.
+- **Controllers & SQL**: Controllers under `server/src/controllers/**` use parameterized SQL via `pg`, translate snake_case columns to camelCase JSON, and often wrap multi-step operations in explicit transactions.
+  Always `client.release()` in a `finally` block and reuse existing response shapes so the TypeScript types in `src/lib/types.ts` stay valid for the frontend.
 
-If you want, I can (a) expand any of the examples into a concrete patch (permission + route + test), or (b produce a short checklist for PR reviewers. Reply which you prefer.
+- **File Uploads & Assets**: Athlete avatars flow through `uploadAthleteAvatar` using `multer`; only store relative `/uploads/athletes/<file>` paths as persisted metadata.
+  Frontend should pass a `File` object to `apiClient.uploadAthleteAvatar` and let the controller prune old files—avoid baking absolute URLs or manual fetches.
+
+- **Database & Migrations**: Initialize Postgres with `./init-db.sh`, then run targeted scripts via `server/run-migrations.mjs` or SQL files in `server/migrations/` when schema changes are needed.
+  Environment variables come from `server/.env` or `.env.production` loaded by `app.cjs`, so keep those synchronized when adding tables, columns, or credentials.
+
+- **Build & Dev Commands**: Development uses `npm run dev` for the frontend and `cd server && npm run dev` for the API.
+  `npm run build:all` runs `scripts/ensure-dev-index.cjs`, builds the SPA, copies hashed assets with `scripts/publish-webroot.cjs`, and compiles the backend (whose postbuild script force-adds `server/dist/`).
+
+- **Testing & Coverage**: Vitest runs with `npm test`, using the JSDOM setup in `vitest.config.ts` and `src/__tests__/setup.ts` mocks for `matchMedia` and `crypto.subtle`.
+  Coverage thresholds are enforced at 70% for lines/functions/branches/statements—extend existing suites in `src/__tests__` rather than creating ad-hoc harnesses.
+
+- **Session UX Details**: `useInactivityLogout` (`src/hooks/use-inactivity-logout.ts`) signs out non-remembered users after 30 minutes and raises a toast; `AuthContext.saveSessionState` persists the active tab per session.
+  Preserve these calls when refactoring `App.tsx` flows so auto-logout and tab restoration continue working across reloads.
+
+- **Data Conventions**: IDs are UUID strings; date-only fields are normalized to `YYYY-MM-DD` strings before returning to the client, while timestamps remain ISO strings.
+  Keep backend response shapes and frontend models (`src/lib/types.ts`, dashboard registries, permission enums) in lockstep whenever you add or rename properties.

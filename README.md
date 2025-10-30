@@ -141,7 +141,6 @@ Toate datele sunt persistate în baza de date PostgreSQL:
 - `messages` - mesajele între utilizatori
 - `roles` - rolurile personalizate
 - `age_categories` - categoriile de vârstă
-- `coach_probes` - specializările antrenorilor
 
 Vezi `server/schema.sql` pentru schema completă.
 

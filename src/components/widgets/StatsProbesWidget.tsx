@@ -35,7 +35,7 @@ export function StatsProbesWidget({ probes, onNavigateToTab }: StatsProbesWidget
       <Button 
         variant="outline" 
         size="sm" 
-        onClick={() => onNavigateToTab?.('probes')}
+  onClick={() => onNavigateToTab?.('events')}
         className="w-full"
       >
         <Target className="mr-2 h-4 w-4" />
@@ -47,10 +47,10 @@ export function StatsProbesWidget({ probes, onNavigateToTab }: StatsProbesWidget
 
   return (
     <StatWidget
-      icon={Target}
+      icon={<Target size={24} weight="fill" />}
       title="Probe Sportive"
       value={probes.length.toString()}
-      onClick={() => onNavigateToTab?.('probes')}
+  onClick={() => onNavigateToTab?.('events')}
       className="cursor-pointer hover:bg-muted/50"
       detailsContent={detailsContent}
     />

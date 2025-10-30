@@ -1,12 +1,16 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const ageCategoriesController_1 = require("../controllers/ageCategoriesController");
 const auth_1 = require("../middleware/auth");
+const authorizeDb_1 = __importDefault(require("../middleware/authorizeDb"));
 const router = (0, express_1.Router)();
 router.use(auth_1.authenticate);
-router.get('/', ageCategoriesController_1.getAllAgeCategories);
-router.post('/', (0, auth_1.requireRole)('superadmin'), ageCategoriesController_1.createAgeCategory);
-router.put('/:id', (0, auth_1.requireRole)('superadmin'), ageCategoriesController_1.updateAgeCategory);
-router.delete('/:id', (0, auth_1.requireRole)('superadmin'), ageCategoriesController_1.deleteAgeCategory);
+router.get('/', (0, authorizeDb_1.default)('age_categories.view'), ageCategoriesController_1.getAllAgeCategories);
+router.post('/', (0, authorizeDb_1.default)('age_categories.manage'), ageCategoriesController_1.createAgeCategory);
+router.put('/:id', (0, authorizeDb_1.default)('age_categories.manage'), ageCategoriesController_1.updateAgeCategory);
+router.delete('/:id', (0, authorizeDb_1.default)('age_categories.manage'), ageCategoriesController_1.deleteAgeCategory);
 exports.default = router;

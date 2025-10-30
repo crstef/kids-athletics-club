@@ -106,10 +106,10 @@ export const initializeData = async (req: Request, res: Response) => {
       ('results.create', 'Poate adăuga rezultate noi', NOW(), NOW()),
       ('results.edit', 'Poate edita rezultate', NOW(), NOW()),
       ('results.delete', 'Poate șterge rezultate', NOW(), NOW()),
-  ('probes.view', 'Poate vizualiza probe', NOW(), NOW()),
-  ('probes.create', 'Poate crea probe noi', NOW(), NOW()),
-  ('probes.edit', 'Poate edita probe', NOW(), NOW()),
-  ('probes.delete', 'Poate șterge probe', NOW(), NOW()),
+  ('events.view', 'Poate vizualiza probe', NOW(), NOW()),
+  ('events.create', 'Poate crea probe noi', NOW(), NOW()),
+  ('events.edit', 'Poate edita probe', NOW(), NOW()),
+  ('events.delete', 'Poate șterge probe', NOW(), NOW()),
       ('messages.view', 'Poate vizualiza mesaje', NOW(), NOW()),
       ('messages.create', 'Poate trimite mesaje', NOW(), NOW()),
       ('messages.delete', 'Poate șterge mesaje', NOW(), NOW()),
@@ -162,8 +162,8 @@ export const initializeData = async (req: Request, res: Response) => {
         'users.view',
         'athletes.view', 'athletes.view.own', 'athletes.create', 'athletes.edit', 'athletes.delete',
         'athletes.avatar.view', 'athletes.avatar.upload',
-        'results.view', 'results.view.own', 'results.create', 'results.edit', 'results.delete',
-        'probes.view', 'probes.create', 'probes.edit', 'probes.delete',
+  'results.view', 'results.view.own', 'results.create', 'results.edit', 'results.delete',
+  'events.view', 'events.create', 'events.edit', 'events.delete',
         'messages.view', 'messages.create',
         'approval_requests.view.own', 'approval_requests.approve.own',
         'requests.view.own',
@@ -183,8 +183,8 @@ export const initializeData = async (req: Request, res: Response) => {
         'dashboard.view', 'dashboard.view.parent',
         'athletes.view', 'athletes.view.own',
         'athletes.avatar.view',
-        'results.view', 'results.view.own',
-        'probes.view',
+  'results.view', 'results.view.own',
+  'events.view',
         'messages.view', 'messages.create',
         'access_requests.view'
       )
@@ -200,8 +200,8 @@ export const initializeData = async (req: Request, res: Response) => {
       WHERE r.name = 'athlete'
       AND p.name IN (
         'dashboard.view', 'dashboard.view.athlete',
-        'results.view',
-        'probes.view',
+  'results.view',
+  'events.view',
         'messages.view'
       )
       ON CONFLICT DO NOTHING
@@ -229,6 +229,8 @@ export const initializeData = async (req: Request, res: Response) => {
     // 6. Insert Age Categories (fără gender - acesta e în tabelul athletes)
     await client.query(`
       INSERT INTO age_categories (name, age_from, age_to, description, created_at, updated_at) VALUES
+      ('U6', 4, 5, 'Categorie sub 6 ani', NOW(), NOW()),
+      ('U8', 6, 7, 'Categorie sub 8 ani', NOW(), NOW()),
       ('U10', 8, 9, 'Categorie sub 10 ani', NOW(), NOW()),
       ('U12', 10, 11, 'Categorie sub 12 ani', NOW(), NOW()),
       ('U14', 12, 13, 'Categorie sub 14 ani', NOW(), NOW()),
@@ -236,7 +238,7 @@ export const initializeData = async (req: Request, res: Response) => {
       ('U18', 16, 17, 'Categorie sub 18 ani', NOW(), NOW())
       ON CONFLICT (name) DO NOTHING
     `);
-    results.ageCategories = 5;
+  results.ageCategories = 7;
 
     // 3. Insert dashboards - UNIFIED SYSTEM: One layout for all roles
     const dashboardsResult = await client.query(`
@@ -783,7 +785,7 @@ export const addCategoryToPermissions = async (req: Request, res: Response) => {
       SET category = CASE
         WHEN name LIKE 'athletes.%' THEN 'athletes'
         WHEN name LIKE 'results.%' THEN 'results'
-        WHEN name LIKE 'probes.%' THEN 'probes'
+  WHEN name LIKE 'events.%' THEN 'events'
         WHEN name LIKE 'messages.%' THEN 'messages'
         WHEN name LIKE 'access_requests.%' THEN 'access_requests'
         WHEN name LIKE 'users.%' THEN 'users'
@@ -1317,10 +1319,10 @@ export const resetDatabase = async (req: Request, res: Response) => {
       ['results-create', 'Înregistrare Rezultat', 'Record new result', 'action', 'Plus', 1],
       ['results-edit', 'Editare Rezultat', 'Edit result', 'action', 'Edit', 2],
       ['results-delete', 'Ștergere Rezultat', 'Delete result', 'action', 'Trash2', 3],
-      ['messages', 'Mesaje', 'Messaging tab', 'tab', 'MessageSquare', 3],
-      ['messages-send', 'Trimitere Mesaj', 'Send message', 'action', 'Send', 1],
-      ['probes', 'Probe', 'Event types management tab', 'tab', 'Calendar', 4],
-      ['probes-create', 'Creare Probă', 'Create event type', 'action', 'Plus', 1],
+  ['messages', 'Mesaje', 'Messaging tab', 'tab', 'MessageSquare', 3],
+  ['messages-send', 'Trimitere Mesaj', 'Send message', 'action', 'Send', 1],
+  ['events', 'Probe', 'Event types management tab', 'tab', 'Calendar', 4],
+  ['events-create', 'Creare Probă', 'Create event type', 'action', 'Plus', 1],
       ['access-requests', 'Cereri de Acces', 'Access requests tab', 'tab', 'Lock', 6],
       ['access-requests-approve', 'Aprobare Cereri', 'Approve/reject requests', 'action', 'CheckCircle', 1],
       ['categories', 'Categorii', 'Age categories tab', 'tab', 'Grid', 7],
@@ -1376,9 +1378,9 @@ export const resetDatabase = async (req: Request, res: Response) => {
       SELECT r.id, c.id, true, true, true, false, NOW(), NOW()
       FROM roles r, components c
       WHERE r.name = 'coach'
-        AND c.name IN ('dashboard', 'athletes', 'athletes-create', 'athletes-edit', 
-                       'results', 'results-create', 'results-edit', 'messages', 'messages-send',
-                       'probes', 'probes-create', 'access-requests', 'access-requests-approve',
+  AND c.name IN ('dashboard', 'athletes', 'athletes-create', 'athletes-edit', 
+           'results', 'results-create', 'results-edit', 'messages', 'messages-send',
+           'events', 'events-create', 'access-requests', 'access-requests-approve',
                        'widget-stats-athletes', 'widget-recent-results', 'widget-performance-chart',
                        'widget-performance-evolution', 'widget-age-distribution')
       ON CONFLICT (role_id, component_id) DO NOTHING
@@ -1390,7 +1392,7 @@ export const resetDatabase = async (req: Request, res: Response) => {
       SELECT r.id, c.id, true, false, false, false, NOW(), NOW()
       FROM roles r, components c
       WHERE r.name = 'parent'
-        AND c.name IN ('dashboard', 'athletes', 'results', 'messages',
+  AND c.name IN ('dashboard', 'athletes', 'results', 'messages', 'events',
                        'widget-recent-results', 'widget-personal-best', 'widget-performance-evolution')
       ON CONFLICT (role_id, component_id) DO NOTHING
     `);
@@ -1411,7 +1413,7 @@ export const resetDatabase = async (req: Request, res: Response) => {
       SELECT r.id, c.id, true, false, false, false, NOW(), NOW()
       FROM roles r, components c
       WHERE r.name = 'athlete'
-        AND c.name IN ('dashboard', 'results', 'messages', 'probes',
+  AND c.name IN ('dashboard', 'results', 'messages', 'events',
                        'widget-personal-best', 'widget-performance-evolution', 'widget-performance-chart')
       ON CONFLICT (role_id, component_id) DO NOTHING
     `);

@@ -23,14 +23,14 @@ export function AddResultDialog({ athleteId, athleteName, onAdd }: AddResultDial
   const [notes, setNotes] = useState('')
   const [unit, setUnit] = useState<'seconds' | 'meters' | 'points'>('seconds')
 
-  const [probes, , loading, , refetchProbes] = useEvents()
+  const [probes, , loading, , refetchEvents] = useEvents()
 
   // Refetch probes when dialog opens
   useEffect(() => {
     if (open) {
-      refetchProbes()
+      refetchEvents()
     }
-  }, [open, refetchProbes])
+  }, [open, refetchEvents])
 
   // Set default event when probes load
   useEffect(() => {

@@ -1,6 +1,6 @@
 export type Period = '7days' | '4weeks' | '6months' | '1year' | 'all'
 
-export type AgeCategory = 'U10' | 'U12' | 'U14' | 'U16' | 'U18'
+export type AgeCategory = 'U6' | 'U8' | 'U10' | 'U12' | 'U14' | 'U16' | 'U18'
 
 export type Gender = 'M' | 'F'
 
@@ -211,10 +211,13 @@ export interface Message {
 export interface EventTypeCustom {
   id: string
   name: string
-  category: 'running' | 'jumping' | 'throwing' | 'other'
-  unit: 'seconds' | 'meters' | 'points'
+  category?: 'running' | 'jumping' | 'throwing' | 'other' | string
+  unit?: 'seconds' | 'meters' | 'points' | string
   description?: string
   createdAt: string
+  createdBy?: string
+  isActive?: boolean
+  updatedAt?: string
 }
 
 export interface Permission {

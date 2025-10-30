@@ -89,10 +89,6 @@ const addGranularPermissions = async (req, res) => {
             { name: 'events', display_name: 'Probe', type: 'tab', icon: 'Calendar', order: 4 },
             { name: 'events-view', display_name: 'Vizualizare Probe', type: 'action', icon: 'Eye', order: 1 },
             { name: 'events-create', display_name: 'Creare Probă', type: 'action', icon: 'Plus', order: 2 },
-            // Probes (Specializations)
-            { name: 'probes', display_name: 'Probe', type: 'tab', icon: 'Zap', order: 5 },
-            { name: 'probes-view', display_name: 'Vizualizare Probe', type: 'action', icon: 'Eye', order: 1 },
-            { name: 'probes-create', display_name: 'Creare Probă', type: 'action', icon: 'Plus', order: 2 },
             // Access Requests
             { name: 'access-requests', display_name: 'Cereri de Acces', type: 'tab', icon: 'Lock', order: 6 },
             { name: 'access-requests-view', display_name: 'Vizualizare Cereri', type: 'action', icon: 'Eye', order: 1 },
@@ -142,7 +138,6 @@ const addGranularPermissions = async (req, res) => {
                 'messages-view': { view: true, create: false, edit: false, delete: false },
                 'messages-create': { view: true, create: false, edit: false, delete: false },
                 'events': { view: true, create: true, edit: true, delete: true },
-                'probes': { view: true, create: true, edit: true, delete: true },
                 'access-requests': { view: true, create: false, edit: true, delete: true },
                 'categories': { view: true, create: true, edit: true, delete: true },
                 'users': { view: true, create: true, edit: true, delete: true },
@@ -162,7 +157,7 @@ const addGranularPermissions = async (req, res) => {
                 'messages': { view: true, create: true, edit: false, delete: false },
                 'messages-view': { view: true, create: false, edit: false, delete: false },
                 'messages-create': { view: true, create: false, edit: false, delete: false },
-                'probes': { view: true, create: false, edit: false, delete: false },
+                'events': { view: true, create: false, edit: false, delete: false },
                 'access-requests': { view: true, create: false, edit: true, delete: false },
             },
             'parent': {

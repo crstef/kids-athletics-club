@@ -12,7 +12,7 @@ import { hashPassword } from './lib/auth';
 import { DEFAULT_PERMISSIONS, DEFAULT_ROLES } from './lib/defaults'
 import type { Athlete, Result, AgeCategory, User, AccessRequest, Message, EventTypeCustom, Permission, UserPermission, Role, AgeCategoryCustom } from '@/lib/types'
 import { getDashboardComponent, FALLBACK_DASHBOARD } from '@/lib/dashboardRegistry';
-import { generateTabsFromPermissions } from '@/lib/permission-tab-mapping'
+import { generateTabsFromPermissions, hasPermissionFromList } from '@/lib/permission-tab-mapping'
 
 // TAB_CONFIGS is now generated dynamically from user permissions via generateTabsFromPermissions()
 
@@ -107,8 +107,8 @@ function AppContent() {
   const visibleTabs = useMemo(() => {
     if (!currentUser) return []
 
-    const userPermissions = Array.isArray(currentUser.permissions) ? currentUser.permissions : []
-    const permissionTabs = generateTabsFromPermissions(userPermissions)
+    const sessionPermissions = Array.isArray(currentUser.permissions) ? currentUser.permissions : []
+  const permissionTabs = generateTabsFromPermissions(sessionPermissions)
     
     // Safety check to ensure permissionTabs is an array
     if (!Array.isArray(permissionTabs)) {
@@ -146,9 +146,13 @@ function AppContent() {
         .map(tab => tabById.get(tab.id))
         .filter((tab): tab is VisibleTabDescriptor => Boolean(tab))
 
-      const extras = apiTabEntries.filter(apiTab => !orderedByPermissions.some(tab => tab.id === apiTab.id))
+      const extras = apiTabEntries
+        .filter(apiTab => !orderedByPermissions.some(tab => tab.id === apiTab.id))
+        .filter(apiTab => hasPermissionFromList(apiTab.permission, sessionPermissions))
 
-      return [...orderedByPermissions, ...extras]
+      const permittedOrdered = orderedByPermissions.filter(tab => hasPermissionFromList(tab.permission, sessionPermissions))
+
+      return [...permittedOrdered, ...extras]
     }
 
     return permissionTabs.map<VisibleTabDescriptor>((tab) => ({
@@ -235,8 +239,8 @@ function AppContent() {
       // Refetch data based on permissions
       if (hasPermission('athletes.view')) refetchAthletes()
       if (hasPermission('results.view')) refetchResults()
-      if (hasPermission('age_categories.view')) refetchAgeCategories()
-      if (hasPermission('events.view')) refetchProbes()
+  if (hasPermission('age_categories.view')) refetchAgeCategories()
+  if (hasPermission('events.view')) refetchProbes()
       if (hasPermission('users.view')) refetchUsers()
       if (hasPermission('roles.view')) refetchRoles()
       if (hasPermission('permissions.view')) refetchPermissions()
@@ -342,6 +346,27 @@ function AppContent() {
       const existingAgeCategories = ageCategories || []
       if (existingAgeCategories.length === 0) {
         const defaultAgeCategories: AgeCategoryCustom[] = [
+
+           {
+            id: `cat-${Date.now()}-1`,
+            name: 'U6',
+            ageFrom: 4,
+            ageTo: 5,
+            description: 'Categoria Under 10 - Copii',
+            isActive: true,
+            createdAt: new Date().toISOString(),
+            createdBy: 'system'
+          },
+           {
+            id: `cat-${Date.now()}-1`,
+            name: 'U8',
+            ageFrom: 6,
+            ageTo: 7,
+            description: 'Categoria Under 10 - Copii',
+            isActive: true,
+            createdAt: new Date().toISOString(),
+            createdBy: 'system'
+          },
           {
             id: `cat-${Date.now()}-1`,
             name: 'U10',
@@ -557,7 +582,22 @@ function AppContent() {
 
   const handleAddProbe = async (probeData: Omit<EventTypeCustom, 'id' | 'createdAt'>) => {
     try {
-      await apiClient.createProbe(probeData)
+      const payload = {
+        ...probeData,
+        name: probeData.name.trim(),
+        description: probeData.description?.trim() || undefined,
+        unit: probeData.unit?.trim() || undefined,
+        category: probeData.category?.trim() || undefined
+      }
+      if (!payload.unit) {
+        toast.error('Unitatea de măsură este obligatorie pentru probe.')
+        return
+      }
+      if (!payload.category) {
+        toast.error('Categoria probei este obligatorie.')
+        return
+      }
+      await apiClient.createProbe(payload)
       await refetchProbes()
       toast.success('Probă adăugată cu succes!')
     } catch (error: any) {
@@ -568,7 +608,18 @@ function AppContent() {
 
   const handleEditProbe = async (id: string, probeData: Partial<EventTypeCustom>) => {
     try {
-      await apiClient.updateProbe(id, probeData)
+      const trimmedName = probeData.name?.trim()
+      const trimmedDescription = probeData.description?.trim()
+      const trimmedUnit = probeData.unit?.trim()
+      const trimmedCategory = probeData.category?.trim()
+      const payload = {
+        ...probeData,
+        name: trimmedName,
+        description: trimmedDescription || undefined,
+        unit: trimmedUnit || undefined,
+        category: trimmedCategory || undefined
+      }
+      await apiClient.updateProbe(id, payload)
       await refetchProbes()
       toast.success('Probă actualizată cu succes!')
     } catch (error: any) {

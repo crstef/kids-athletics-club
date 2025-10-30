@@ -1,0 +1,2 @@
+-- Deprecated migration retained for legacy deployments.
+-- No-op because athlete probes now reuse the events table.

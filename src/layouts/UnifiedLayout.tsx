@@ -22,6 +22,7 @@ import { ProbeManagement } from '@/components/ProbeManagement'
 import { MessagingPanel } from '@/components/MessagingPanel'
 import { CoachAccessRequests } from '@/components/CoachAccessRequests'
 import { CoachApprovalRequests } from '@/components/CoachApprovalRequests'
+import { UserPermissionsManagement } from '@/components/UserPermissionsManagement'
 import { AddAthleteDialog } from '@/components/AddAthleteDialog'
 import { AthleteCard } from '@/components/AthleteCard'
 import { AthleteDetailsDialog } from '@/components/AthleteDetailsDialog'
@@ -32,7 +33,7 @@ import { useAuth } from '@/lib/auth-context'
 import { apiClient } from '@/lib/api-client'
 
 // Types
-import { User, Role, Permission, AgeCategoryCustom, EventTypeCustom, Result, Athlete, AccessRequest, Message, AccountApprovalRequest } from '@/lib/types'
+import { User, Role, Permission, AgeCategoryCustom, EventTypeCustom, Result, Athlete, AccessRequest, Message, AccountApprovalRequest, UserPermission } from '@/lib/types'
 
 interface DashboardWidget {
   id: string
@@ -127,6 +128,7 @@ interface UnifiedLayoutProps {
   approvalRequests: AccountApprovalRequest[]
   messages: Message[]
   results: Result[]
+  userPermissions: UserPermission[]
   
   // User widgets (from role_dashboards)
   userWidgets?: DashboardWidget[]
@@ -141,6 +143,8 @@ interface UnifiedLayoutProps {
   handleAddPermission: (permData: Omit<Permission, 'id' | 'createdAt' | 'createdBy'>) => void
   handleUpdatePermission: (id: string, updates: Partial<Permission>) => void
   handleDeletePermission: (id: string) => void
+  handleGrantUserPermission: (permData: Omit<UserPermission, 'id' | 'grantedAt'>) => void
+  handleRevokeUserPermission: (id: string) => void
   handleAddAgeCategory: (categoryData: Omit<AgeCategoryCustom, 'id' | 'createdAt' | 'createdBy'>) => Promise<void>
   handleUpdateAgeCategory: (categoryId: string, updates: Partial<AgeCategoryCustom>) => Promise<void>
   handleDeleteAgeCategory: (categoryId: string) => Promise<void>
@@ -160,6 +164,9 @@ interface UnifiedLayoutProps {
   handleUpdateAccessRequest: (id: string, status: 'approved' | 'rejected') => Promise<void>
   handleSendMessage: (messageData: Omit<Message, 'id' | 'timestamp'>) => Promise<void>
   handleMarkAsRead: (messageIds: string[]) => Promise<void>
+  handleApproveAccount: (requestId: string) => void
+  handleRejectAccount: (requestId: string, reason?: string) => void
+  handleDeleteApprovalRequest: (requestId: string) => void
   
   // Athlete search/filter
   searchQuery: string
@@ -207,10 +214,29 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
     roles,
     ageCategories,
     accessRequests,
+    approvalRequests,
     messages,
     results,
+  userPermissions = [],
     parents,
     coaches,
+    handleAddUser,
+    handleUpdateUser,
+    handleDeleteUser,
+    handleAddRole,
+    handleUpdateRole,
+    handleDeleteRole,
+    handleAddPermission,
+    handleUpdatePermission,
+    handleDeletePermission,
+    handleGrantUserPermission,
+    handleRevokeUserPermission,
+    handleAddAgeCategory,
+    handleUpdateAgeCategory,
+    handleDeleteAgeCategory,
+    handleAddProbe,
+    handleEditProbe,
+    handleDeleteProbe,
     searchQuery,
     setSearchQuery,
     categoryFilter,
@@ -226,7 +252,13 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
     setDeleteAthleteId,
     deleteAthleteName,
     athleteResultsCount,
-    confirmDeleteAthlete
+    confirmDeleteAthlete,
+    handleApproveAccount,
+    handleRejectAccount,
+    handleDeleteApprovalRequest,
+    handleUpdateAccessRequest,
+    handleSendMessage,
+    handleMarkAsRead
   } = props
 
   const { hasPermission } = useAuth()
@@ -243,15 +275,21 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
   )
 
   const displayTabs = useMemo(() => {
-    if (!isParentUser) {
-      return visibleTabs
-    }
+    const transformed = !isParentUser
+      ? visibleTabs
+      : visibleTabs.map((tab) =>
+          tab.id === 'athletes'
+            ? { ...tab, label: 'Atlet' }
+            : tab
+        )
 
-    return visibleTabs.map((tab) =>
-      tab.id === 'athletes'
-        ? { ...tab, label: 'Atlet' }
-        : tab
-    )
+    const seen = new Set<string>()
+    return transformed.filter((tab) => {
+      const key = typeof tab.id === 'string' ? tab.id.toLowerCase() : tab.id
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
   }, [visibleTabs, isParentUser])
 
   const visibleTabIds = useMemo(() => new Set(displayTabs.map(tab => tab.id)), [displayTabs])
@@ -473,12 +511,12 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
           <div className="absolute inset-0 bg-linear-to-r from-primary/10 via-primary/5 to-accent/10 blur-3xl -z-10" />
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-3xl font-bold mb-2 bg-linear-to-r from-primary to-accent bg-clip-text text-transparent" style={{ fontFamily: 'Outfit', letterSpacing: '-0.02em' }}>
-                Dashboard (debug: {widgetsToRender.length}/{safeEnabledWidgets.length})
+              <h2
+                className="text-3xl font-bold mb-2 bg-linear-to-r from-primary to-accent bg-clip-text text-transparent"
+                style={{ fontFamily: 'Outfit', letterSpacing: '-0.02em' }}
+              >
+                Dashboard
               </h2>
-              <p className="text-muted-foreground">
-                Setează <code>window.__WIDGET_DEBUG_LIMIT__</code> în consola browser-ului pentru a ajusta câte widget-uri se randază.
-              </p>
             </div>
             <Button variant="outline" onClick={() => setCustomizeOpen(true)}>
               <Gear size={16} className="mr-2" />
@@ -662,26 +700,133 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
             </TabsContent>
           )}
 
-          {/* Users Tab */}
-          {/* Users Tab temporarily disabled for debugging */}
+      {isTabVisible('events') && (
+        <TabsContent value="events" className="mt-6">
+              <ProbeManagement
+                probes={probes}
+                currentUserId={currentUser.id}
+                onAddProbe={(data) => handleAddProbe(data)}
+                onUpdateProbe={(id, updates) => handleEditProbe(id, updates)}
+                onDeleteProbe={(id) => handleDeleteProbe(id)}
+              />
+            </TabsContent>
+          )}
 
-          {/* Roles Tab */}
-          {/* Roles Tab temporarily disabled for debugging */}
+          {isTabVisible('approvals') && (
+            <TabsContent value="approvals" className="mt-6 space-y-6">
+              {showApprovalRequests ? (
+                <>
+                  <UserPermissionsManagement
+                    users={users}
+                    permissions={permissions}
+                    userPermissions={userPermissions}
+                    athletes={athletes}
+                    approvalRequests={approvalRequests}
+                    currentUserId={currentUser.id}
+                    onGrantPermission={handleGrantUserPermission}
+                    onRevokePermission={handleRevokeUserPermission}
+                    onApproveAccount={handleApproveAccount}
+                    onRejectAccount={handleRejectAccount}
+                    onUpdateUser={(id, updates) => { void handleUpdateUser(id, updates) }}
+                    onDeleteRequest={handleDeleteApprovalRequest}
+                  />
+                  <CoachAccessRequests
+                    coachId={currentUser.id}
+                    mode="admin"
+                    users={users}
+                    athletes={athletes}
+                    parents={parents}
+                    accessRequests={accessRequests}
+                    onUpdateRequest={handleUpdateAccessRequest}
+                  />
+                </>
+              ) : (
+                <div className="space-y-6">
+                  <CoachApprovalRequests
+                    coachId={currentUser.id}
+                    users={users}
+                    athletes={athletes}
+                    approvalRequests={approvalRequests}
+                    onApproveAccount={handleApproveAccount}
+                    onRejectAccount={handleRejectAccount}
+                  />
+                  {showAccessRequests && (
+                    <CoachAccessRequests
+                      coachId={currentUser.id}
+                      users={users}
+                      athletes={athletes}
+                      parents={parents}
+                      accessRequests={accessRequests}
+                      onUpdateRequest={handleUpdateAccessRequest}
+                    />
+                  )}
+                </div>
+              )}
+            </TabsContent>
+          )}
 
-          {/* Permissions Tab */}
-          {/* Permissions Tab temporarily disabled for debugging */}
+          {isTabVisible('messages') && (
+            <TabsContent value="messages" className="mt-6">
+              <MessagingPanel
+                currentUserId={currentUser.id}
+                users={users}
+                messages={messages}
+                onSendMessage={(payload) => { void handleSendMessage(payload) }}
+                onMarkAsRead={(ids) => { void handleMarkAsRead(ids) }}
+                availableUsers={messagingUsers}
+              />
+            </TabsContent>
+          )}
 
-          {/* Categories Tab */}
-          {/* Categories Tab temporarily disabled for debugging */}
+          {isTabVisible('categories') && (
+            <TabsContent value="categories" className="mt-6">
+              <AgeCategoryManagement
+                ageCategories={ageCategories}
+                currentUserId={currentUser.id}
+                onAddCategory={(data) => { void handleAddAgeCategory(data) }}
+                onUpdateCategory={(id, updates) => { void handleUpdateAgeCategory(id, updates) }}
+                onDeleteCategory={(id) => { void handleDeleteAgeCategory(id) }}
+              />
+            </TabsContent>
+          )}
 
-          {/* Probes Tab */}
-          {/* Probes Tab temporarily disabled for debugging */}
+          {isTabVisible('users') && (
+            <TabsContent value="users" className="mt-6">
+              <UserManagement
+                users={users}
+                roles={roles}
+                currentUserId={currentUser.id}
+                onAddUser={(data) => { void handleAddUser(data) }}
+                onUpdateUser={(id, updates) => { void handleUpdateUser(id, updates) }}
+                onDeleteUser={(id) => { void handleDeleteUser(id) }}
+              />
+            </TabsContent>
+          )}
 
-          {/* Messages Tab */}
-          {/* Messages Tab temporarily disabled for debugging */}
+          {isTabVisible('roles') && (
+            <TabsContent value="roles" className="mt-6">
+              <RoleManagement
+                roles={roles}
+                permissions={permissions}
+                currentUserId={currentUser.id}
+                onAddRole={(data) => { void handleAddRole(data) }}
+                onUpdateRole={(id, updates) => { void handleUpdateRole(id, updates) }}
+                onDeleteRole={(id) => { void handleDeleteRole(id) }}
+              />
+            </TabsContent>
+          )}
 
-          {/* Approvals Tab */}
-          {/* Approvals Tab temporarily disabled for debugging */}
+          {isTabVisible('permissions') && (
+            <TabsContent value="permissions" className="mt-6">
+              <PermissionsSystem
+                permissions={permissions}
+                currentUserId={currentUser.id}
+                onAddPermission={handleAddPermission}
+                onUpdatePermission={handleUpdatePermission}
+                onDeletePermission={handleDeletePermission}
+              />
+            </TabsContent>
+          )}
         </Tabs>
       </main>
 

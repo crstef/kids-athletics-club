@@ -49,7 +49,7 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
   const [lastName, setLastName] = useState('')
   const [age, setAge] = useState<number | null>(null)
   const [dateOfBirth, setDateOfBirth] = useState('')
-  const [category, setCategory] = useState<AgeCategory>('U10')
+  const [category, setCategory] = useState<AgeCategory>('U6')
   const [gender, setGender] = useState<Gender>('M')
   const [coachId, setCoachId] = useState<string>('')
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
@@ -84,8 +84,8 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
       return
     }
 
-    if (age < 6 || age > 18) {
-      toast.error('Vârsta trebuie să fie între 6 și 18 ani')
+    if (age < 4 || age > 18) {
+      toast.error('Vârsta trebuie să fie între 4 și 18 ani')
       return
     }
 
@@ -104,11 +104,11 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
     setLastName('')
     setAge(null)
     setDateOfBirth('')
-    setCategory('U10')
+    setCategory('U6')
     setGender('M')
     setCoachId('')
-  setAvatarFile(null)
-  setAvatarPreview(null)
+    setAvatarFile(null)
+    setAvatarPreview(null)
     setOpen(false)
   }
 
@@ -183,7 +183,11 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
               <Label htmlFor="avatar">Poză (opțional)</Label>
               <div className="flex items-center gap-4">
                 {avatarPreview && (
-                  <img src={avatarPreview} alt="preview" className="w-20 h-20 rounded-full object-cover border-2 border-primary" />
+                  <img
+                    src={avatarPreview}
+                    alt="preview"
+                    className="w-20 h-20 rounded-full object-cover border-2 border-primary"
+                  />
                 )}
                 <div className="flex-1">
                   <div className="relative">
@@ -192,8 +196,8 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
                       type="file"
                       accept="image/*"
                       onChange={(e) => {
-                        const f = e.target.files && e.target.files[0]
-                        if (f) setAvatarFile(f)
+                        const file = e.target.files?.[0]
+                        if (file) setAvatarFile(file)
                       }}
                       className="hidden"
                     />
@@ -207,11 +211,14 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
                     </Button>
                   </div>
                   {avatarPreview && (
-                    <Button 
+                    <Button
                       type="button"
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => { setAvatarFile(null); setAvatarPreview(null) }}
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setAvatarFile(null)
+                        setAvatarPreview(null)
+                      }}
                       className="mt-2 w-full text-destructive hover:text-destructive"
                     >
                       Șterge Poza
@@ -223,7 +230,7 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
           </PermissionGate>
           <div className="space-y-2">
             <Label htmlFor="gender">Gen *</Label>
-            <Select value={gender} onValueChange={(v) => setGender(v as Gender)}>
+            <Select value={gender} onValueChange={(value) => setGender(value as Gender)}>
               <SelectTrigger id="gender">
                 <SelectValue />
               </SelectTrigger>
