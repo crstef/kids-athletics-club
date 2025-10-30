@@ -3,54 +3,102 @@ import fs from 'fs';
 import path from 'path';
 import pool from '../config/database';
 import { AuthRequest } from '../middleware/auth';
+import type { PoolClient } from 'pg';
+
+const tableColumnsCache = new Map<string, Set<string>>();
+
+async function getTableColumns(client: PoolClient, table: string): Promise<Set<string>> {
+  const key = table.toLowerCase();
+  if (tableColumnsCache.has(key)) {
+    return tableColumnsCache.get(key)!;
+  }
+
+  try {
+    const result = await client.query(
+      `SELECT column_name
+       FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = $1`,
+      [key]
+    );
+    const columns = new Set(result.rows.map((row) => row.column_name.toLowerCase()));
+    tableColumnsCache.set(key, columns);
+    return columns;
+  } catch (error) {
+    console.warn(`[athletesController] Failed to read columns for ${table}:`, error);
+    const fallback = new Set<string>();
+    tableColumnsCache.set(key, fallback);
+    return fallback;
+  }
+}
+
+const buildAthleteSelect = (columns: Set<string>): string => {
+  const has = (column: string) => columns.has(column.toLowerCase());
+
+  return [
+    'id',
+    'first_name',
+    'last_name',
+    'age',
+    'category',
+    has('gender') ? 'gender' : "NULL::text AS gender",
+    has('date_of_birth') ? 'date_of_birth' : "NULL::date AS date_of_birth",
+    has('date_joined') ? 'date_joined' : "NULL::timestamp AS date_joined",
+    has('avatar') ? 'avatar' : "NULL::text AS avatar",
+    has('coach_id') ? 'coach_id' : "NULL::uuid AS coach_id",
+    has('parent_id') ? 'parent_id' : "NULL::uuid AS parent_id",
+    has('notes') ? 'notes' : "NULL::text AS notes",
+    has('created_at') ? 'created_at' : 'NOW() AS created_at'
+  ].join(', ');
+};
+
+const mapAthleteRow = (athlete: any) => ({
+  id: athlete.id,
+  firstName: athlete.first_name,
+  lastName: athlete.last_name,
+  age: athlete.age,
+  category: athlete.category,
+  gender: athlete.gender ?? null,
+  dateOfBirth: athlete.date_of_birth ? new Date(athlete.date_of_birth).toISOString().slice(0, 10) : null,
+  dateJoined: athlete.date_joined ? new Date(athlete.date_joined).toISOString().slice(0, 10) : null,
+  avatar: athlete.avatar ?? null,
+  coachId: athlete.coach_id ?? null,
+  parentId: athlete.parent_id ?? null,
+  notes: athlete.notes ?? null,
+  createdAt: athlete.created_at ?? null
+});
 
 export const getAllAthletes = async (req: AuthRequest, res: Response) => {
   const client = await pool.connect();
-  
+
   try {
     const userRole = req.user?.role;
     const userId = req.user?.userId;
+  const columns = await getTableColumns(client, 'athletes');
+  const userColumns = userRole === 'athlete' ? await getTableColumns(client, 'users') : null;
+    const selectClause = buildAthleteSelect(columns);
 
-    let query = `
-  SELECT id, first_name, last_name, age, category, gender, date_of_birth, date_joined, avatar, coach_id, parent_id, notes, created_at
-      FROM athletes
-    `;
-    let params: any[] = [];
+    let query = `SELECT ${selectClause} FROM athletes`;
+    const params: any[] = [];
 
-    // Role-based scoping: superadmin -> all; coach -> by coach_id; parent -> by parent_id; athlete -> own record
-    if (userRole === 'coach') {
+    if (userRole === 'coach' && columns.has('coach_id')) {
       query += ' WHERE coach_id = $1';
-      params = [userId];
-    } else if (userRole === 'parent') {
+      params.push(userId);
+    } else if (userRole === 'parent' && columns.has('parent_id')) {
       query += ' WHERE parent_id = $1';
-      params = [userId];
-    } else if (userRole === 'athlete') {
-      // Find the athlete row linked to the user (users.athlete_id)
+      params.push(userId);
+    } else if (userRole === 'athlete' && userColumns?.has('athlete_id')) {
       query += ' WHERE id = (SELECT COALESCE(athlete_id, \'\') FROM users WHERE id = $1)';
-      params = [userId];
+      params.push(userId);
     }
 
-    query += ' ORDER BY created_at DESC';
+    if (columns.has('created_at')) {
+      query += ' ORDER BY created_at DESC';
+    } else {
+      query += ' ORDER BY first_name, last_name';
+    }
 
     const result = await client.query(query, params);
-
-    const athletes = result.rows.map(athlete => ({
-      id: athlete.id,
-      firstName: athlete.first_name,
-      lastName: athlete.last_name,
-      age: athlete.age,
-      category: athlete.category,
-      gender: athlete.gender,
-      dateOfBirth: athlete.date_of_birth ? new Date(athlete.date_of_birth).toISOString().slice(0, 10) : null,
-      dateJoined: athlete.date_joined ? new Date(athlete.date_joined).toISOString().slice(0, 10) : null,
-      avatar: athlete.avatar,
-      coachId: athlete.coach_id,
-      parentId: athlete.parent_id,
-      notes: athlete.notes,
-      createdAt: athlete.created_at
-    }));
-
-    res.json(athletes);
+    res.json(result.rows.map(mapAthleteRow));
   } catch (error) {
     console.error('Get athletes error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -61,38 +109,52 @@ export const getAllAthletes = async (req: AuthRequest, res: Response) => {
 
 export const createAthlete = async (req: AuthRequest, res: Response) => {
   const client = await pool.connect();
-  
+
   try {
-  const { firstName, lastName, age, category, gender, dateOfBirth, dateJoined, avatar, coachId, parentId, notes } = req.body;
+    const { firstName, lastName, age, category, gender, dateOfBirth, dateJoined, avatar, coachId, parentId, notes } = req.body;
 
     if (!firstName || !lastName || !age || !category || !dateJoined) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
+    const columns = await getTableColumns(client, 'athletes');
+    const requiredColumns = ['first_name', 'last_name', 'age', 'category'];
+    for (const column of requiredColumns) {
+      if (!columns.has(column)) {
+        console.error(`[createAthlete] Missing required column ${column}`);
+        return res.status(500).json({ error: 'Athlete table is misconfigured' });
+      }
+    }
+
+    const insertColumns = [...requiredColumns];
+    const values: any[] = [firstName, lastName, age, category];
+    const placeholders = values.map((_, idx) => `$${idx + 1}`);
+
+    const addOptional = (column: string, value: any) => {
+      if (!columns.has(column)) return;
+      insertColumns.push(column);
+      placeholders.push(`$${values.length + 1}`);
+      values.push(value);
+    };
+
+    addOptional('gender', gender || null);
+    addOptional('date_of_birth', dateOfBirth || null);
+    addOptional('date_joined', dateJoined);
+    addOptional('avatar', avatar || null);
+    addOptional('coach_id', coachId || null);
+    addOptional('parent_id', parentId || null);
+    addOptional('notes', notes || null);
+
+    const selectClause = buildAthleteSelect(columns);
+
     const result = await client.query(
-  `INSERT INTO athletes (first_name, last_name, age, category, gender, date_of_birth, date_joined, avatar, coach_id, parent_id, notes)
-   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-   RETURNING id, first_name, last_name, age, category, gender, date_of_birth, date_joined, avatar, coach_id, parent_id, notes, created_at`,
-  [firstName, lastName, age, category, gender || null, dateOfBirth || null, dateJoined, avatar || null, coachId || null, parentId || null, notes || null]
+      `INSERT INTO athletes (${insertColumns.join(', ')})
+       VALUES (${placeholders.join(', ')})
+       RETURNING ${selectClause}`,
+      values
     );
 
-    const athlete = result.rows[0];
-
-    res.status(201).json({
-      id: athlete.id,
-      firstName: athlete.first_name,
-      lastName: athlete.last_name,
-      age: athlete.age,
-      category: athlete.category,
-      gender: athlete.gender,
-      dateOfBirth: athlete.date_of_birth ? new Date(athlete.date_of_birth).toISOString().slice(0, 10) : null,
-      dateJoined: athlete.date_joined ? new Date(athlete.date_joined).toISOString().slice(0, 10) : null,
-      avatar: athlete.avatar,
-      coachId: athlete.coach_id,
-      parentId: athlete.parent_id,
-      notes: athlete.notes,
-      createdAt: athlete.created_at
-    });
+    res.status(201).json(mapAthleteRow(result.rows[0]));
   } catch (error) {
     console.error('Create athlete error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -103,76 +165,52 @@ export const createAthlete = async (req: AuthRequest, res: Response) => {
 
 export const updateAthlete = async (req: AuthRequest, res: Response) => {
   const client = await pool.connect();
-  
-  try {
-  const { id } = req.params;
-  const { firstName, lastName, age, category, gender, dateOfBirth, dateJoined, avatar, coachId, parentId, notes } = req.body;
 
-    const athlete = await client.query('SELECT id, avatar FROM athletes WHERE id = $1', [id]);
+  try {
+    const { id } = req.params;
+    const { firstName, lastName, age, category, gender, dateOfBirth, dateJoined, avatar, coachId, parentId, notes } = req.body;
+
+    const columns = await getTableColumns(client, 'athletes');
+    const selectCurrent = columns.has('avatar') ? 'id, avatar' : 'id';
+    const athlete = await client.query(`SELECT ${selectCurrent} FROM athletes WHERE id = $1`, [id]);
     if (athlete.rows.length === 0) {
       return res.status(404).json({ error: 'Athlete not found' });
     }
 
-    const currentAvatar: string | null = athlete.rows[0].avatar;
-    const removeExistingAvatar = avatar !== undefined && (avatar === null || avatar === '');
+    const currentAvatar: string | null = columns.has('avatar') ? athlete.rows[0].avatar : null;
+    const removeExistingAvatar = columns.has('avatar') && avatar !== undefined && (avatar === null || avatar === '');
 
     const updates: string[] = [];
     const values: any[] = [];
     let paramCount = 1;
 
-    if (firstName !== undefined) {
-      updates.push(`first_name = $${paramCount++}`);
-      values.push(firstName);
-    }
-    if (lastName !== undefined) {
-      updates.push(`last_name = $${paramCount++}`);
-      values.push(lastName);
-    }
-    if (age !== undefined) {
-      updates.push(`age = $${paramCount++}`);
-      values.push(age);
-    }
-    if (category !== undefined) {
-      updates.push(`category = $${paramCount++}`);
-      values.push(category);
-    }
-    if (gender !== undefined) {
-      updates.push(`gender = $${paramCount++}`);
-      values.push(gender);
-    }
-    if (dateOfBirth !== undefined) {
-      updates.push(`date_of_birth = $${paramCount++}`);
-      values.push(dateOfBirth);
-    }
-    if (dateJoined !== undefined) {
-      updates.push(`date_joined = $${paramCount++}`);
-      values.push(dateJoined);
-    }
-    if (avatar !== undefined) {
-      updates.push(`avatar = $${paramCount++}`);
-      values.push(avatar === '' ? null : avatar);
-    }
-    if (coachId !== undefined) {
-      updates.push(`coach_id = $${paramCount++}`);
-      values.push(coachId);
-    }
-    if (parentId !== undefined) {
-      updates.push(`parent_id = $${paramCount++}`);
-      values.push(parentId || null);
-    }
-    if (notes !== undefined) {
-      updates.push(`notes = $${paramCount++}`);
-      values.push(notes === '' ? null : notes);
-    }
+    const addUpdate = (column: string, value: any) => {
+      if (!columns.has(column)) return;
+      updates.push(`${column} = $${paramCount++}`);
+      values.push(value);
+    };
+
+    if (firstName !== undefined) addUpdate('first_name', firstName);
+    if (lastName !== undefined) addUpdate('last_name', lastName);
+    if (age !== undefined) addUpdate('age', age);
+    if (category !== undefined) addUpdate('category', category);
+    if (gender !== undefined) addUpdate('gender', gender);
+    if (dateOfBirth !== undefined) addUpdate('date_of_birth', dateOfBirth);
+    if (dateJoined !== undefined) addUpdate('date_joined', dateJoined);
+    if (avatar !== undefined) addUpdate('avatar', avatar === '' ? null : avatar);
+    if (coachId !== undefined) addUpdate('coach_id', coachId);
+    if (parentId !== undefined) addUpdate('parent_id', parentId || null);
+    if (notes !== undefined) addUpdate('notes', notes === '' ? null : notes);
 
     if (updates.length === 0) {
       return res.status(400).json({ error: 'No fields to update' });
     }
 
     values.push(id);
+    const selectClause = buildAthleteSelect(columns);
     const result = await client.query(
-  `UPDATE athletes SET ${updates.join(', ')} WHERE id = $${paramCount}
-   RETURNING id, first_name, last_name, age, category, gender, date_of_birth, date_joined, avatar, coach_id, notes, created_at`,
+      `UPDATE athletes SET ${updates.join(', ')} WHERE id = $${paramCount}
+       RETURNING ${selectClause}`,
       values
     );
 
@@ -192,22 +230,7 @@ export const updateAthlete = async (req: AuthRequest, res: Response) => {
       }
     }
 
-    const updatedAthlete = result.rows[0];
-
-    res.json({
-      id: updatedAthlete.id,
-      firstName: updatedAthlete.first_name,
-      lastName: updatedAthlete.last_name,
-      age: updatedAthlete.age,
-      category: updatedAthlete.category,
-      gender: updatedAthlete.gender,
-      dateOfBirth: updatedAthlete.date_of_birth ? new Date(updatedAthlete.date_of_birth).toISOString().slice(0, 10) : null,
-      dateJoined: updatedAthlete.date_joined ? new Date(updatedAthlete.date_joined).toISOString().slice(0, 10) : null,
-      avatar: updatedAthlete.avatar,
-      coachId: updatedAthlete.coach_id,
-      notes: updatedAthlete.notes,
-      createdAt: updatedAthlete.created_at
-    });
+    res.json(mapAthleteRow(result.rows[0]));
   } catch (error) {
     console.error('Update athlete error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -218,7 +241,7 @@ export const updateAthlete = async (req: AuthRequest, res: Response) => {
 
 export const deleteAthlete = async (req: AuthRequest, res: Response) => {
   const client = await pool.connect();
-  
+
   try {
     const { id } = req.params;
 
@@ -242,48 +265,39 @@ export const uploadAthleteAvatar = async (req: AuthRequest, res: Response) => {
   const client = await pool.connect();
   try {
     const { id } = req.params;
-  const file = (req as any).file as any | undefined;
+    const file = (req as any).file as any | undefined;
     if (!file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
+
+    const columns = await getTableColumns(client, 'athletes');
+    if (!columns.has('avatar')) {
+      return res.status(400).json({ error: 'Avatar uploads are not supported on this database schema' });
+    }
+
     const fileName = file.filename;
-    // Use relative path instead of absolute URL for portability across domains
     const avatarPath = `/uploads/athletes/${fileName}`;
+    const selectClause = buildAthleteSelect(columns);
 
     const result = await client.query(
-      `UPDATE athletes SET avatar = $1 WHERE id = $2 RETURNING id, first_name, last_name, age, category, gender, date_of_birth, date_joined, avatar, coach_id, notes, created_at`,
+      `UPDATE athletes SET avatar = $1 WHERE id = $2 RETURNING ${selectClause}`,
       [avatarPath, id]
     );
 
     if (result.rows.length === 0) {
-      // remove uploaded file if athlete not found
       try {
         fs.unlinkSync((file as any).path);
       } catch {
-        // noop: best-effort cleanup if file already removed or path invalid
+        // noop
       }
       return res.status(404).json({ error: 'Athlete not found' });
     }
 
-    const a = result.rows[0];
-    res.json({
-      id: a.id,
-      firstName: a.first_name,
-      lastName: a.last_name,
-      age: a.age,
-      category: a.category,
-      gender: a.gender,
-      dateOfBirth: a.date_of_birth ? new Date(a.date_of_birth).toISOString().slice(0, 10) : null,
-      dateJoined: a.date_joined ? new Date(a.date_joined).toISOString().slice(0, 10) : null,
-      avatar: a.avatar,
-      coachId: a.coach_id,
-      notes: a.notes,
-      createdAt: a.created_at,
-    });
+    res.json(mapAthleteRow(result.rows[0]));
   } catch (error) {
     console.error('Upload avatar error:', error);
     res.status(500).json({ error: 'Internal server error' });
   } finally {
     client.release();
   }
-}
+};
