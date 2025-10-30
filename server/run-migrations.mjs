@@ -46,6 +46,7 @@ const migrations = [
   'add-gender-column.sql',
   'add-gender-to-athletes.sql',
   'add-parent-id.sql',
+  '005_add_unit_and_category_to_coach_probes.sql',
 ];
 
 async function run() {
