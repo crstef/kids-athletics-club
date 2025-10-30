@@ -36,7 +36,7 @@ export function AddResultDialog({ athleteId, athleteName, onAdd }: AddResultDial
   useEffect(() => {
     if (probes.length > 0 && !eventType) {
       setEventType(probes[0].name)
-      setUnit(probes[0].unit)
+      setUnit(normalizeUnit(probes[0].unit))
     }
   }, [probes, eventType])
 
@@ -70,8 +70,17 @@ export function AddResultDialog({ athleteId, athleteName, onAdd }: AddResultDial
     setEventType(probeName)
     // Find probe and set unit
     const probe = probes.find(p => p.name === probeName)
-    if (probe) {
-      setUnit(probe.unit)
+    setUnit(normalizeUnit(probe?.unit))
+  }
+
+  const normalizeUnit = (rawUnit?: string): 'seconds' | 'meters' | 'points' => {
+    switch (rawUnit) {
+      case 'seconds':
+      case 'meters':
+      case 'points':
+        return rawUnit
+      default:
+        return 'seconds'
     }
   }
 
@@ -90,6 +99,28 @@ export function AddResultDialog({ athleteId, athleteName, onAdd }: AddResultDial
       case 'meters': return 'metri'
       case 'points': return 'puncte'
       default: return unit
+    }
+  }
+
+  const getProbeUnitLabel = (probeUnit?: string) => {
+    switch (normalizeUnit(probeUnit)) {
+      case 'seconds': return 'secunde'
+      case 'meters': return 'metri'
+      case 'points': return 'puncte'
+    }
+  }
+
+  const getProbeCategoryLabel = (category?: string) => {
+    switch (category) {
+      case 'running': return 'Alergare'
+      case 'jumping': return 'Sărituri'
+      case 'throwing': return 'Aruncări'
+      case 'other': return 'Altele'
+      case undefined:
+      case null:
+        return 'Categorie neprecizată'
+      default:
+        return category
     }
   }
 
@@ -115,7 +146,12 @@ export function AddResultDialog({ athleteId, athleteName, onAdd }: AddResultDial
               <SelectContent>
                 {probes.map((probe) => (
                   <SelectItem key={probe.id} value={probe.name}>
-                    {probe.description ? `${probe.name} - ${probe.description}` : probe.name}
+                    <div className="flex flex-col">
+                      <span className="font-medium">{probe.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {getProbeCategoryLabel(probe.category)} · {getProbeUnitLabel(probe.unit)}
+                      </span>
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>
