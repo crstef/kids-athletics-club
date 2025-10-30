@@ -29,6 +29,20 @@ export function formatResult(value: number, unit: Result['unit']): string {
   return formatResultValue(value, unit)
 }
 
+export const EVENT_UNITS: Record<string, 'seconds' | 'meters' | 'points'> = {
+  '60m': 'seconds',
+  '100m': 'seconds',
+  '200m': 'seconds',
+  '400m': 'seconds',
+  '800m': 'seconds',
+  '1500m': 'seconds',
+  'Long Jump': 'meters',
+  'High Jump': 'meters',
+  'Shot Put': 'meters',
+  'Javelin': 'meters',
+  'Discus': 'meters'
+}
+
 export function getInitials(firstName: string, lastName: string): string {
   return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase()
 }
