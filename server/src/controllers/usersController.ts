@@ -4,6 +4,53 @@ import { AuthRequest } from '../middleware/auth';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
+import type { PoolClient } from 'pg';
+
+const tableExistsCache = new Map<string, boolean>();
+const tableColumnsCache = new Map<string, Set<string>>();
+
+async function tableExists(client: PoolClient, table: string): Promise<boolean> {
+  const key = table.toLowerCase();
+  if (tableExistsCache.has(key)) return tableExistsCache.get(key)!;
+  try {
+    const result = await client.query(
+      `SELECT EXISTS (
+         SELECT 1
+         FROM information_schema.tables
+         WHERE table_schema = 'public' AND table_name = $1
+       ) AS exists`,
+      [key]
+    );
+    const exists = Boolean(result.rows[0]?.exists);
+    tableExistsCache.set(key, exists);
+    return exists;
+  } catch (error) {
+    console.warn(`Failed to check table ${table}:`, error);
+    tableExistsCache.set(key, false);
+    return false;
+  }
+}
+
+async function getTableColumns(client: PoolClient, table: string): Promise<Set<string>> {
+  const key = table.toLowerCase();
+  if (tableColumnsCache.has(key)) return tableColumnsCache.get(key)!;
+  try {
+    const result = await client.query(
+      `SELECT column_name
+       FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = $1`,
+      [key]
+    );
+    const columns = new Set(result.rows.map((row) => row.column_name.toLowerCase()));
+    tableColumnsCache.set(key, columns);
+    return columns;
+  } catch (error) {
+    console.warn(`Failed to read columns for ${table}:`, error);
+    const fallback = new Set<string>();
+    tableColumnsCache.set(key, fallback);
+    return fallback;
+  }
+}
 
 const hashPassword = (password: string): string => {
   return crypto.createHash('sha256').update(password).digest('hex');
@@ -14,11 +61,39 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
   const { user: currentUser } = req;
   
   try {
-  let query = `SELECT u.id, u.email, u.first_name, u.last_name, u.role, u.role_id, u.is_active, u.needs_approval, 
-            u.athlete_id, u.approved_by, u.approved_at, u.avatar, u.created_at,
-                        r.name as role_name
-                 FROM users u
-                 LEFT JOIN roles r ON u.role_id = r.id`;
+    const userColumns = await getTableColumns(client, 'users');
+    const hasRoleIdColumn = userColumns.has('role_id');
+    const hasIsActiveColumn = userColumns.has('is_active');
+    const hasNeedsApprovalColumn = userColumns.has('needs_approval');
+    const hasAthleteIdColumn = userColumns.has('athlete_id');
+    const hasApprovedByColumn = userColumns.has('approved_by');
+    const hasApprovedAtColumn = userColumns.has('approved_at');
+    const hasAvatarColumn = userColumns.has('avatar');
+    const hasCreatedAtColumn = userColumns.has('created_at');
+    const canJoinRoles = hasRoleIdColumn && await tableExists(client, 'roles');
+
+    const selectParts = [
+      'u.id',
+      'u.email',
+      'u.first_name',
+      'u.last_name',
+      'u.role',
+      hasRoleIdColumn ? 'u.role_id' : 'NULL::uuid AS role_id',
+      hasIsActiveColumn ? 'u.is_active' : 'true::boolean AS is_active',
+      hasNeedsApprovalColumn ? 'u.needs_approval' : 'false::boolean AS needs_approval',
+      hasAthleteIdColumn ? 'u.athlete_id' : 'NULL::uuid AS athlete_id',
+      hasApprovedByColumn ? 'u.approved_by' : 'NULL::uuid AS approved_by',
+      hasApprovedAtColumn ? 'u.approved_at' : 'NULL::timestamp AS approved_at',
+      hasAvatarColumn ? 'u.avatar' : 'NULL::text AS avatar',
+      hasCreatedAtColumn ? 'u.created_at' : 'NOW() AS created_at',
+      canJoinRoles ? 'r.name AS role_name' : 'u.role AS role_name'
+    ];
+
+    let query = `SELECT ${selectParts.join(', ')} FROM users u`;
+    if (canJoinRoles) {
+      query += ' LEFT JOIN roles r ON u.role_id = r.id';
+    }
+
     const queryParams: any[] = [];
 
     if (currentUser?.role === 'coach') {
@@ -34,7 +109,11 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
       queryParams.push(currentUser.userId);
     }
 
-    query += ' ORDER BY u.created_at DESC';
+    if (hasCreatedAtColumn) {
+      query += ' ORDER BY u.created_at DESC';
+    } else {
+      query += ' ORDER BY u.first_name, u.last_name';
+    }
 
     const result = await client.query(query, queryParams);
 

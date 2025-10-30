@@ -427,21 +427,21 @@ export const login = async (req: Request, res: Response) => {
     const baselineByRole: Record<string, string[]> = {
       superadmin: ['*'],
       coach: [
-        'athletes.view', 'athletes.edit',
+        'athletes.view', 'athletes.view.own', 'athletes.edit',
         'athletes.avatar.view', 'athletes.avatar.upload',
-        'results.create', 'results.view', 'results.edit',
+        'results.create', 'results.view', 'results.view.own', 'results.edit',
         'events.view',
         'messages.view', 'messages.create',
         'access_requests.view', 'access_requests.edit',
       ],
       parent: [
-        'athletes.view', 'athletes.avatar.view',
-        'results.view', 'events.view',
+        'athletes.view', 'athletes.view.own', 'athletes.avatar.view',
+        'results.view', 'results.view.own', 'events.view',
         'messages.view', 'messages.create',
         'access_requests.create', 'access_requests.view',
       ],
       athlete: [
-        'athletes.view', 'results.view', 'events.view', 'messages.view'
+        'athletes.view', 'athletes.view.own', 'results.view', 'results.view.own', 'events.view', 'messages.view'
       ],
     };
     const baseline = baselineByRole[user.role] || [];
@@ -579,21 +579,21 @@ export const getCurrentUser = async (req: Request, res: Response) => {
     const baselineByRole2: Record<string, string[]> = {
       superadmin: ['*'],
       coach: [
-        'athletes.view', 'athletes.edit',
+        'athletes.view', 'athletes.view.own', 'athletes.edit',
         'athletes.avatar.view', 'athletes.avatar.upload',
-        'results.create', 'results.view', 'results.edit',
+        'results.create', 'results.view', 'results.view.own', 'results.edit',
         'events.view',
         'messages.view', 'messages.create',
         'access_requests.view', 'access_requests.edit',
       ],
       parent: [
-        'athletes.view', 'athletes.avatar.view',
-        'results.view', 'events.view',
+        'athletes.view', 'athletes.view.own', 'athletes.avatar.view',
+        'results.view', 'results.view.own', 'events.view',
         'messages.view', 'messages.create',
         'access_requests.create', 'access_requests.view',
       ],
       athlete: [
-        'athletes.view', 'results.view', 'events.view', 'messages.view'
+        'athletes.view', 'athletes.view.own', 'results.view', 'results.view.own', 'events.view', 'messages.view'
       ],
     };
     const baseline2 = baselineByRole2[user.role] || [];

@@ -295,6 +295,10 @@ function AppContent() {
   }, [activeTab, currentUser, visibleTabs.length, probes.length, messages.length, users.length, roles.length, permissions.length, ageCategories.length, accessRequests.length, approvalRequests.length, refetchProbes, refetchMessages, refetchUsers, refetchRoles, refetchPermissions, refetchUserPermissions, refetchAgeCategories, refetchAccessRequests, refetchApprovalRequests])
 
   useEffect(() => {
+    if (import.meta.env.PROD) {
+      return
+    }
+
     const initSuperAdmin = async () => {
       setApprovalRequests([])
 
