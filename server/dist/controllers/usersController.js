@@ -3,9 +3,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteUser = exports.updateUser = exports.createUser = exports.getAllUsers = void 0;
+exports.deleteUser = exports.uploadUserAvatar = exports.updateUser = exports.createUser = exports.getAllUsers = void 0;
 const database_1 = __importDefault(require("../config/database"));
 const crypto_1 = __importDefault(require("crypto"));
+const fs_1 = __importDefault(require("fs"));
+const path_1 = __importDefault(require("path"));
 const hashPassword = (password) => {
     return crypto_1.default.createHash('sha256').update(password).digest('hex');
 };
@@ -14,7 +16,7 @@ const getAllUsers = async (req, res) => {
     const { user: currentUser } = req;
     try {
         let query = `SELECT u.id, u.email, u.first_name, u.last_name, u.role, u.role_id, u.is_active, u.needs_approval, 
-                        u.athlete_id, u.approved_by, u.approved_at, u.created_at,
+            u.athlete_id, u.approved_by, u.approved_at, u.avatar, u.created_at,
                         r.name as role_name
                  FROM users u
                  LEFT JOIN roles r ON u.role_id = r.id`;
@@ -47,7 +49,8 @@ const getAllUsers = async (req, res) => {
             athleteId: user.athlete_id,
             approvedBy: user.approved_by,
             approvedAt: user.approved_at,
-            createdAt: user.created_at
+            createdAt: user.created_at,
+            avatar: user.avatar
         }));
         res.json(users);
     }
@@ -77,7 +80,7 @@ const createUser = async (req, res) => {
         const hashedPassword = hashPassword(password);
         const result = await client.query(`INSERT INTO users (email, password, first_name, last_name, role, role_id, is_active, needs_approval)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-       RETURNING id, email, first_name, last_name, role, role_id, is_active, needs_approval, created_at`, [email.toLowerCase(), hashedPassword, firstName, lastName, role, roleId || null,
+       RETURNING id, email, first_name, last_name, role, role_id, is_active, needs_approval, avatar, created_at`, [email.toLowerCase(), hashedPassword, firstName, lastName, role, roleId || null,
             isActive ?? true, needsApproval ?? false]);
         const user = result.rows[0];
         res.status(201).json({
@@ -89,7 +92,8 @@ const createUser = async (req, res) => {
             roleId: user.role_id,
             isActive: user.is_active,
             needsApproval: user.needs_approval,
-            createdAt: user.created_at
+            createdAt: user.created_at,
+            avatar: user.avatar
         });
     }
     catch (error) {
@@ -105,7 +109,7 @@ const updateUser = async (req, res) => {
     const client = await database_1.default.connect();
     try {
         const { id } = req.params;
-        const { email, password, firstName, lastName, role, roleId, isActive, needsApproval, athleteId } = req.body;
+        const { email, password, firstName, lastName, role, roleId, isActive, needsApproval, athleteId, avatar } = req.body;
         const user = await client.query('SELECT id FROM users WHERE id = $1', [id]);
         if (user.rows.length === 0) {
             return res.status(404).json({ error: 'User not found' });
@@ -149,12 +153,16 @@ const updateUser = async (req, res) => {
             updates.push(`athlete_id = $${paramCount++}`);
             values.push(athleteId);
         }
+        if (avatar !== undefined) {
+            updates.push(`avatar = $${paramCount++}`);
+            values.push(avatar === '' ? null : avatar);
+        }
         if (updates.length === 0) {
             return res.status(400).json({ error: 'No fields to update' });
         }
         values.push(id);
         const result = await client.query(`UPDATE users SET ${updates.join(', ')} WHERE id = $${paramCount}
-       RETURNING id, email, first_name, last_name, role, role_id, is_active, needs_approval, athlete_id, created_at`, values);
+   RETURNING id, email, first_name, last_name, role, role_id, is_active, needs_approval, athlete_id, avatar, created_at`, values);
         const updatedUser = result.rows[0];
         res.json({
             id: updatedUser.id,
@@ -166,7 +174,8 @@ const updateUser = async (req, res) => {
             isActive: updatedUser.is_active,
             needsApproval: updatedUser.needs_approval,
             athleteId: updatedUser.athlete_id,
-            createdAt: updatedUser.created_at
+            createdAt: updatedUser.created_at,
+            avatar: updatedUser.avatar
         });
     }
     catch (error) {
@@ -178,6 +187,84 @@ const updateUser = async (req, res) => {
     }
 };
 exports.updateUser = updateUser;
+const uploadUserAvatar = async (req, res) => {
+    const client = await database_1.default.connect();
+    try {
+        const { id } = req.params;
+        const file = req.file;
+        if (!file) {
+            return res.status(400).json({ error: 'No file uploaded' });
+        }
+        const requester = req.user;
+        if (!requester || (requester.role !== 'superadmin' && requester.userId !== id)) {
+            // Remove uploaded file if requester is not allowed
+            try {
+                fs_1.default.unlinkSync(file.path);
+            }
+            catch {
+                // ignore cleanup errors
+            }
+            return res.status(403).json({ error: 'Not authorized to update this avatar' });
+        }
+        const existing = await client.query('SELECT avatar FROM users WHERE id = $1', [id]);
+        if (existing.rows.length === 0) {
+            try {
+                fs_1.default.unlinkSync(file.path);
+            }
+            catch {
+                // noop
+            }
+            return res.status(404).json({ error: 'User not found' });
+        }
+        const previousAvatar = existing.rows[0].avatar;
+        const avatarPath = `/uploads/users/${file.filename}`;
+        const result = await client.query(`UPDATE users SET avatar = $1 WHERE id = $2
+       RETURNING id, email, first_name, last_name, role, role_id, is_active, needs_approval, athlete_id, avatar, created_at`, [avatarPath, id]);
+        const updatedUser = result.rows[0];
+        if (!updatedUser) {
+            try {
+                fs_1.default.unlinkSync(file.path);
+            }
+            catch {
+                // noop
+            }
+            return res.status(404).json({ error: 'User not found' });
+        }
+        if (previousAvatar && previousAvatar !== avatarPath) {
+            const normalizedPath = previousAvatar.startsWith('/') ? `.${previousAvatar}` : previousAvatar;
+            const absolutePath = path_1.default.resolve(process.cwd(), normalizedPath);
+            const uploadsDir = path_1.default.resolve(process.cwd(), 'uploads', 'users');
+            if (absolutePath.startsWith(uploadsDir)) {
+                fs_1.default.promises.unlink(absolutePath).catch((err) => {
+                    if (err.code !== 'ENOENT') {
+                        console.warn('Failed to delete previous user avatar:', err);
+                    }
+                });
+            }
+        }
+        res.json({
+            id: updatedUser.id,
+            email: updatedUser.email,
+            firstName: updatedUser.first_name,
+            lastName: updatedUser.last_name,
+            role: updatedUser.role,
+            roleId: updatedUser.role_id,
+            isActive: updatedUser.is_active,
+            needsApproval: updatedUser.needs_approval,
+            athleteId: updatedUser.athlete_id,
+            avatar: updatedUser.avatar,
+            createdAt: updatedUser.created_at,
+        });
+    }
+    catch (error) {
+        console.error('Upload user avatar error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+    finally {
+        client.release();
+    }
+};
+exports.uploadUserAvatar = uploadUserAvatar;
 const deleteUser = async (req, res) => {
     const client = await database_1.default.connect();
     try {

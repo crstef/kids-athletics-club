@@ -173,7 +173,7 @@ const login = async (req, res) => {
             return res.status(400).json({ error: 'Email and password are required' });
         }
         // Get user
-        const result = await client.query(`SELECT id, email, password, first_name, last_name, role, role_id, is_active, needs_approval, athlete_id
+        const result = await client.query(`SELECT id, email, password, first_name, last_name, role, role_id, is_active, needs_approval, athlete_id, avatar
        FROM users WHERE email = $1`, [email.toLowerCase()]);
         if (result.rows.length === 0) {
             return res.status(401).json({ error: 'Invalid email or password' });
@@ -314,6 +314,7 @@ const login = async (req, res) => {
                 isActive: user.is_active,
                 needsApproval: user.needs_approval,
                 athleteId: user.athlete_id,
+                avatar: user.avatar,
                 permissions,
                 dashboards,
                 defaultDashboardId
@@ -341,7 +342,7 @@ const getCurrentUser = async (req, res) => {
         if (!userId) {
             return res.status(401).json({ error: 'Not authenticated' });
         }
-        const result = await client.query(`SELECT id, email, first_name, last_name, role, role_id, is_active, needs_approval, athlete_id, created_at
+        const result = await client.query(`SELECT id, email, first_name, last_name, role, role_id, is_active, needs_approval, athlete_id, created_at, avatar
        FROM users WHERE id = $1`, [userId]);
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'User not found' });
@@ -455,6 +456,7 @@ const getCurrentUser = async (req, res) => {
             isActive: user.is_active,
             needsApproval: user.needs_approval,
             athleteId: user.athlete_id,
+            avatar: user.avatar,
             createdAt: user.created_at,
             permissions,
             dashboards,
