@@ -7,6 +7,47 @@ exports.getCurrentUser = exports.logout = exports.login = exports.register = voi
 const database_1 = __importDefault(require("../config/database"));
 const jwt_1 = require("../config/jwt");
 const crypto_1 = __importDefault(require("crypto"));
+const tableExistsCache = new Map();
+const tableColumnsCache = new Map();
+async function tableExists(client, table) {
+    const key = table.toLowerCase();
+    if (tableExistsCache.has(key))
+        return tableExistsCache.get(key);
+    try {
+        const result = await client.query(`SELECT EXISTS (
+         SELECT 1
+         FROM information_schema.tables
+         WHERE table_schema = 'public' AND table_name = $1
+       ) AS exists`, [key]);
+        const exists = Boolean(result.rows[0]?.exists);
+        tableExistsCache.set(key, exists);
+        return exists;
+    }
+    catch (error) {
+        console.warn(`Failed to check table ${table}:`, error);
+        tableExistsCache.set(key, false);
+        return false;
+    }
+}
+async function getTableColumns(client, table) {
+    const key = table.toLowerCase();
+    if (tableColumnsCache.has(key))
+        return tableColumnsCache.get(key);
+    try {
+        const result = await client.query(`SELECT column_name
+       FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = $1`, [key]);
+        const columns = new Set(result.rows.map((row) => row.column_name.toLowerCase()));
+        tableColumnsCache.set(key, columns);
+        return columns;
+    }
+    catch (error) {
+        console.warn(`Failed to read columns for ${table}:`, error);
+        const fallback = new Set();
+        tableColumnsCache.set(key, fallback);
+        return fallback;
+    }
+}
 const hashPassword = (password) => {
     return crypto_1.default.createHash('sha256').update(password).digest('hex');
 };
@@ -172,8 +213,25 @@ const login = async (req, res) => {
         if (!email || !password) {
             return res.status(400).json({ error: 'Email and password are required' });
         }
-        // Get user
-        const result = await client.query(`SELECT id, email, password, first_name, last_name, role, role_id, is_active, needs_approval, athlete_id, avatar
+        const userColumns = await getTableColumns(client, 'users');
+        if (!userColumns.has('password')) {
+            console.error('users table does not have required password column');
+            return res.status(500).json({ error: 'Authentication not configured' });
+        }
+        const loginSelectFields = [
+            'id',
+            'email',
+            'password',
+            'first_name',
+            'last_name',
+            'role',
+            userColumns.has('role_id') ? 'role_id' : 'NULL::uuid AS role_id',
+            userColumns.has('is_active') ? 'is_active' : 'true::boolean AS is_active',
+            userColumns.has('needs_approval') ? 'needs_approval' : 'false::boolean AS needs_approval',
+            userColumns.has('athlete_id') ? 'athlete_id' : 'NULL::uuid AS athlete_id',
+            userColumns.has('avatar') ? 'avatar' : 'NULL::text AS avatar'
+        ].join(', ');
+        const result = await client.query(`SELECT ${loginSelectFields}
        FROM users WHERE email = $1`, [email.toLowerCase()]);
         if (result.rows.length === 0) {
             return res.status(401).json({ error: 'Invalid email or password' });
@@ -195,80 +253,106 @@ const login = async (req, res) => {
         if (!user.is_active && user.role !== 'superadmin') {
             return res.status(403).json({ error: 'Account not yet approved. Please wait for administrator approval.' });
         }
-        // Get permissions from role using role_id
-        let rolePermissions;
-        if (user.role_id) {
-            rolePermissions = await client.query(`
-        SELECT p.name
-        FROM role_permissions rp
-        JOIN permissions p ON rp.permission_id = p.id
-        WHERE rp.role_id = $1
-      `, [user.role_id]);
+        // Get permissions from role using role_id when tables exist
+        let rolePermissionNames = [];
+        const permissionsTableExists = await tableExists(client, 'permissions');
+        const hasRolePermissionsTable = permissionsTableExists && await tableExists(client, 'role_permissions');
+        if (hasRolePermissionsTable) {
+            try {
+                const rolePermissions = user.role_id
+                    ? await client.query(`
+            SELECT p.name
+            FROM role_permissions rp
+            JOIN permissions p ON rp.permission_id = p.id
+            WHERE rp.role_id = $1
+          `, [user.role_id])
+                    : await client.query(`
+            SELECT p.name
+            FROM role_permissions rp
+            JOIN roles r ON rp.role_id = r.id
+            JOIN permissions p ON rp.permission_id = p.id
+            WHERE r.name = $1
+          `, [user.role]);
+                rolePermissionNames = rolePermissions.rows.map((row) => row.name);
+            }
+            catch (permissionError) {
+                console.warn('Failed to load role permissions, applying baseline:', permissionError);
+            }
         }
-        else {
-            // Fallback to role name if no role_id (legacy users)
-            rolePermissions = await client.query(`
-        SELECT p.name
-        FROM role_permissions rp
-        JOIN roles r ON rp.role_id = r.id
-        JOIN permissions p ON rp.permission_id = p.id
-        WHERE r.name = $1
-      `, [user.role]);
+        // Get individual user permissions when table exists
+        let userPermissionNames = [];
+        if (permissionsTableExists && await tableExists(client, 'user_permissions')) {
+            try {
+                const userPermissions = await client.query(`
+          SELECT p.name
+          FROM user_permissions up
+          JOIN permissions p ON up.permission_id = p.id
+          WHERE up.user_id = $1
+        `, [user.id]);
+                userPermissionNames = userPermissions.rows.map((row) => row.name);
+            }
+            catch (userPermissionError) {
+                console.warn('Failed to load user permissions, continuing without overrides:', userPermissionError);
+            }
         }
-        // Get individual user permissions
-        const userPermissions = await client.query(`
-      SELECT p.name
-      FROM user_permissions up
-      JOIN permissions p ON up.permission_id = p.id
-      WHERE up.user_id = $1
-    `, [user.id]);
         // Get dashboards assigned to this role
         let dashboards = [];
         let defaultDashboardId = null;
-        if (user.role_id && user.role_id.trim() !== '') {
-            console.log('Fetching dashboards for role_id:', user.role_id);
-            const dashboardsResult = await client.query(`
-        SELECT 
-          d.id, d.name, d.display_name, d.component_name, d.icon,
-          rd.is_default, rd.sort_order
-        FROM role_dashboards rd
-        JOIN dashboards d ON d.id = rd.dashboard_id
-        WHERE rd.role_id = $1 AND d.is_active = true
-        ORDER BY rd.sort_order, d.name
-      `, [user.role_id]);
-            dashboards = dashboardsResult.rows.map(d => ({
-                id: d.id,
-                name: d.name,
-                displayName: d.display_name,
-                componentName: d.component_name,
-                icon: d.icon,
-                isDefault: d.is_default,
-                sortOrder: d.sort_order
-            }));
-            const defaultDashboard = dashboards.find(d => d.isDefault);
-            defaultDashboardId = defaultDashboard?.id || dashboards[0]?.id || null;
-        }
-        if (dashboards.length === 0) {
-            const fallbackDashboard = await client.query(`SELECT id, name, display_name, component_name, icon
-         FROM dashboards
-         WHERE name = 'UnifiedDashboard' AND is_active = true
-         LIMIT 1`);
-            if (fallbackDashboard.rows.length > 0) {
-                const dash = fallbackDashboard.rows[0];
-                dashboards = [{
-                        id: dash.id,
-                        name: dash.name,
-                        displayName: dash.display_name,
-                        componentName: dash.component_name,
-                        icon: dash.icon,
-                        isDefault: true,
-                        sortOrder: 0
-                    }];
-                defaultDashboardId = dash.id;
+        const hasRoleDashboards = await tableExists(client, 'role_dashboards');
+        const hasDashboardsTable = hasRoleDashboards && await tableExists(client, 'dashboards');
+        if (user.role_id && typeof user.role_id === 'string' && user.role_id.trim() !== '' && hasRoleDashboards && hasDashboardsTable) {
+            try {
+                const dashboardsResult = await client.query(`
+          SELECT 
+            d.id, d.name, d.display_name, d.component_name, d.icon,
+            rd.is_default, rd.sort_order
+          FROM role_dashboards rd
+          JOIN dashboards d ON d.id = rd.dashboard_id
+          WHERE rd.role_id = $1 AND d.is_active = true
+          ORDER BY rd.sort_order, d.name
+        `, [user.role_id]);
+                dashboards = dashboardsResult.rows.map((d) => ({
+                    id: d.id,
+                    name: d.name,
+                    displayName: d.display_name,
+                    componentName: d.component_name,
+                    icon: d.icon,
+                    isDefault: d.is_default,
+                    sortOrder: d.sort_order
+                }));
+                const defaultDashboard = dashboards.find((d) => d.isDefault);
+                defaultDashboardId = defaultDashboard?.id || dashboards[0]?.id || null;
+            }
+            catch (dashError) {
+                console.warn('Failed to load dashboards, falling back to defaults:', dashError);
             }
         }
-        const rolePermissionNames = rolePermissions.rows.map(r => r.name);
-        const userPermissionNames = userPermissions.rows.map(r => r.name);
+        if (dashboards.length === 0) {
+            if (hasDashboardsTable) {
+                try {
+                    const fallbackDashboard = await client.query(`SELECT id, name, display_name, component_name, icon
+             FROM dashboards
+             WHERE name = 'UnifiedDashboard' AND is_active = true
+             LIMIT 1`);
+                    if (fallbackDashboard.rows.length > 0) {
+                        const dash = fallbackDashboard.rows[0];
+                        dashboards = [{
+                                id: dash.id,
+                                name: dash.name,
+                                displayName: dash.display_name,
+                                componentName: dash.component_name,
+                                icon: dash.icon,
+                                isDefault: true,
+                                sortOrder: 0
+                            }];
+                        defaultDashboardId = dash.id;
+                    }
+                }
+                catch (fallbackError) {
+                    console.warn('Fallback dashboard lookup failed:', fallbackError);
+                }
+            }
+        }
         let permissions = [...new Set([...rolePermissionNames, ...userPermissionNames])];
         const baselineByRole = {
             superadmin: ['*'],
@@ -342,42 +426,66 @@ const getCurrentUser = async (req, res) => {
         if (!userId) {
             return res.status(401).json({ error: 'Not authenticated' });
         }
-        const result = await client.query(`SELECT id, email, first_name, last_name, role, role_id, is_active, needs_approval, athlete_id, created_at, avatar
+        const userColumns = await getTableColumns(client, 'users');
+        const currentSelectFields = [
+            'id',
+            'email',
+            'first_name',
+            'last_name',
+            'role',
+            userColumns.has('role_id') ? 'role_id' : 'NULL::uuid AS role_id',
+            userColumns.has('is_active') ? 'is_active' : 'true::boolean AS is_active',
+            userColumns.has('needs_approval') ? 'needs_approval' : 'false::boolean AS needs_approval',
+            userColumns.has('athlete_id') ? 'athlete_id' : 'NULL::uuid AS athlete_id',
+            userColumns.has('created_at') ? 'created_at' : 'NOW() AS created_at',
+            userColumns.has('avatar') ? 'avatar' : 'NULL::text AS avatar'
+        ].join(', ');
+        const result = await client.query(`SELECT ${currentSelectFields}
        FROM users WHERE id = $1`, [userId]);
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'User not found' });
         }
         const user = result.rows[0];
-        // Get user permissions from role
         let permissions = [];
-        // Try to get role_id, if null then fetch by role name
+        const permissionsTableExists = await tableExists(client, 'permissions');
+        const rolePermissionsTableExists = permissionsTableExists && await tableExists(client, 'role_permissions');
         let roleIdToUse = user.role_id;
-        if (!roleIdToUse && user.role) {
-            console.log(`[getCurrentUser] User ${user.email} has no role_id, fetching by role name: ${user.role}`);
-            const roleResult = await client.query(`SELECT id FROM roles WHERE name = $1`, [user.role]);
-            if (roleResult.rows.length > 0) {
-                roleIdToUse = roleResult.rows[0].id;
-                console.log(`[getCurrentUser] Found role_id: ${roleIdToUse} for role: ${user.role}`);
+        if (!roleIdToUse && user.role && await tableExists(client, 'roles')) {
+            try {
+                const roleResult = await client.query(`SELECT id FROM roles WHERE name = $1`, [user.role]);
+                if (roleResult.rows.length > 0) {
+                    roleIdToUse = roleResult.rows[0].id;
+                }
+            }
+            catch (roleLookupError) {
+                console.warn(`[getCurrentUser] Failed to find role for ${user.email}:`, roleLookupError);
             }
         }
-        if (roleIdToUse) {
-            console.log(`[getCurrentUser] Fetching permissions for user ${user.email} with role_id: ${roleIdToUse}`);
-            const rolePermissions = await client.query(`SELECT p.name 
-         FROM role_permissions rp
-         JOIN permissions p ON rp.permission_id = p.id
-         WHERE rp.role_id = $1`, [roleIdToUse]);
-            permissions = rolePermissions.rows.map(row => row.name);
-            console.log(`[getCurrentUser] Found ${permissions.length} permissions:`, permissions);
+        if (roleIdToUse && rolePermissionsTableExists) {
+            try {
+                const rolePermissions = await client.query(`SELECT p.name 
+           FROM role_permissions rp
+           JOIN permissions p ON rp.permission_id = p.id
+           WHERE rp.role_id = $1`, [roleIdToUse]);
+                permissions = rolePermissions.rows.map((row) => row.name);
+            }
+            catch (rolePermError) {
+                console.warn(`[getCurrentUser] Failed to load role permissions for ${user.email}:`, rolePermError);
+            }
         }
-        else {
-            console.log(`[getCurrentUser] User ${user.email} has no role_id and couldn't find role by name, returning empty permissions`);
+        if (permissionsTableExists && await tableExists(client, 'user_permissions')) {
+            try {
+                const userPermissionResult = await client.query(`SELECT p.name
+           FROM user_permissions up
+           JOIN permissions p ON up.permission_id = p.id
+           WHERE up.user_id = $1`, [user.id]);
+                const userPermissionNames = userPermissionResult.rows.map((row) => row.name);
+                permissions = [...new Set([...permissions, ...userPermissionNames])];
+            }
+            catch (userPermError) {
+                console.warn(`[getCurrentUser] Failed to load user-specific permissions for ${user.email}:`, userPermError);
+            }
         }
-        const userPermissionResult = await client.query(`SELECT p.name
-       FROM user_permissions up
-       JOIN permissions p ON up.permission_id = p.id
-       WHERE up.user_id = $1`, [user.id]);
-        const userPermissionNames = userPermissionResult.rows.map(row => row.name);
-        permissions = [...new Set([...permissions, ...userPermissionNames])];
         const baselineByRole2 = {
             superadmin: ['*'],
             coach: [
@@ -405,45 +513,57 @@ const getCurrentUser = async (req, res) => {
         // Get dashboards assigned to this role (same as login)
         let dashboards = [];
         let defaultDashboardId = null;
-        if (roleIdToUse) {
-            const dashboardsResult = await client.query(`
-        SELECT 
-          d.id, d.name, d.display_name, d.component_name, d.icon,
-          rd.is_default, rd.sort_order
-        FROM role_dashboards rd
-        JOIN dashboards d ON d.id = rd.dashboard_id
-        WHERE rd.role_id = $1 AND d.is_active = true
-        ORDER BY rd.sort_order, d.name
-      `, [roleIdToUse]);
-            dashboards = dashboardsResult.rows.map(d => ({
-                id: d.id,
-                name: d.name,
-                displayName: d.display_name,
-                componentName: d.component_name,
-                icon: d.icon,
-                isDefault: d.is_default,
-                sortOrder: d.sort_order
-            }));
-            const defaultDashboard = dashboards.find(d => d.isDefault);
-            defaultDashboardId = defaultDashboard?.id || dashboards[0]?.id || null;
+        const hasRoleDashboards = await tableExists(client, 'role_dashboards');
+        const hasDashboardsTable = hasRoleDashboards && await tableExists(client, 'dashboards');
+        if (roleIdToUse && hasRoleDashboards && hasDashboardsTable) {
+            try {
+                const dashboardsResult = await client.query(`
+          SELECT 
+            d.id, d.name, d.display_name, d.component_name, d.icon,
+            rd.is_default, rd.sort_order
+          FROM role_dashboards rd
+          JOIN dashboards d ON d.id = rd.dashboard_id
+          WHERE rd.role_id = $1 AND d.is_active = true
+          ORDER BY rd.sort_order, d.name
+        `, [roleIdToUse]);
+                dashboards = dashboardsResult.rows.map((d) => ({
+                    id: d.id,
+                    name: d.name,
+                    displayName: d.display_name,
+                    componentName: d.component_name,
+                    icon: d.icon,
+                    isDefault: d.is_default,
+                    sortOrder: d.sort_order
+                }));
+                const defaultDashboard = dashboards.find((d) => d.isDefault);
+                defaultDashboardId = defaultDashboard?.id || dashboards[0]?.id || null;
+            }
+            catch (dashboardError) {
+                console.warn(`[getCurrentUser] Failed to load dashboards for ${user.email}:`, dashboardError);
+            }
         }
-        if (dashboards.length === 0) {
-            const fallbackDashboard = await client.query(`SELECT id, name, display_name, component_name, icon
-         FROM dashboards
-         WHERE name = 'UnifiedDashboard' AND is_active = true
-         LIMIT 1`);
-            if (fallbackDashboard.rows.length > 0) {
-                const dash = fallbackDashboard.rows[0];
-                dashboards = [{
-                        id: dash.id,
-                        name: dash.name,
-                        displayName: dash.display_name,
-                        componentName: dash.component_name,
-                        icon: dash.icon,
-                        isDefault: true,
-                        sortOrder: 0
-                    }];
-                defaultDashboardId = dash.id;
+        if (dashboards.length === 0 && hasDashboardsTable) {
+            try {
+                const fallbackDashboard = await client.query(`SELECT id, name, display_name, component_name, icon
+           FROM dashboards
+           WHERE name = 'UnifiedDashboard' AND is_active = true
+           LIMIT 1`);
+                if (fallbackDashboard.rows.length > 0) {
+                    const dash = fallbackDashboard.rows[0];
+                    dashboards = [{
+                            id: dash.id,
+                            name: dash.name,
+                            displayName: dash.display_name,
+                            componentName: dash.component_name,
+                            icon: dash.icon,
+                            isDefault: true,
+                            sortOrder: 0
+                        }];
+                    defaultDashboardId = dash.id;
+                }
+            }
+            catch (fallbackError) {
+                console.warn(`[getCurrentUser] Failed to load fallback dashboard for ${user.email}:`, fallbackError);
             }
         }
         res.json({
