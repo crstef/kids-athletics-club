@@ -905,25 +905,21 @@ function AppContent() {
 
   const myAthletes = useMemo(() => {
     if (!currentUser || !athletes) return []
-    
-    // Check if user has permission to view athletes
-    if (!hasPermission('athletes.view')) return []
-    
-    // Check if user can view ALL athletes (typically superadmin or custom admin roles)
-    if (hasPermission('athletes.view.all')) {
+
+    // Users with broad view permissions can see all athletes
+    if (hasPermission('athletes.view.all') || hasPermission('athletes.view')) {
       return athletes
     }
-    
-    // Otherwise, filter by relationship (athletes.view.own permission)
-    // This applies to coaches, parents, and athletes themselves
+
+    // Otherwise, rely on relationship-scoped access
     if (hasPermission('athletes.view.own')) {
-      return athletes.filter(a => 
+      return athletes.filter(a =>
         a.coachId === currentUser.id ||       // Coach's athletes
         a.parentId === currentUser.id ||      // Parent's children
         a.id === (currentUser as any).athleteId  // Athlete viewing themselves
       )
     }
-    
+
     return []
   }, [athletes, currentUser, hasPermission])
 

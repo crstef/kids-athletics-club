@@ -149,12 +149,24 @@ const collectEquivalentPermissions = (permission: string): Set<string> => {
 
     collected.add(candidate)
 
-    if (candidate.endsWith(OWN_SUFFIX)) {
-      stack.push(candidate.slice(0, -OWN_SUFFIX.length))
+    const isOwn = candidate.endsWith(OWN_SUFFIX)
+    const isAll = candidate.endsWith(ALL_SUFFIX)
+    const basePermission = isOwn
+      ? candidate.slice(0, -OWN_SUFFIX.length)
+      : isAll
+        ? candidate.slice(0, -ALL_SUFFIX.length)
+        : candidate
+
+    if (isOwn || isAll) {
+      stack.push(basePermission)
     }
 
-    if (candidate.endsWith(ALL_SUFFIX)) {
-      stack.push(candidate.slice(0, -ALL_SUFFIX.length))
+    if (!isOwn) {
+      stack.push(`${basePermission}${OWN_SUFFIX}`)
+    }
+
+    if (!isAll) {
+      stack.push(`${basePermission}${ALL_SUFFIX}`)
     }
 
     const directAlias = PERMISSION_ALIASES[candidate]
