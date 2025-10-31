@@ -31,14 +31,23 @@ export function AthleteCard({ athlete, resultsCount, parents, coaches, onViewDet
     : null
 
   return (
-    <Card className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-primary/50 cursor-pointer" onClick={() => onViewDetails(athlete)}>
-      <CardHeader className="pb-3">
+    <Card
+      className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-primary/50 cursor-pointer"
+      onClick={() => onViewDetails(athlete)}
+    >
+      <CardHeader className="pb-3 space-y-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <div className="relative">
               <Avatar className="h-16 w-16 ring-2 ring-background group-hover:ring-primary/20 transition-all overflow-hidden">
                 {avatarSrc ? (
-                  <AvatarImage src={avatarSrc} alt={`${athlete.firstName} ${athlete.lastName}`} />
+                  <AvatarImage
+                    src={avatarSrc}
+                    alt={`${athlete.firstName} ${athlete.lastName}`}
+                    onError={(event) => {
+                      (event.currentTarget as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
                 ) : (
                   <AvatarFallback className={`${avatarColor} text-white font-semibold`}>
                     {getInitials(athlete.firstName, athlete.lastName)}
@@ -72,6 +81,12 @@ export function AthleteCard({ athlete, resultsCount, parents, coaches, onViewDet
             </div>
           )}
         </div>
+        {athlete.notes?.trim() && (
+          <p className="text-sm font-medium text-primary/80">
+            Observații:
+            <span className="ml-1 font-normal text-muted-foreground">{athlete.notes}</span>
+          </p>
+        )}
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="flex items-center justify-between">
@@ -83,38 +98,39 @@ export function AthleteCard({ athlete, resultsCount, parents, coaches, onViewDet
           </div>
           <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
             <Button
-              size="sm"
-              variant="ghost"
+              size="icon"
+              variant="outline"
               onClick={(e) => {
                 e.stopPropagation()
                 onViewChart(athlete)
               }}
-              className="gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-primary/10 hover:text-primary"
+              className="h-9 w-9 rounded-full border-muted-foreground/20 text-muted-foreground hover:bg-primary/10 hover:text-primary"
               title="Vezi grafic evoluție"
             >
               <ChartLine size={16} />
               <span className="sr-only">Vezi grafic</span>
             </Button>
             {!hideEdit && onEdit && parents && (
-              <div onClick={(e) => e.stopPropagation()} className="opacity-0 group-hover:opacity-100 transition-opacity">
+              <div onClick={(e) => e.stopPropagation()}>
                 <EditAthleteDialog 
                   athlete={athlete}
                   parents={parents}
                   coaches={coaches}
                   onEdit={onEdit}
                   onUploadAvatar={onUploadAvatar}
+                  triggerClassName="rounded-full border border-muted-foreground/20 bg-background text-muted-foreground hover:bg-primary/10 hover:text-primary"
                 />
               </div>
             )}
             {!hideDelete && (
               <Button
-                size="sm"
-                variant="ghost"
+                size="icon"
+                variant="outline"
                 onClick={(e) => {
                   e.stopPropagation()
                   onDelete(athlete.id)
                 }}
-                className="text-destructive hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="h-9 w-9 rounded-full border-destructive/30 text-destructive hover:bg-destructive/10"
                 title="Șterge atlet"
               >
                 <Trash size={16} />
@@ -122,9 +138,6 @@ export function AthleteCard({ athlete, resultsCount, parents, coaches, onViewDet
             )}
           </div>
         </div>
-        {athlete.notes?.trim() && (
-          <p className="text-sm text-muted-foreground">{athlete.notes}</p>
-        )}
       </CardContent>
     </Card>
   )

@@ -21,7 +21,7 @@ export function AddResultDialog({ athleteId, athleteName, onAdd }: AddResultDial
   const [value, setValue] = useState('')
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const [notes, setNotes] = useState('')
-  const [unit, setUnit] = useState<'seconds' | 'meters' | 'points'>('seconds')
+  const [unit, setUnit] = useState<Result['unit']>('seconds')
 
   const [probes, , loading, , refetchEvents] = useEvents()
 
@@ -36,7 +36,7 @@ export function AddResultDialog({ athleteId, athleteName, onAdd }: AddResultDial
   useEffect(() => {
     if (probes.length > 0 && !eventType) {
       setEventType(probes[0].name)
-      setUnit(normalizeUnit(probes[0].unit))
+      setUnit((probes[0].unit as Result['unit']) || 'seconds')
     }
   }, [probes, eventType])
 
@@ -70,59 +70,61 @@ export function AddResultDialog({ athleteId, athleteName, onAdd }: AddResultDial
     setEventType(probeName)
     // Find probe and set unit
     const probe = probes.find(p => p.name === probeName)
-    setUnit(normalizeUnit(probe?.unit))
+    setUnit((probe?.unit as Result['unit']) || 'seconds')
   }
 
-  const normalizeUnit = (rawUnit?: string): 'seconds' | 'meters' | 'points' => {
-    switch (rawUnit) {
+  const normalizeUnitKey = (rawUnit?: string | null) => {
+    if (!rawUnit) return 'seconds'
+    return rawUnit
+      .toString()
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, '_')
+      .replace(/[.,:+-]+/g, '_')
+  }
+
+  const deriveCanonicalUnit = (rawUnit?: string | null): 'seconds' | 'meters' | 'points' => {
+    const key = normalizeUnitKey(rawUnit)
+    if (['seconds', 'secunde'].includes(key)) return 'seconds'
+    if (['meters', 'metri', 'metri_centimetri', 'metri-centimetri', 'metri,centimetri'].includes(key)) return 'meters'
+    if (['points', 'puncte'].includes(key)) return 'points'
+    return 'seconds'
+  }
+
+  const getUnitLabel = (rawUnit?: string | null) => {
+    const key = normalizeUnitKey(rawUnit)
+    switch (key) {
       case 'seconds':
+      case 'secunde':
+        return 'secunde'
       case 'meters':
+      case 'metri':
+      case 'metri_centimetri':
+      case 'metri-centimetri':
+      case 'metri,centimetri':
+        return 'metri'
       case 'points':
-        return rawUnit
+      case 'puncte':
+        return 'puncte'
       default:
-        return 'seconds'
+        return rawUnit || 'secunde'
     }
   }
 
-  const getPlaceholder = () => {
-    switch (unit) {
-      case 'seconds': return 'ex: 12.45'
-      case 'meters': return 'ex: 5.25'
-      case 'points': return 'ex: 850'
-      default: return 'ex: 10.00'
-    }
-  }
-
-  const getUnitLabel = () => {
-    switch (unit) {
-      case 'seconds': return 'secunde'
-      case 'meters': return 'metri'
-      case 'points': return 'puncte'
-      default: return unit
-    }
-  }
-
-  const getProbeUnitLabel = (probeUnit?: string) => {
-    switch (normalizeUnit(probeUnit)) {
-      case 'seconds': return 'secunde'
-      case 'meters': return 'metri'
-      case 'points': return 'puncte'
-    }
-  }
-
-  const getProbeCategoryLabel = (category?: string) => {
-    switch (category) {
-      case 'running': return 'Alergare'
-      case 'jumping': return 'Sărituri'
-      case 'throwing': return 'Aruncări'
-      case 'other': return 'Altele'
-      case undefined:
-      case null:
-        return 'Categorie neprecizată'
+  const getPlaceholder = (rawUnit?: string | null) => {
+    switch (deriveCanonicalUnit(rawUnit)) {
+      case 'seconds':
+        return 'ex: 12.45'
+      case 'meters':
+        return 'ex: 5.25'
+      case 'points':
+        return 'ex: 850'
       default:
-        return category
+        return 'ex: 10.00'
     }
   }
+
+  const canonicalUnit = deriveCanonicalUnit(unit)
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -140,18 +142,13 @@ export function AddResultDialog({ athleteId, athleteName, onAdd }: AddResultDial
           <div className="space-y-2">
             <Label htmlFor="eventType">Probă</Label>
             <Select value={eventType} onValueChange={handleProbeChange} disabled={loading}>
-              <SelectTrigger id="eventType">
+              <SelectTrigger id="eventType" className="w-full">
                 <SelectValue placeholder={loading ? 'Se încarcă...' : 'Selectează proba'} />
               </SelectTrigger>
               <SelectContent>
                 {probes.map((probe) => (
                   <SelectItem key={probe.id} value={probe.name}>
-                    <div className="flex flex-col">
-                      <span className="font-medium">{probe.name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {getProbeCategoryLabel(probe.category)} · {getProbeUnitLabel(probe.unit)}
-                      </span>
-                    </div>
+                    {probe.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -159,16 +156,16 @@ export function AddResultDialog({ athleteId, athleteName, onAdd }: AddResultDial
           </div>
           <div className="space-y-2">
             <Label htmlFor="value">
-              Rezultat ({getUnitLabel()})
+              Rezultat ({getUnitLabel(unit)})
             </Label>
             <Input
               id="value"
-              type="number"
-              step="0.01"
-              min="0.01"
+              type={canonicalUnit === 'seconds' || canonicalUnit === 'meters' || canonicalUnit === 'points' ? 'number' : 'text'}
+              step={canonicalUnit === 'points' ? '1' : '0.01'}
+              min={canonicalUnit === 'points' ? '1' : '0.01'}
               value={value}
               onChange={(e) => setValue(e.target.value)}
-              placeholder={getPlaceholder()}
+              placeholder={getPlaceholder(unit)}
               required
             />
           </div>

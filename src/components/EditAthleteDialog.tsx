@@ -10,6 +10,7 @@ import { useAuth } from '@/lib/auth-context'
 import { PermissionGate } from './PermissionGate'
 import { Textarea } from '@/components/ui/textarea'
 import { resolveMediaUrl } from '@/lib/media'
+import { cn } from '@/lib/utils'
 
 interface EditAthleteDialogProps {
   athlete: Athlete
@@ -17,9 +18,11 @@ interface EditAthleteDialogProps {
   coaches?: User[]
   onEdit: (id: string, data: Partial<Athlete>) => void
   onUploadAvatar?: (id: string, file: File) => void
+  triggerClassName?: string
+  triggerVariant?: 'default' | 'icon'
 }
 
-export function EditAthleteDialog({ athlete, parents, coaches, onEdit, onUploadAvatar }: EditAthleteDialogProps) {
+export function EditAthleteDialog({ athlete, parents, coaches, onEdit, onUploadAvatar, triggerClassName, triggerVariant = 'default' }: EditAthleteDialogProps) {
   const { hasPermission } = useAuth()
   const normalizeDate = (val?: string | null) => {
     if (!val) return ''
@@ -126,9 +129,17 @@ export function EditAthleteDialog({ athlete, parents, coaches, onEdit, onUploadA
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <PencilSimple className="h-4 w-4 mr-2" />
-          Editează
+        <Button
+          variant="outline"
+          size={triggerVariant === 'icon' ? 'icon' : 'sm'}
+          className={cn(
+            'border border-muted-foreground/20 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary',
+            triggerVariant === 'default' ? 'rounded-full px-4' : 'rounded-full',
+            triggerClassName
+          )}
+        >
+          <PencilSimple className={triggerVariant === 'icon' ? 'h-4 w-4' : 'h-4 w-4 mr-2'} />
+          {triggerVariant === 'icon' ? <span className="sr-only">Editează</span> : 'Editează'}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
