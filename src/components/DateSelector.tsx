@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 
@@ -31,6 +31,8 @@ function getDaysInMonth(year: number, month: number) {
   return new Date(year, month, 0).getDate()
 }
 
+const padDay = (value: number) => `${value}`.padStart(2, '0')
+
 export function DateSelector({
   id,
   value,
@@ -48,6 +50,23 @@ export function DateSelector({
   const [month, setMonth] = useState<string>('')
   const [day, setDay] = useState<string>('')
 
+  const buildDateValue = useCallback((yyyy: string, mm: string, dd: string) => {
+    if (!yyyy || !mm || !dd) {
+      return ''
+    }
+    return `${yyyy}-${mm}-${dd}`
+  }, [])
+
+  const clampDayValue = useCallback((yyyy: string, mm: string, dd: string) => {
+    if (!yyyy || !mm || !dd) return dd
+    const maxDays = getDaysInMonth(parseInt(yyyy, 10), parseInt(mm, 10))
+    const parsedDay = parseInt(dd, 10)
+    if (Number.isNaN(parsedDay)) {
+      return ''
+    }
+    return padDay(Math.min(parsedDay, maxDays))
+  }, [])
+
   useEffect(() => {
     if (!value) {
       setYear('')
@@ -61,30 +80,41 @@ export function DateSelector({
     setDay(dd ?? '')
   }, [value])
 
-  const daysInMonth = useMemo(() => {
-    if (!year || !month) return 31
-    return getDaysInMonth(parseInt(year, 10), parseInt(month, 10))
-  }, [month, year])
-
-  useEffect(() => {
-    if (day) {
-      const dayNum = parseInt(day, 10)
-      if (dayNum > daysInMonth) {
-        const clamped = `${daysInMonth}`.padStart(2, '0')
-        if (clamped !== day) {
-          setDay(clamped)
-        }
-        return
-      }
-    }
-
-    const nextValue = year && month && day ? `${year}-${month}-${day}` : ''
+  const emitChange = useCallback((nextYear: string, nextMonth: string, nextDay: string) => {
+    const nextValue = buildDateValue(nextYear, nextMonth, nextDay)
     const currentValue = value ?? ''
-
     if (nextValue !== currentValue) {
       onChange(nextValue)
     }
-  }, [day, daysInMonth, month, onChange, value, year])
+  }, [buildDateValue, onChange, value])
+
+  const handleYearChange = useCallback((nextYear: string) => {
+    setYear(nextYear)
+
+    const clampedDay = clampDayValue(nextYear, month, day)
+    if (clampedDay !== day) {
+      setDay(clampedDay)
+    }
+
+    emitChange(nextYear, month, clampedDay)
+  }, [clampDayValue, day, emitChange, month])
+
+  const handleMonthChange = useCallback((nextMonth: string) => {
+    setMonth(nextMonth)
+
+    const clampedDay = clampDayValue(year, nextMonth, day)
+    if (clampedDay !== day) {
+      setDay(clampedDay)
+    }
+
+    emitChange(year, nextMonth, clampedDay)
+  }, [clampDayValue, day, emitChange, year])
+
+  const handleDayChange = useCallback((nextDay: string) => {
+    const clampedDay = clampDayValue(year, month, nextDay)
+    setDay(clampedDay)
+    emitChange(year, month, clampedDay)
+  }, [clampDayValue, emitChange, month, year])
 
   const yearOptions = useMemo(() => {
     const items: string[] = []
@@ -96,16 +126,16 @@ export function DateSelector({
 
   const dayOptions = useMemo(() => {
     const items: string[] = []
-    const limit = daysInMonth
+    const limit = year && month ? getDaysInMonth(parseInt(year, 10), parseInt(month, 10)) : 31
     for (let current = 1; current <= limit; current += 1) {
       items.push(`${current}`.padStart(2, '0'))
     }
     return items
-  }, [daysInMonth])
+  }, [month, year])
 
   return (
     <div className={cn('grid gap-3 md:grid-cols-3', className)}>
-      <Select value={day} onValueChange={setDay} disabled={disabled}>
+      <Select value={day} onValueChange={handleDayChange} disabled={disabled}>
         <SelectTrigger id={`${id}-day`}>
           <SelectValue placeholder="Zi" />
         </SelectTrigger>
@@ -117,7 +147,7 @@ export function DateSelector({
           ))}
         </SelectContent>
       </Select>
-      <Select value={month} onValueChange={setMonth} disabled={disabled}>
+      <Select value={month} onValueChange={handleMonthChange} disabled={disabled}>
         <SelectTrigger id={`${id}-month`}>
           <SelectValue placeholder="Lună" />
         </SelectTrigger>
@@ -129,7 +159,7 @@ export function DateSelector({
           ))}
         </SelectContent>
       </Select>
-      <Select value={year} onValueChange={setYear} disabled={disabled}>
+      <Select value={year} onValueChange={handleYearChange} disabled={disabled}>
         <SelectTrigger id={`${id}-year`}>
           <SelectValue placeholder="An" />
         </SelectTrigger>
