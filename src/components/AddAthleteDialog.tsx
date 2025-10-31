@@ -123,88 +123,87 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
           Adaugă Atlet
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Adaugă Atlet Nou</DialogTitle>
-          <DialogDescription>
-            Completează datele atletului pentru a-l adăuga în sistem
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 pt-4">
-          <div className="space-y-2">
-            <Label htmlFor="firstName">Prenume *</Label>
-            <Input
-              id="firstName"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              placeholder="ex: Ion"
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="lastName">Nume *</Label>
-            <Input
-              id="lastName"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-              placeholder="ex: Popescu"
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="dateOfBirth">Data nașterii (zi / lună / an) *</Label>
-            <DateSelector
-              id="dateOfBirth"
-              value={dateOfBirth}
-              onChange={setDateOfBirth}
-              minYear={currentYear - 18}
-              maxYear={currentYear - 4}
-            />
-          </div>
-          {age !== null && (
-            <>
-              <div className="space-y-2">
-                <Label>Vârstă (calculată automat)</Label>
-                <Input
-                  value={`${age} ani`}
-                  disabled
-                  className="bg-muted"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Categorie (calculată automat)</Label>
-                <Input
-                  value={category}
-                  disabled
-                  className="bg-muted"
-                />
-              </div>
-            </>
-          )}
-          <div className="grid gap-4 md:grid-cols-2">
+      <DialogContent className="w-[min(95vw,560px)] max-h-[90vh] overflow-y-auto p-0">
+        <div className="p-6 pb-4">
+          <DialogHeader className="text-left">
+            <DialogTitle>Adaugă Atlet Nou</DialogTitle>
+            <DialogDescription>
+              Completează datele atletului pentru a-l adăuga în sistem.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="mt-4 space-y-5">
             <PermissionGate perm="athletes.avatar.upload">
               <AvatarUploadControl
                 id="add-athlete-avatar"
                 label="Poză (opțional)"
                 value={avatarPreview}
                 onChange={handleAvatarChange}
-                description="Recomandăm o fotografie recentă cu fața clară. Poți ajusta incadrarea înainte de a salva."
-                className="md:col-span-2"
+                description="Recomandăm o fotografie recentă cu fața clară. Poți ajusta încadrerea înainte de a salva."
                 fallbackId={`${firstName}${lastName}` || 'athlete-avatar'}
               />
             </PermissionGate>
-            <div className="space-y-2">
-              <Label htmlFor="gender">Gen *</Label>
-              <Select value={gender} onValueChange={(value) => setGender(value as Gender)}>
-                <SelectTrigger id="gender">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="M">Masculin</SelectItem>
-                  <SelectItem value="F">Feminin</SelectItem>
-                </SelectContent>
-              </Select>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="firstName">Prenume *</Label>
+                <Input
+                  id="firstName"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="ex: Ion"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Nume *</Label>
+                <Input
+                  id="lastName"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder="ex: Popescu"
+                  required
+                />
+              </div>
             </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="dateOfBirth">Data nașterii (zi / lună / an) *</Label>
+                <DateSelector
+                  id="dateOfBirth"
+                  value={dateOfBirth}
+                  onChange={setDateOfBirth}
+                  minYear={currentYear - 18}
+                  maxYear={currentYear - 4}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="gender">Gen *</Label>
+                <Select value={gender} onValueChange={(value) => setGender(value as Gender)}>
+                  <SelectTrigger id="gender">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="M">Masculin</SelectItem>
+                    <SelectItem value="F">Feminin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {age !== null && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Vârstă (calculată automat)</Label>
+                  <Input value={`${age} ani`} disabled className="bg-muted" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Categorie (calculată automat)</Label>
+                  <Input value={category} disabled className="bg-muted" />
+                </div>
+              </div>
+            )}
+
             {coaches.length > 0 && (
               <div className="space-y-2">
                 <Label htmlFor="coach">Antrenor (opțional)</Label>
@@ -223,24 +222,26 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
                 </Select>
               </div>
             )}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="notes">Rezultate excepționale (opțional)</Label>
-            <Textarea
-              id="notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Detalii utile despre sportiv (ex: preferințe, obiective, accidentări)"
-              rows={3}
-            />
-          </div>
-          <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              Anulează
-            </Button>
-            <Button type="submit">Salvează</Button>
-          </div>
-        </form>
+
+            <div className="space-y-2">
+              <Label htmlFor="notes">Rezultate excepționale (opțional)</Label>
+              <Textarea
+                id="notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Detalii utile despre sportiv (ex: preferințe, obiective, accidentări)"
+                rows={3}
+              />
+            </div>
+
+            <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                Anulează
+              </Button>
+              <Button type="submit">Salvează</Button>
+            </div>
+          </form>
+        </div>
       </DialogContent>
     </Dialog>
   )

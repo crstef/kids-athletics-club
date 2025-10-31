@@ -145,137 +145,143 @@ export function EditAthleteDialog({ athlete, parents, coaches, onEdit, onUploadA
           {triggerVariant === 'icon' ? <span className="sr-only">Editează</span> : 'Editează'}
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Editează Sportiv</DialogTitle>
-          <DialogDescription>
-            Actualizează informațiile sportivului și imaginea de profil, apoi salvează modificările.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 pt-4">
-          <PermissionGate perm="athletes.avatar.upload">
-            <AvatarUploadControl
-              id={`edit-athlete-avatar-${athlete.id}`}
-              label="Poză (opțional)"
-              value={avatarSrc}
-              onChange={handleAvatarChange}
-              description="Reajustează încadrerea astfel încât fața să fie clar vizibilă."
-              fallbackId={athlete.id}
-            />
-          </PermissionGate>
-          <div className="space-y-2">
-            <Label htmlFor="edit-firstName">Prenume</Label>
-            <Input
-              id="edit-firstName"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              placeholder="Prenume"
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="edit-lastName">Nume</Label>
-            <Input
-              id="edit-lastName"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-              placeholder="Nume"
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="edit-dateOfBirth">Data nașterii (zi / lună / an)</Label>
-            <DateSelector
-              id="edit-dateOfBirth"
-              value={dateOfBirth}
-              onChange={setDateOfBirth}
-              minYear={currentYear - 18}
-              maxYear={currentYear - 4}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Vârstă (calculată automat)</Label>
-            <Input
-              value={`${calculatedAge} ani`}
-              disabled
-              className="bg-muted"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Categorie (calculată automat)</Label>
-            <Input
-              value={calculatedCategory}
-              disabled
-              className="bg-muted"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="edit-gender">Gen</Label>
-            <Select value={gender} onValueChange={(value: 'M' | 'F') => setGender(value)}>
-              <SelectTrigger id="edit-gender">
-                <SelectValue placeholder="Selectează genul" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="M">Masculin</SelectItem>
-                <SelectItem value="F">Feminin</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            {coaches && coaches.length > 0 && (
+      <DialogContent className="w-[min(95vw,560px)] max-h-[90vh] overflow-y-auto p-0">
+        <div className="p-6 pb-4">
+          <DialogHeader className="text-left">
+            <DialogTitle>Editează Sportiv</DialogTitle>
+            <DialogDescription>
+              Actualizează informațiile sportivului și imaginea de profil, apoi salvează modificările.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="mt-4 space-y-5">
+            <PermissionGate perm="athletes.avatar.upload">
+              <AvatarUploadControl
+                id={`edit-athlete-avatar-${athlete.id}`}
+                label="Poză (opțional)"
+                value={avatarSrc}
+                onChange={handleAvatarChange}
+                description="Reajustează încadrerea astfel încât fața să fie clar vizibilă."
+                fallbackId={athlete.id}
+              />
+            </PermissionGate>
+
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="edit-coachId">Antrenor (opțional)</Label>
-                <Select value={coachId || 'none'} onValueChange={(val) => setCoachId(val === 'none' ? '' : val)}>
-                  <SelectTrigger id="edit-coachId">
-                    <SelectValue placeholder="Selectează antrenorul" />
+                <Label htmlFor="edit-firstName">Prenume</Label>
+                <Input
+                  id="edit-firstName"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="Prenume"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-lastName">Nume</Label>
+                <Input
+                  id="edit-lastName"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder="Nume"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="edit-dateOfBirth">Data nașterii (zi / lună / an)</Label>
+                <DateSelector
+                  id="edit-dateOfBirth"
+                  value={dateOfBirth}
+                  onChange={setDateOfBirth}
+                  minYear={currentYear - 18}
+                  maxYear={currentYear - 4}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-gender">Gen</Label>
+                <Select value={gender} onValueChange={(value: 'M' | 'F') => setGender(value)}>
+                  <SelectTrigger id="edit-gender">
+                    <SelectValue placeholder="Selectează genul" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Fără antrenor</SelectItem>
-                    {coaches.map((coach) => (
-                      <SelectItem key={coach.id} value={coach.id}>
-                        {coach.firstName} {coach.lastName}
+                    <SelectItem value="M">Masculin</SelectItem>
+                    <SelectItem value="F">Feminin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Vârstă (calculată automat)</Label>
+                <Input value={`${calculatedAge} ani`} disabled className="bg-muted" />
+              </div>
+              <div className="space-y-2">
+                <Label>Categorie (calculată automat)</Label>
+                <Input value={calculatedCategory} disabled className="bg-muted" />
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              {coaches && coaches.length > 0 && (
+                <div className="space-y-2">
+                  <Label htmlFor="edit-coachId">Antrenor (opțional)</Label>
+                  <Select value={coachId || 'none'} onValueChange={(val) => setCoachId(val === 'none' ? '' : val)}>
+                    <SelectTrigger id="edit-coachId">
+                      <SelectValue placeholder="Selectează antrenorul" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Fără antrenor</SelectItem>
+                      {coaches.map((coach) => (
+                        <SelectItem key={coach.id} value={coach.id}>
+                          {coach.firstName} {coach.lastName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="edit-parentId">Părinte (opțional)</Label>
+                <Select value={parentId || 'none'} onValueChange={(val) => setParentId(val === 'none' ? '' : val)}>
+                  <SelectTrigger id="edit-parentId">
+                    <SelectValue placeholder="Selectează părintele" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Fără părinte</SelectItem>
+                    {parents.map((parent) => (
+                      <SelectItem key={parent.id} value={parent.id}>
+                        {parent.firstName} {parent.lastName}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-            )}
-            <div className={`space-y-2 ${!(coaches && coaches.length > 0) ? 'md:col-span-2' : ''}`}>
-              <Label htmlFor="edit-parentId">Părinte (opțional)</Label>
-              <Select value={parentId || 'none'} onValueChange={(val) => setParentId(val === 'none' ? '' : val)}>
-                <SelectTrigger id="edit-parentId">
-                  <SelectValue placeholder="Selectează părintele" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Fără părinte</SelectItem>
-                  {parents.map((parent) => (
-                    <SelectItem key={parent.id} value={parent.id}>
-                      {parent.firstName} {parent.lastName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="edit-notes">Rezultate excepționale (opțional)</Label>
-            <Textarea
-              id="edit-notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Detalii utile despre sportiv (ex: preferințe, obiective, accidentări)"
-              rows={3}
-            />
-          </div>
-          <div className="flex gap-2 pt-4">
-            <Button type="submit" className="flex-1">
-              Salvează
-            </Button>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} className="flex-1">
-              Anulează
-            </Button>
-          </div>
-        </form>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-notes">Rezultate excepționale (opțional)</Label>
+              <Textarea
+                id="edit-notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Detalii utile despre sportiv (ex: preferințe, obiective, accidentări)"
+                rows={3}
+              />
+            </div>
+
+            <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
+              <Button type="button" variant="outline" onClick={() => setOpen(false)} className="sm:w-auto">
+                Anulează
+              </Button>
+              <Button type="submit" className="sm:w-auto">
+                Salvează
+              </Button>
+            </div>
+          </form>
+        </div>
       </DialogContent>
     </Dialog>
   )

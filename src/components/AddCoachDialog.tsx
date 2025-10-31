@@ -65,89 +65,94 @@ export function AddCoachDialog({ onAdd }: AddCoachDialogProps) {
           Adaugă Antrenor
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Adaugă Antrenor Nou</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 pt-4">
-          <div className="space-y-2">
-            <Label htmlFor="coach-email">Email</Label>
-            <Input
-              id="coach-email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="antrenor@email.ro"
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="coach-password">Parolă</Label>
-            <div className="relative">
+      <DialogContent className="w-[min(95vw,500px)] max-h-[90vh] overflow-y-auto p-0">
+        <div className="p-6 pb-4">
+          <DialogHeader className="text-left">
+            <DialogTitle>Adaugă Antrenor Nou</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="coach-email">Email</Label>
               <Input
-                id="coach-password"
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Minim 6 caractere"
+                id="coach-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="antrenor@email.ro"
                 required
-                minLength={6}
               />
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? (
-                  <EyeSlash size={18} className="text-muted-foreground" />
-                ) : (
-                  <Eye size={18} className="text-muted-foreground" />
-                )}
-              </Button>
             </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="coach-firstName">Prenume</Label>
-            <Input
-              id="coach-firstName"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              placeholder="ex: Ion"
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="coach-lastName">Nume</Label>
-            <Input
-              id="coach-lastName"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-              placeholder="ex: Popescu"
-              required
-            />
-          </div>
-          <div className="flex items-center space-x-2 py-2">
-            <Checkbox
-              id="coach-approval"
-              checked={requiresApproval}
-              onCheckedChange={(checked) => setRequiresApproval(checked as boolean)}
-            />
-            <label
-              htmlFor="coach-approval"
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-            >
-              Contul necesită aprobare
-            </label>
-          </div>
-          <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              Anulează
-            </Button>
-            <Button type="submit">Salvează</Button>
-          </div>
-        </form>
+            <div className="space-y-2">
+              <Label htmlFor="coach-password">Parolă</Label>
+              <div className="relative">
+                <Input
+                  id="coach-password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Minim 6 caractere"
+                  required
+                  minLength={6}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeSlash size={18} className="text-muted-foreground" />
+                  ) : (
+                    <Eye size={18} className="text-muted-foreground" />
+                  )}
+                </Button>
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="coach-firstName">Prenume</Label>
+                <Input
+                  id="coach-firstName"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="ex: Ion"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="coach-lastName">Nume</Label>
+                <Input
+                  id="coach-lastName"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder="ex: Popescu"
+                  required
+                />
+              </div>
+            </div>
+            <div className="flex items-start gap-3 rounded-md border border-muted-foreground/20 bg-muted/40 p-3">
+              <Checkbox
+                id="coach-approval"
+                checked={requiresApproval}
+                onCheckedChange={(checked) => setRequiresApproval(checked as boolean)}
+                className="mt-1"
+              />
+              <label
+                htmlFor="coach-approval"
+                className="text-sm leading-relaxed text-muted-foreground"
+              >
+                Contul necesită aprobare înainte de activare
+              </label>
+            </div>
+            <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                Anulează
+              </Button>
+              <Button type="submit">Salvează</Button>
+            </div>
+          </form>
+        </div>
       </DialogContent>
     </Dialog>
   )
