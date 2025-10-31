@@ -295,11 +295,36 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
   const visibleTabIds = useMemo(() => new Set(displayTabs.map(tab => tab.id)), [displayTabs])
   const isTabVisible = (tabId: string) => visibleTabIds.has(tabId)
 
-  const isSuperAdminUser = currentUser.role === 'superadmin'
-  const canViewAccessRequests = hasPermission('access_requests.view')
-  const canViewOwnRequests = hasPermission('requests.view.own')
-  const showApprovalRequests = isSuperAdminUser
-  const showAccessRequests = !isSuperAdminUser && (canViewAccessRequests || canViewOwnRequests)
+  const rawPermissions = useMemo(() => currentUser.permissions ?? [], [currentUser.permissions])
+  const hasWildcardPermission = rawPermissions.includes('*')
+
+  const hasGlobalApprovalPermission =
+    currentUser.role === 'superadmin' ||
+    hasWildcardPermission ||
+    rawPermissions.some((perm) =>
+      perm === 'approval_requests.view' ||
+      perm === 'approval_requests.approve' ||
+      perm === 'approval_requests.view.all' ||
+      perm === 'approval_requests.approve.all'
+    )
+
+  const hasScopedApprovalPermission =
+    !hasGlobalApprovalPermission &&
+    rawPermissions.some((perm) =>
+      perm === 'approval_requests.view.own' ||
+      perm === 'approval_requests.approve.own' ||
+      perm === 'requests.view.own'
+    )
+
+  const hasAccessRequestPermission = rawPermissions.some((perm) =>
+    perm === 'access_requests.view' ||
+    perm === 'access_requests.edit' ||
+    perm === 'requests.view.own'
+  )
+
+  const showAdminApprovalRequests = hasGlobalApprovalPermission
+  const showCoachApprovalRequests = hasScopedApprovalPermission
+  const showAccessRequests = !hasGlobalApprovalPermission && hasAccessRequestPermission
 
   const messagingUsers = useMemo(() => {
     const otherUsers = (users || []).filter((user) => user.id !== currentUser.id)
@@ -714,42 +739,33 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
 
           {isTabVisible('approvals') && (
             <TabsContent value="approvals" className="mt-6 space-y-6">
-              {showApprovalRequests ? (
-                <>
-                  <UserPermissionsManagement
-                    users={users}
-                    permissions={permissions}
-                    userPermissions={userPermissions}
-                    athletes={athletes}
-                    approvalRequests={approvalRequests}
-                    currentUserId={currentUser.id}
-                    onGrantPermission={handleGrantUserPermission}
-                    onRevokePermission={handleRevokeUserPermission}
-                    onApproveAccount={handleApproveAccount}
-                    onRejectAccount={handleRejectAccount}
-                    onUpdateUser={(id, updates) => { void handleUpdateUser(id, updates) }}
-                    onDeleteRequest={handleDeleteApprovalRequest}
-                  />
-                  <CoachAccessRequests
-                    coachId={currentUser.id}
-                    mode="admin"
-                    users={users}
-                    athletes={athletes}
-                    parents={parents}
-                    accessRequests={accessRequests}
-                    onUpdateRequest={handleUpdateAccessRequest}
-                  />
-                </>
+              {showAdminApprovalRequests ? (
+                <UserPermissionsManagement
+                  users={users}
+                  permissions={permissions}
+                  userPermissions={userPermissions}
+                  athletes={athletes}
+                  approvalRequests={approvalRequests}
+                  currentUserId={currentUser.id}
+                  onGrantPermission={handleGrantUserPermission}
+                  onRevokePermission={handleRevokeUserPermission}
+                  onApproveAccount={handleApproveAccount}
+                  onRejectAccount={handleRejectAccount}
+                  onUpdateUser={(id, updates) => { void handleUpdateUser(id, updates) }}
+                  onDeleteRequest={handleDeleteApprovalRequest}
+                />
               ) : (
                 <div className="space-y-6">
-                  <CoachApprovalRequests
-                    coachId={currentUser.id}
-                    users={users}
-                    athletes={athletes}
-                    approvalRequests={approvalRequests}
-                    onApproveAccount={handleApproveAccount}
-                    onRejectAccount={handleRejectAccount}
-                  />
+                  {showCoachApprovalRequests && (
+                    <CoachApprovalRequests
+                      coachId={currentUser.id}
+                      users={users}
+                      athletes={athletes}
+                      approvalRequests={approvalRequests}
+                      onApproveAccount={handleApproveAccount}
+                      onRejectAccount={handleRejectAccount}
+                    />
+                  )}
                   {showAccessRequests && (
                     <CoachAccessRequests
                       coachId={currentUser.id}
@@ -759,6 +775,11 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
                       accessRequests={accessRequests}
                       onUpdateRequest={handleUpdateAccessRequest}
                     />
+                  )}
+                  {!showCoachApprovalRequests && !showAccessRequests && (
+                    <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+                      Nu ai permisiuni pentru a gestiona cereri de aprobare sau acces.
+                    </div>
                   )}
                 </div>
               )}
