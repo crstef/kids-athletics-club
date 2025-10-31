@@ -298,7 +298,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
   const rawPermissions = useMemo(() => currentUser.permissions ?? [], [currentUser.permissions])
   const hasWildcardPermission = rawPermissions.includes('*')
 
-  const hasGlobalApprovalPermission =
+  const hasGlobalApprovalPermission = useMemo(() => (
     currentUser.role === 'superadmin' ||
     hasWildcardPermission ||
     rawPermissions.some((perm) =>
@@ -307,23 +307,27 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
       perm === 'approval_requests.view.all' ||
       perm === 'approval_requests.approve.all'
     )
+  ), [currentUser.role, hasWildcardPermission, rawPermissions])
 
-  const hasScopedApprovalPermission =
+  const hasScopedApprovalPermission = useMemo(() => (
     !hasGlobalApprovalPermission &&
     rawPermissions.some((perm) =>
       perm === 'approval_requests.view.own' ||
       perm === 'approval_requests.approve.own' ||
       perm === 'requests.view.own'
     )
+  ), [hasGlobalApprovalPermission, rawPermissions])
 
-  const hasAccessRequestPermission = rawPermissions.some((perm) =>
-    perm === 'access_requests.view' ||
-    perm === 'access_requests.edit' ||
-    perm === 'requests.view.own'
-  )
+  const hasAccessRequestPermission = useMemo(() => (
+    rawPermissions.some((perm) =>
+      perm === 'access_requests.view' ||
+      perm === 'access_requests.edit' ||
+      perm === 'requests.view.own'
+    )
+  ), [rawPermissions])
 
   const showAdminApprovalRequests = hasGlobalApprovalPermission
-  const showCoachApprovalRequests = hasScopedApprovalPermission
+  const showCoachApprovalRequests = !hasGlobalApprovalPermission && hasScopedApprovalPermission
   const showAccessRequests = !hasGlobalApprovalPermission && hasAccessRequestPermission
 
   const messagingUsers = useMemo(() => {
