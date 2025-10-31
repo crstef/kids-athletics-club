@@ -1,8 +1,11 @@
+import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { ChartLine, Trash, Trophy } from '@phosphor-icons/react'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Slider } from '@/components/ui/slider'
+import { ChartLine, SlidersHorizontal, Trash, Trophy } from '@phosphor-icons/react'
 import { EditAthleteDialog } from './EditAthleteDialog'
 import { getInitials, getAvatarColor } from '@/lib/constants'
 import { resolveMediaUrl } from '@/lib/media'
@@ -25,6 +28,13 @@ interface AthleteCardProps {
 export function AthleteCard({ athlete, resultsCount, parents, coaches, onViewDetails, onViewChart, onEdit, onUploadAvatar, onDelete, hideDelete, hideEdit }: AthleteCardProps) {
   const avatarColor = getAvatarColor(athlete.id)
   const avatarSrc = resolveMediaUrl(athlete.avatar)
+  const defaultAvatarSize = 72
+  const minAvatarSize = 56
+  const maxAvatarSize = 120
+  const [avatarSize, setAvatarSize] = useState(defaultAvatarSize)
+  const avatarDimension = Math.round(Math.min(Math.max(avatarSize, minAvatarSize), maxAvatarSize))
+  const avatarScale = avatarDimension / defaultAvatarSize
+  const badgeScale = Math.min(1.25, Math.max(0.8, avatarScale))
   
   const coachName = athlete.coachId && coaches && coaches.length > 0 
     ? `${coaches.find(c => c.id === athlete.coachId)?.firstName || ''} ${coaches.find(c => c.id === athlete.coachId)?.lastName || ''}`.trim()
@@ -38,27 +48,93 @@ export function AthleteCard({ athlete, resultsCount, parents, coaches, onViewDet
       <CardHeader className="pb-3 space-y-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div className="relative">
-              <Avatar className="h-16 w-16 ring-2 ring-background group-hover:ring-primary/20 transition-all overflow-hidden">
+            <div
+              className="relative"
+              style={{ width: avatarDimension, height: avatarDimension }}
+            >
+              <Avatar
+                className="rounded-full ring-2 ring-background group-hover:ring-primary/20 transition-all overflow-hidden"
+                style={{ width: avatarDimension, height: avatarDimension }}
+              >
                 {avatarSrc ? (
                   <AvatarImage
                     src={avatarSrc}
                     alt={`${athlete.firstName} ${athlete.lastName}`}
+                    className="h-full w-full object-cover object-center"
                     onError={(event) => {
-                      (event.currentTarget as HTMLImageElement).style.display = 'none';
+                      (event.currentTarget as HTMLImageElement).style.display = 'none'
                     }}
                   />
                 ) : (
-                  <AvatarFallback className={`${avatarColor} text-white font-semibold`}>
+                  <AvatarFallback
+                    className={`${avatarColor} text-white font-semibold`}
+                    style={{ fontSize: Math.max(14, Math.min(24, 16 * avatarScale)) }}
+                  >
                     {getInitials(athlete.firstName, athlete.lastName)}
                   </AvatarFallback>
                 )}
               </Avatar>
               {resultsCount > 0 && (
-                <div className="absolute -bottom-1 -right-1 bg-accent text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center ring-2 ring-background">
+                <div
+                  className="absolute bg-accent text-white text-xs font-bold rounded-full flex items-center justify-center ring-2 ring-background"
+                  style={{
+                    bottom: -6 * badgeScale,
+                    right: -6 * badgeScale,
+                    width: 20 * badgeScale,
+                    height: 20 * badgeScale,
+                  }}
+                >
                   {resultsCount}
                 </div>
               )}
+              <div
+                className="absolute top-0 right-0 translate-x-1/2 -translate-y-1/2"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="secondary"
+                      className="h-8 w-8 rounded-full shadow-sm"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <SlidersHorizontal size={16} />
+                      <span className="sr-only">Ajustează dimensiunea avatarului</span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    align="end"
+                    className="w-60 space-y-3"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <div className="flex items-center justify-between text-sm font-medium">
+                      <span>Dimensiune avatar</span>
+                      <span>{avatarDimension}px</span>
+                    </div>
+                    <Slider
+                      value={[avatarDimension]}
+                      min={minAvatarSize}
+                      max={maxAvatarSize}
+                      step={2}
+                      onValueChange={(values) => setAvatarSize(values[0] ?? defaultAvatarSize)}
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Compact</span>
+                      <span>Maxim</span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setAvatarSize(defaultAvatarSize)}
+                    >
+                      Resetare
+                    </Button>
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
             <div className="flex-1">
               <CardTitle className="text-base group-hover:text-primary transition-colors">

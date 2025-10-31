@@ -11,6 +11,8 @@ import { PermissionGate } from './PermissionGate'
 import { Textarea } from '@/components/ui/textarea'
 import { resolveMediaUrl } from '@/lib/media'
 import { cn } from '@/lib/utils'
+import { DateSelector } from './DateSelector'
+import { AvatarUploadControl, type AvatarUploadChangePayload } from './AvatarUploadControl'
 
 interface EditAthleteDialogProps {
   athlete: Athlete
@@ -24,6 +26,7 @@ interface EditAthleteDialogProps {
 
 export function EditAthleteDialog({ athlete, parents, coaches, onEdit, onUploadAvatar, triggerClassName, triggerVariant = 'default' }: EditAthleteDialogProps) {
   const { hasPermission } = useAuth()
+  const currentYear = new Date().getFullYear()
   const normalizeDate = (val?: string | null) => {
     if (!val) return ''
     // Accept already-normalized YYYY-MM-DD or ISO strings; return YYYY-MM-DD
@@ -81,18 +84,18 @@ export function EditAthleteDialog({ athlete, parents, coaches, onEdit, onUploadA
       setGender(athlete.gender)
       setCoachId(athlete.coachId || '')
       setParentId(parentIds.has(athlete.parentId || '') ? athlete.parentId || '' : '')
+      setAvatarFile(null)
       setAvatarPreview(athlete.avatar ? resolveMediaUrl(athlete.avatar) : null)
       setDeleteAvatar(false)
       setNotes(athlete.notes || '')
     }
   }, [open, athlete, parentIds])
 
-  useEffect(() => {
-    if (!avatarFile) return
-    const reader = new FileReader()
-    reader.onload = () => setAvatarPreview(reader.result as string)
-    reader.readAsDataURL(avatarFile)
-  }, [avatarFile])
+  const handleAvatarChange = ({ file, previewUrl }: AvatarUploadChangePayload) => {
+    setAvatarFile(file)
+    setAvatarPreview(previewUrl)
+    setDeleteAvatar(!previewUrl)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -114,7 +117,7 @@ export function EditAthleteDialog({ athlete, parents, coaches, onEdit, onUploadA
     };
     
     if (deleteAvatar) {
-      updateData.avatar = null
+      updateData.avatar = ''
     }
     
     onEdit(athlete.id, updateData)
@@ -148,62 +151,14 @@ export function EditAthleteDialog({ athlete, parents, coaches, onEdit, onUploadA
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-4">
           <PermissionGate perm="athletes.avatar.upload">
-            <div className="space-y-2">
-              <Label htmlFor="edit-avatar">Poză (opțional)</Label>
-              <div className="flex items-center gap-4">
-                {avatarSrc && (
-                  <img 
-                    src={avatarSrc} 
-                    alt="preview" 
-                    className="w-20 h-20 rounded-full object-cover border-2 border-primary" 
-                    onError={(e) => {
-                      console.error('Image load error:', e);
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
-                  />
-                )}
-                <div className="flex-1">
-                  <div className="relative">
-                    <input
-                      id="edit-avatar"
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const f = e.target.files?.[0]
-                        if (f) {
-                          setAvatarFile(f)
-                          setDeleteAvatar(false)
-                        }
-                      }}
-                      className="hidden"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => document.getElementById('edit-avatar')?.click()}
-                      className="w-full"
-                    >
-                      📷 {avatarPreview ? 'Schimbă Poza' : 'Încarcă Poză'}
-                    </Button>
-                  </div>
-                  {avatarPreview && (
-                    <Button 
-                      type="button"
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => { 
-                        setAvatarFile(null); 
-                        setAvatarPreview(null);
-                        setDeleteAvatar(true);
-                      }}
-                      className="mt-2 w-full text-destructive hover:text-destructive"
-                    >
-                      Șterge Poza
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </div>
+            <AvatarUploadControl
+              id={`edit-athlete-avatar-${athlete.id}`}
+              label="Poză (opțional)"
+              value={avatarSrc}
+              onChange={handleAvatarChange}
+              description="Reajustează încadrerea astfel încât fața să fie clar vizibilă."
+              fallbackId={athlete.id}
+            />
           </PermissionGate>
           <div className="space-y-2">
             <Label htmlFor="edit-firstName">Prenume</Label>
@@ -226,13 +181,13 @@ export function EditAthleteDialog({ athlete, parents, coaches, onEdit, onUploadA
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="edit-dateOfBirth">Data nașterii (dd/mm/yyyy)</Label>
-            <Input
+            <Label htmlFor="edit-dateOfBirth">Data nașterii (zi / lună / an)</Label>
+            <DateSelector
               id="edit-dateOfBirth"
-              type="date"
               value={dateOfBirth}
-              onChange={(e) => setDateOfBirth(e.target.value)}
-              required
+              onChange={setDateOfBirth}
+              minYear={currentYear - 18}
+              maxYear={currentYear - 4}
             />
           </div>
           <div className="space-y-2">

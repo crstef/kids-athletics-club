@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Plus } from '@phosphor-icons/react'
 import type { Result } from '@/lib/types'
 import { useEvents } from '@/hooks/use-api'
+import { DateSelector } from './DateSelector'
 
 interface AddResultDialogProps {
   athleteId: string
@@ -22,6 +23,7 @@ export function AddResultDialog({ athleteId, athleteName, onAdd }: AddResultDial
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const [notes, setNotes] = useState('')
   const [unit, setUnit] = useState<Result['unit']>('seconds')
+  const currentYear = new Date().getFullYear()
 
   const [probes, , loading, , refetchEvents] = useEvents()
 
@@ -170,14 +172,13 @@ export function AddResultDialog({ athleteId, athleteName, onAdd }: AddResultDial
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="date">Data (dd/mm/yyyy)</Label>
-            <Input
-              id="date"
-              type="date"
+            <Label htmlFor="result-date">Data rezultat (zi / lună / an)</Label>
+            <DateSelector
+              id="result-date"
               value={date}
-              onChange={(e) => setDate(e.target.value)}
-              max={new Date().toISOString().split('T')[0]}
-              required
+              onChange={setDate}
+              minYear={currentYear - 5}
+              maxYear={currentYear}
             />
           </div>
           <div className="space-y-2">

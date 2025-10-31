@@ -12,6 +12,8 @@ import { apiClient } from '@/lib/api-client'
 import { useUsers, useAthletes, usePublicCoaches } from '@/hooks/use-api'
 import { useAuth } from '@/lib/auth-context'
 import type { User, UserRole } from '@/lib/types'
+import { AvatarUploadControl, type AvatarUploadChangePayload } from '@/components/AvatarUploadControl'
+import { DateSelector } from '@/components/DateSelector'
 
 interface AuthDialogProps {
   open: boolean
@@ -41,9 +43,12 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
   const [approvalNotes, setApprovalNotes] = useState('')
   const [athleteDateOfBirth, setAthleteDateOfBirth] = useState('')
   const [athleteGender, setAthleteGender] = useState<'M' | 'F'>('M')
+  const [signupAvatarPreview, setSignupAvatarPreview] = useState<string | null>(null)
+  const [signupAvatarDataUrl, setSignupAvatarDataUrl] = useState<string | null>(null)
   const [showLoginPassword, setShowLoginPassword] = useState(false)
   const [showSignupPassword, setShowSignupPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const currentYear = new Date().getFullYear()
   
   // Fetch athletes when coach is selected
   useEffect(() => {
@@ -101,6 +106,11 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
     if (athleteAge === null) return null
     return determineCategory(athleteAge)
   }, [athleteAge])
+
+  const handleSignupAvatarChange = ({ dataUrl, previewUrl }: AvatarUploadChangePayload) => {
+    setSignupAvatarPreview(previewUrl)
+    setSignupAvatarDataUrl(dataUrl)
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -199,7 +209,8 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
         athleteId: selectedAthleteId || undefined,
         childName: selectedAthlete ? `${selectedAthlete.firstName} ${selectedAthlete.lastName}` : childName.trim() || undefined,
         approvalNotes: approvalNotes.trim() || undefined,
-        athleteProfile
+        athleteProfile,
+        avatarDataUrl: signupAvatarDataUrl || undefined
       }
 
       await apiClient.register(userData)
@@ -242,6 +253,8 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
     setApprovalNotes('')
     setAthleteDateOfBirth('')
     setAthleteGender('M')
+    setSignupAvatarPreview(null)
+    setSignupAvatarDataUrl(null)
     setShowLoginPassword(false)
     setShowSignupPassword(false)
     setShowConfirmPassword(false)
@@ -457,13 +470,13 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="athlete-date-of-birth">Data nașterii *</Label>
-                      <Input
+                      <Label htmlFor="athlete-date-of-birth">Data nașterii (zi / lună / an) *</Label>
+                      <DateSelector
                         id="athlete-date-of-birth"
-                        type="date"
                         value={athleteDateOfBirth}
-                        onChange={(e) => setAthleteDateOfBirth(e.target.value)}
-                        required
+                        onChange={setAthleteDateOfBirth}
+                        minYear={currentYear - 18}
+                        maxYear={currentYear - 4}
                       />
                     </div>
                     <div className="space-y-2">
@@ -527,6 +540,15 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
                   />
                 </div>
               </div>
+
+              <AvatarUploadControl
+                id="signup-avatar"
+                label="Poză de profil (opțional)"
+                value={signupAvatarPreview}
+                onChange={handleSignupAvatarChange}
+                description="Încarcă un portret clar pentru ca antrenorii să te recunoască mai ușor."
+                fallbackId={signupEmail || `${signupFirstName}${signupLastName}` || 'signup-avatar'}
+              />
               
               <div className="space-y-2">
                 <Label htmlFor="signup-email">Email *</Label>

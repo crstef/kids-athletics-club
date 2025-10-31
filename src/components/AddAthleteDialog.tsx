@@ -11,6 +11,8 @@ import type { Athlete, AgeCategory, Gender, User } from '@/lib/types'
 import { useAuth } from '@/lib/auth-context'
 import { PermissionGate } from './PermissionGate'
 import { Textarea } from '@/components/ui/textarea'
+import { DateSelector } from './DateSelector'
+import { AvatarUploadControl, type AvatarUploadChangePayload } from './AvatarUploadControl'
 
 // Funcție pentru calcularea vârstei din data nașterii
 function calculateAge(dateOfBirth: string): number {
@@ -45,6 +47,7 @@ interface AddAthleteDialogProps {
 export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps) {
   // Access auth to ensure hooks order; value not directly used
   useAuth()
+  const currentYear = new Date().getFullYear()
   const [open, setOpen] = useState(false)
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
@@ -63,20 +66,16 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
       const calculatedAge = calculateAge(dateOfBirth)
       setAge(calculatedAge)
       setCategory(determineCategory(calculatedAge))
+    } else {
+      setAge(null)
+      setCategory('U6')
     }
   }, [dateOfBirth])
 
-  useEffect(() => {
-    if (!avatarFile) {
-      setAvatarPreview(null)
-      return
-    }
-    const reader = new FileReader()
-    reader.onload = () => {
-      setAvatarPreview(reader.result as string)
-    }
-    reader.readAsDataURL(avatarFile)
-  }, [avatarFile])
+  const handleAvatarChange = ({ file, previewUrl }: AvatarUploadChangePayload) => {
+    setAvatarFile(file)
+    setAvatarPreview(previewUrl)
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -153,13 +152,13 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="dateOfBirth">Data nașterii (dd/mm/yyyy) *</Label>
-            <Input
+            <Label htmlFor="dateOfBirth">Data nașterii (zi / lună / an) *</Label>
+            <DateSelector
               id="dateOfBirth"
-              type="date"
               value={dateOfBirth}
-              onChange={(e) => setDateOfBirth(e.target.value)}
-              required
+              onChange={setDateOfBirth}
+              minYear={currentYear - 18}
+              maxYear={currentYear - 4}
             />
           </div>
           {age !== null && (
@@ -184,54 +183,15 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
           )}
           <div className="grid gap-4 md:grid-cols-2">
             <PermissionGate perm="athletes.avatar.upload">
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="avatar">Poză (opțional)</Label>
-                <div className="flex items-center gap-4">
-                  {avatarPreview && (
-                    <img
-                      src={avatarPreview}
-                      alt="preview"
-                      className="w-20 h-20 rounded-full object-cover border-2 border-primary"
-                    />
-                  )}
-                  <div className="flex-1">
-                    <div className="relative">
-                      <input
-                        id="avatar"
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0]
-                          if (file) setAvatarFile(file)
-                        }}
-                        className="hidden"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => document.getElementById('avatar')?.click()}
-                        className="w-full"
-                      >
-                        📷 {avatarPreview ? 'Schimbă Poza' : 'Încarcă Poză'}
-                      </Button>
-                    </div>
-                    {avatarPreview && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setAvatarFile(null)
-                          setAvatarPreview(null)
-                        }}
-                        className="mt-2 w-full text-destructive hover:text-destructive"
-                      >
-                        Șterge Poza
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
+              <AvatarUploadControl
+                id="add-athlete-avatar"
+                label="Poză (opțional)"
+                value={avatarPreview}
+                onChange={handleAvatarChange}
+                description="Recomandăm o fotografie recentă cu fața clară. Poți ajusta incadrarea înainte de a salva."
+                className="md:col-span-2"
+                fallbackId={`${firstName}${lastName}` || 'athlete-avatar'}
+              />
             </PermissionGate>
             <div className="space-y-2">
               <Label htmlFor="gender">Gen *</Label>
