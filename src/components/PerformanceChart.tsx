@@ -1,111 +1,212 @@
-import { useRef, useEffect, useState, useMemo, useId } from 'react'
+import { useEffect, useMemo, useRef, useState, useId } from 'react'
 import * as d3 from 'd3'
 import type { PerformanceData, Period } from '@/lib/types'
-import { PeriodFilter, getInitialDateRange, getFilteredResults, getFirstDataDate } from './PeriodFilter'
-import { getUnitDisplayLabel, formatResultValue, preferLowerValues } from '@/lib/units'
+import { PeriodFilter, getFilteredResults, getFirstDataDate, getInitialDateRange } from './PeriodFilter'
+import { formatResultValue, getUnitDisplayLabel, preferLowerValues } from '@/lib/units'
+
+const COMPARISON_COLORS = ['#0ea5e9', '#f97316', '#22c55e', '#a855f7', '#facc15', '#ec4899']
+
+interface ComparisonSeries {
+  label: string
+  data: PerformanceData[]
+  color?: string
+}
+
+interface ChartSeries {
+  key: string
+  label: string
+  data: PerformanceData[]
+  color: string
+  isPrimary: boolean
+}
 
 interface PerformanceChartProps {
   data: PerformanceData[]
   eventType: string
   unit?: string | null
+  comparisons?: ComparisonSeries[]
 }
 
-export function PerformanceChart({ data, eventType, unit }: PerformanceChartProps) {
+export function PerformanceChart({ data, eventType, unit, comparisons = [] }: PerformanceChartProps) {
   const svgRef = useRef<SVGSVGElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 })
-  
   const [period, setPeriod] = useState<Period>('all')
-  const [dateRange, setDateRange] = useState<{ start: Date; end: Date }>(() => 
-    getInitialDateRange(data, 'all')
-  )
+  const [dateRange, setDateRange] = useState(() => getInitialDateRange(data, 'all'))
 
-  const firstDataDate = useMemo(() => getFirstDataDate(data), [data])
-  const fallbackUnit = useMemo(() => {
-    if (unit) return unit
-    const withUnit = data.find(point => point.unit)
-    return withUnit?.unit ?? null
-  }, [data, unit])
-  const displayUnit = useMemo(() => getUnitDisplayLabel(fallbackUnit), [fallbackUnit])
-  const lowerIsBetter = useMemo(() => preferLowerValues(fallbackUnit), [fallbackUnit])
   const gradientId = useId()
 
-  useEffect(() => {
-    setDateRange(getInitialDateRange(data, period))
-  }, [period, data])
-
-  const filteredData = useMemo(() => {
-    return getFilteredResults(data, period, dateRange)
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-  }, [data, period, dateRange])
-
-  useEffect(() => {
-    const resizeObserver = new ResizeObserver(entries => {
-      if (entries[0]) {
-        const { width } = entries[0].contentRect
-        setDimensions({ width, height: 280 })
-      }
+  const allSeriesData = useMemo(() => {
+    const combined: PerformanceData[] = [...data]
+    comparisons.forEach(series => {
+      combined.push(...series.data)
     })
+    return combined
+  }, [data, comparisons])
 
-    if (containerRef.current) {
-      resizeObserver.observe(containerRef.current)
-    }
+  const firstDataDate = useMemo(() => getFirstDataDate(allSeriesData), [allSeriesData])
 
-    return () => resizeObserver.disconnect()
+  useEffect(() => {
+    setDateRange(getInitialDateRange(allSeriesData, period))
+  }, [allSeriesData, period])
+
+  useEffect(() => {
+    if (!containerRef.current) return
+    const element = containerRef.current
+    const observer = new ResizeObserver(entries => {
+      const entry = entries[0]
+      if (!entry) return
+      const { width, height } = entry.contentRect
+      setDimensions(prev => {
+        if (prev.width === width && prev.height === height) {
+          return prev
+        }
+        return { width, height }
+      })
+    })
+    observer.observe(element)
+    return () => observer.disconnect()
   }, [])
 
+  const fallbackUnit = useMemo(() => {
+    if (unit) return unit
+    const primaryDetected = data.find(d => Boolean(d.unit))?.unit
+    if (primaryDetected) return primaryDetected
+    for (const series of comparisons) {
+      const detected = series.data.find(d => Boolean(d.unit))?.unit
+      if (detected) return detected
+    }
+    return null
+  }, [unit, data, comparisons])
+
+  const displayUnit = useMemo(
+    () => getUnitDisplayLabel(fallbackUnit ?? undefined),
+    [fallbackUnit]
+  )
+
+  const lowerIsBetter = useMemo(
+    () => preferLowerValues(fallbackUnit ?? undefined),
+    [fallbackUnit]
+  )
+
+  const baseSeries = useMemo<ChartSeries[]>(() => {
+    const sortByDate = (points: PerformanceData[]) =>
+      [...points].sort(
+        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+      )
+
+    const primarySeries: ChartSeries = {
+      key: 'primary',
+      label: 'Serie principală',
+      data: sortByDate(data),
+      color: 'hsl(var(--primary))',
+      isPrimary: true,
+    }
+
+    const comparisonSeries = comparisons.map((series, index): ChartSeries => ({
+      key: `comparison-${index}`,
+      label: series.label,
+      data: sortByDate(series.data),
+      color: series.color ?? COMPARISON_COLORS[index % COMPARISON_COLORS.length],
+      isPrimary: false,
+    }))
+
+    return [primarySeries, ...comparisonSeries]
+  }, [data, comparisons])
+
+  const filteredSeries = useMemo(() => {
+    return baseSeries.map(series => ({
+      ...series,
+      data: getFilteredResults(series.data, period, dateRange),
+    }))
+  }, [baseSeries, period, dateRange])
+
+  const plottedSeries = useMemo(
+    () => filteredSeries.filter(series => series.data.length > 0),
+    [filteredSeries]
+  )
+
   const activeRangeLabel = useMemo(() => {
-    if (filteredData.length === 0) return null
-    const first = new Date(filteredData[0].date)
-    const last = new Date(filteredData[filteredData.length - 1].date)
-    const formatter = new Intl.DateTimeFormat('ro-RO', { day: 'numeric', month: 'short', year: 'numeric' })
-    return `${formatter.format(first)} – ${formatter.format(last)}`
-  }, [filteredData])
+    if (!dateRange || period === 'all') return null
+    const formatter = new Intl.DateTimeFormat('ro-RO', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    })
+    return `${formatter.format(dateRange.start)} – ${formatter.format(dateRange.end)}`
+  }, [dateRange, period])
 
   useEffect(() => {
-    if (!svgRef.current || dimensions.width === 0) {
+    if (!svgRef.current || dimensions.width === 0 || dimensions.height === 0) {
       return
     }
 
     const svg = d3.select(svgRef.current)
     svg.selectAll('*').remove()
 
-    if (filteredData.length === 0) {
+    const container = containerRef.current
+    if (!container) return
+    d3.select(container).selectAll('.chart-tooltip').remove()
+
+    if (plottedSeries.length === 0) {
       return
     }
 
     const margin = { top: 20, right: 48, bottom: 52, left: 72 }
-    const width = dimensions.width - margin.left - margin.right
-    const height = dimensions.height - margin.top - margin.bottom
+    const width = Math.max(dimensions.width - margin.left - margin.right, 0)
+    const height = Math.max(dimensions.height - margin.top - margin.bottom, 0)
 
     const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`)
 
-  const values = filteredData.map(d => d.value)
-  const minValue = d3.min(values) as number
-  const maxValue = d3.max(values) as number
-  const valueSpread = Math.max(maxValue - minValue, 1)
-  const padding = valueSpread * 0.08
-  const primaryColor = 'var(--chart-primary, hsl(var(--primary)))'
+    const allValues: number[] = []
+    const allDates: Date[] = []
+
+    plottedSeries.forEach(series => {
+      series.data.forEach(point => {
+        allValues.push(point.value)
+        allDates.push(new Date(point.date))
+      })
+    })
+
+    const minValue = d3.min(allValues) ?? 0
+    const maxValue = d3.max(allValues) ?? 0
+    const valueSpread = Math.max(maxValue - minValue, 1)
+    const padding = valueSpread * 0.08
+
+    const xDomain = ((): [Date, Date] => {
+      const extent = d3.extent(allDates) as [Date | undefined, Date | undefined]
+      const [minDate, maxDate] = extent
+      if (!minDate || !maxDate) {
+        const fallback = new Date()
+        return [fallback, fallback]
+      }
+      if (minDate.getTime() === maxDate.getTime()) {
+        const nextDay = new Date(maxDate)
+        nextDay.setDate(nextDay.getDate() + 1)
+        return [minDate, nextDay]
+      }
+      return [minDate, maxDate]
+    })()
 
     const x = d3.scaleTime()
-      .domain(d3.extent(filteredData, d => new Date(d.date)) as [Date, Date])
+      .domain(xDomain)
       .range([0, width])
 
     const yDomain = (() => {
       if (lowerIsBetter) {
-        return [maxValue + padding, Math.max(minValue - padding, 0)]
+        return [maxValue + padding, Math.max(minValue - padding, 0)] as [number, number]
       }
       const lowerBound = Math.min(minValue - padding, 0)
-      return [lowerBound, maxValue + padding]
+      return [lowerBound, maxValue + padding] as [number, number]
     })()
 
     const y = d3.scaleLinear()
-      .domain(yDomain as [number, number])
+      .domain(yDomain)
       .range([height, 0])
       .nice()
 
-    // Gradient
     const defs = svg.append('defs')
+    const primarySeries = filteredSeries[0]
     const gradient = defs.append('linearGradient')
       .attr('id', gradientId)
       .attr('gradientUnits', 'userSpaceOnUse')
@@ -113,48 +214,52 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
       .attr('y1', y(y.domain()[1]))
       .attr('x2', 0)
       .attr('y2', y(y.domain()[0]))
-    
-  gradient.append('stop').attr('offset', '0%').attr('stop-color', primaryColor).attr('stop-opacity', 0.25)
-  gradient.append('stop').attr('offset', '100%').attr('stop-color', primaryColor).attr('stop-opacity', 0)
 
-    // Grid lines
+    gradient.append('stop')
+      .attr('offset', '0%')
+      .attr('stop-color', primarySeries.color)
+      .attr('stop-opacity', 0.25)
+
+    gradient.append('stop')
+      .attr('offset', '100%')
+      .attr('stop-color', primarySeries.color)
+      .attr('stop-opacity', 0)
+
     g.append('g')
       .attr('class', 'grid')
       .attr('stroke', 'hsl(var(--border))')
       .attr('stroke-opacity', 0.6)
       .attr('stroke-dasharray', '3,3')
-      .call(d3.axisLeft(y)
-        .tickSize(-width)
-        .tickFormat(() => '')
+      .call(
+        d3.axisLeft(y)
+          .tickSize(-width)
+          .tickFormat(() => '')
       )
 
-    // X axis
-    const totalTimespan = filteredData.length > 1
-      ? new Date(filteredData[filteredData.length - 1].date).getTime() - new Date(filteredData[0].date).getTime()
-      : 0
+    const totalTimespan = xDomain[1].getTime() - xDomain[0].getTime()
     const tickFormat = totalTimespan > 1000 * 60 * 60 * 24 * 200
       ? d3.timeFormat('%b %Y')
       : d3.timeFormat('%d %b')
 
     g.append('g')
       .attr('transform', `translate(0,${height})`)
-      .call(d3.axisBottom(x).ticks(Math.min(8, filteredData.length)).tickFormat(tickFormat))
-      .attr('font-size', '12px')
-      .call(axis => axis.select('.domain').remove())
-      .call(axis => axis.selectAll('text').attr('fill', 'hsl(var(--muted-foreground))'))
-      .call(axis => axis.selectAll('line').attr('stroke', 'hsl(var(--border))'))
-    
-    // Y axis
-    g.append('g')
-      .call(d3.axisLeft(y)
-        .ticks(6)
-        .tickFormat(d => formatResultValue(d as number, fallbackUnit ?? undefined)))
+      .call(d3.axisBottom(x).ticks(Math.min(8, allDates.length)).tickFormat(tickFormat))
       .attr('font-size', '12px')
       .call(axis => axis.select('.domain').remove())
       .call(axis => axis.selectAll('text').attr('fill', 'hsl(var(--muted-foreground))'))
       .call(axis => axis.selectAll('line').attr('stroke', 'hsl(var(--border))'))
 
-    // Axis labels
+    g.append('g')
+      .call(
+        d3.axisLeft(y)
+          .ticks(6)
+          .tickFormat(d => formatResultValue(d as number, fallbackUnit ?? undefined))
+      )
+      .attr('font-size', '12px')
+      .call(axis => axis.select('.domain').remove())
+      .call(axis => axis.selectAll('text').attr('fill', 'hsl(var(--muted-foreground))'))
+      .call(axis => axis.selectAll('line').attr('stroke', 'hsl(var(--border))'))
+
     g.append('text')
       .attr('transform', `translate(-48, ${height / 2}) rotate(-90)`)
       .attr('text-anchor', 'middle')
@@ -171,46 +276,59 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
         .text(activeRangeLabel)
     }
 
-    // Area
-    const area = d3.area<PerformanceData>()
-      .x(d => x(new Date(d.date)))
-      .y0(height)
-      .y1(d => y(d.value))
-      .curve(d3.curveMonotoneX)
+    if (primarySeries.data.length > 0) {
+      const area = d3.area<PerformanceData>()
+        .x(d => x(new Date(d.date)))
+        .y0(height)
+        .y1(d => y(d.value))
+        .curve(d3.curveMonotoneX)
 
-    g.append('path')
-      .datum(filteredData)
-      .attr('fill', `url(#${gradientId})`)
-      .attr('d', area)
+      g.append('path')
+        .datum(primarySeries.data)
+        .attr('fill', `url(#${gradientId})`)
+        .attr('d', area)
+    }
 
-    // Line
-    const line = d3.line<PerformanceData>()
+    const hoverMarkers: Record<string, d3.Selection<SVGCircleElement, unknown, null, undefined>> = {}
+
+    const lineGenerator = d3.line<PerformanceData>()
       .x(d => x(new Date(d.date)))
       .y(d => y(d.value))
       .curve(d3.curveMonotoneX)
 
-    g.append('path')
-      .datum(filteredData)
-      .attr('fill', 'none')
-      .attr('stroke', primaryColor)
-      .attr('stroke-width', 2.5)
-      .attr('d', line)
+    plottedSeries.forEach(series => {
+      g.append('path')
+        .datum(series.data)
+        .attr('fill', 'none')
+        .attr('stroke', series.color)
+        .attr('stroke-width', series.isPrimary ? 2.5 : 2)
+        .attr('stroke-dasharray', series.isPrimary ? null : '6 4')
+        .attr('opacity', series.isPrimary ? 1 : 0.9)
+        .attr('d', lineGenerator)
 
-    g.selectAll('circle.data-point')
-      .data(filteredData)
-      .enter()
-      .append('circle')
-      .attr('class', 'data-point')
-      .attr('cx', d => x(new Date(d.date)))
-      .attr('cy', d => y(d.value))
-      .attr('r', 4.5)
-      .attr('fill', primaryColor)
-      .attr('stroke', '#fff')
-      .attr('stroke-width', 1.5)
-      .attr('opacity', 0.95)
+      g.selectAll(`circle.data-point-${series.key}`)
+        .data(series.data)
+        .enter()
+        .append('circle')
+        .attr('class', `data-point-${series.key}`)
+        .attr('cx', d => x(new Date(d.date)))
+        .attr('cy', d => y(d.value))
+        .attr('r', series.isPrimary ? 4.5 : 4)
+        .attr('fill', series.color)
+        .attr('stroke', '#fff')
+        .attr('stroke-width', 1.5)
+        .attr('opacity', 0.95)
 
-    // Tooltip
-    const tooltip = d3.select(containerRef.current)
+      hoverMarkers[series.key] = g.append('circle')
+        .attr('class', `hover-circle-${series.key}`)
+        .attr('r', series.isPrimary ? 6 : 5)
+        .attr('fill', series.color)
+        .attr('stroke', 'hsl(var(--background))')
+        .attr('stroke-width', 2)
+        .style('opacity', 0)
+    })
+
+    const tooltip = d3.select(container)
       .append('div')
       .attr('class', 'chart-tooltip')
       .style('position', 'absolute')
@@ -226,95 +344,131 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
       .style('z-index', '10')
       .style('transition', 'all 0.1s ease-out')
 
+    const referenceSeries = plottedSeries.find(series => series.isPrimary) ?? plottedSeries[0]
+
     const hoverLine = g.append('line')
       .attr('class', 'hover-line')
-      .attr('stroke', primaryColor)
+      .attr('stroke', referenceSeries.color)
       .attr('stroke-width', 1)
       .style('opacity', 0)
 
-    const hoverCircle = g.append('circle')
-      .attr('class', 'hover-circle')
-      .attr('r', 6)
-      .attr('fill', primaryColor)
-      .attr('stroke', 'hsl(var(--background))')
-      .attr('stroke-width', 2)
-      .style('opacity', 0)
-
-    // Interaction overlay
     g.append('rect')
       .attr('width', width)
       .attr('height', height)
       .attr('fill', 'none')
       .attr('pointer-events', 'all')
-      .on('mousemove', (event) => {
+      .on('mousemove', event => {
         const [mouseX] = d3.pointer(event)
         const date = x.invert(mouseX)
-        
-        const bisect = d3.bisector((d: PerformanceData) => new Date(d.date)).left
-        const index = bisect(filteredData, date, 1)
-        const d0 = filteredData[index - 1]
-        const d1 = filteredData[index]
-        const d = date.getTime() - new Date(d0.date).getTime() > new Date(d1?.date || 0).getTime() - date.getTime() ? d1 : d0
 
-        if (d) {
-          const xPos = x(new Date(d.date))
-          const yPos = y(d.value)
+        const entries = plottedSeries.map(series => {
+          const bisector = d3.bisector((d: PerformanceData) => new Date(d.date)).left
+          const idx = bisector(series.data, date, 1)
+          const prevPoint = series.data[idx - 1]
+          const nextPoint = series.data[idx]
+          const chosen = (() => {
+            if (!prevPoint) return nextPoint
+            if (!nextPoint) return prevPoint
+            const prevDiff = Math.abs(date.getTime() - new Date(prevPoint.date).getTime())
+            const nextDiff = Math.abs(new Date(nextPoint.date).getTime() - date.getTime())
+            return nextDiff < prevDiff ? nextPoint : prevPoint
+          })()
 
-          hoverLine
-            .attr('x1', xPos)
-            .attr('x2', xPos)
-            .attr('y1', yPos)
-            .attr('y2', height)
-            .style('opacity', 1)
+          if (!chosen) return null
 
-          hoverCircle
+          const xPos = x(new Date(chosen.date))
+          const yPos = y(chosen.value)
+
+          hoverMarkers[series.key]
             .attr('cx', xPos)
             .attr('cy', yPos)
             .style('opacity', 1)
 
-          tooltip
-            .style('visibility', 'visible')
-            .html(() => {
-              const valueLabel = formatResultValue(d.value, fallbackUnit ?? undefined)
-              const dateLabel = new Intl.DateTimeFormat('ro-RO', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-              }).format(new Date(d.date))
-              const badge = `
-                <div style="display:flex;align-items:center;gap:0.45rem;margin-bottom:0.4rem;">
-                  <span style="display:inline-block;width:10px;height:10px;border-radius:9999px;background:${primaryColor};"></span>
-                  <span style="font-size:0.72rem;font-weight:600;color:#1e293b;text-transform:uppercase;letter-spacing:0.08em;">${eventType}</span>
-                </div>
-              `
-              const notesBlock = d.notes && d.notes.trim().length > 0
-                ? `<div style="margin-top:0.4rem;font-size:0.72rem;color:#475569;font-style:italic;">${d.notes}</div>`
-                : ''
-              return `
-                <div style="display:flex;flex-direction:column;gap:0.35rem;">
-                  ${badge}
-                  <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:#94a3b8;">Rezultat</div>
-                  <div style="font-weight:600;font-size:1rem;color:#0f172a;">${valueLabel}</div>
-                  <div style="font-size:0.75rem;color:#475569;">${dateLabel}</div>
-                  ${notesBlock}
-                </div>
-              `
-            })
-            .style('left', `${xPos + margin.left + 15}px`)
-            .style('top', `${yPos + margin.top - 15}px`)
+          return {
+            label: series.label,
+            value: formatResultValue(chosen.value, fallbackUnit ?? undefined),
+            date: new Date(chosen.date),
+            color: series.color,
+            rawValue: chosen.value,
+          }
+        }).filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+
+        if (entries.length === 0) {
+          hoverLine.style('opacity', 0)
+          tooltip.style('visibility', 'hidden')
+          return
         }
+
+        const referenceEntry = entries.find(entry => entry.label === referenceSeries.label) ?? entries[0]
+        const refX = x(referenceEntry.date)
+
+        hoverLine
+          .attr('x1', refX)
+          .attr('x2', refX)
+          .attr('y1', 0)
+          .attr('y2', height)
+          .style('opacity', 1)
+
+        const tooltipRows = entries.map(entry => `
+          <div style="display:flex;justify-content:space-between;gap:1.5rem;align-items:center;">
+            <div style="display:flex;align-items:center;gap:0.5rem;">
+              <span style="display:inline-block;width:10px;height:10px;border-radius:9999px;background:${entry.color};"></span>
+              <span style="font-size:0.78rem;font-weight:600;color:#1e293b;">${entry.label}</span>
+            </div>
+            <span style="font-size:0.82rem;font-weight:600;color:#0f172a;">${entry.value}</span>
+          </div>
+        `).join('')
+
+        const headerDate = new Intl.DateTimeFormat('ro-RO', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        }).format(referenceEntry.date)
+
+        const tooltipWidth = 220
+        const tooltipHeight = 80 + entries.length * 26
+        const proposedLeft = refX + margin.left + 20
+        const proposedTop = y(referenceEntry.rawValue) + margin.top - tooltipHeight / 2
+
+        const left = Math.min(
+          Math.max(proposedLeft, 0),
+          width + margin.left - tooltipWidth
+        )
+        const top = Math.min(
+          Math.max(proposedTop, 0),
+          height + margin.top - tooltipHeight
+        )
+
+        tooltip
+          .style('visibility', 'visible')
+          .html(`
+            <div style="display:flex;flex-direction:column;gap:0.5rem;min-width:200px;">
+              <div style="font-size:0.75rem;color:#475569;">${headerDate}</div>
+              ${tooltipRows}
+            </div>
+          `)
+          .style('left', `${left}px`)
+          .style('top', `${top}px`)
       })
       .on('mouseout', () => {
         hoverLine.style('opacity', 0)
-        hoverCircle.style('opacity', 0)
+        Object.values(hoverMarkers).forEach(marker => marker.style('opacity', 0))
         tooltip.style('visibility', 'hidden')
       })
 
     return () => {
       tooltip.remove()
     }
-
-  }, [filteredData, dimensions, unit, eventType])
+  }, [
+    dimensions,
+    plottedSeries,
+    filteredSeries,
+    fallbackUnit,
+    displayUnit,
+    lowerIsBetter,
+    gradientId,
+    activeRangeLabel,
+  ])
 
   return (
     <div className="space-y-4">
@@ -323,7 +477,7 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
           <h4 className="text-base font-semibold">{eventType}</h4>
           <span className="text-sm text-muted-foreground">({displayUnit})</span>
         </div>
-        <PeriodFilter 
+        <PeriodFilter
           period={period}
           setPeriod={setPeriod}
           dateRange={dateRange}
@@ -331,16 +485,39 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
           firstDataDate={firstDataDate}
         />
       </div>
-      <div ref={containerRef} className="relative w-full h-[320px] rounded-xl border border-border/60 bg-card/60 shadow-sm backdrop-blur-sm">
+      <div
+        ref={containerRef}
+        className="relative w-full h-[320px] rounded-xl border border-border/60 bg-card/60 shadow-sm backdrop-blur-sm"
+      >
         <svg
           ref={svgRef}
           width={dimensions.width}
           height={dimensions.height}
           className="absolute inset-0"
         />
-        {filteredData.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm bg-muted/30 rounded-lg">
+
+        {plottedSeries.length === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-muted/30 text-sm text-muted-foreground">
             Nu sunt date disponibile pentru perioada selectată.
+          </div>
+        )}
+
+        {plottedSeries.length > 0 && (
+          <div className="absolute left-4 top-4 flex flex-wrap gap-2 text-xs">
+            {plottedSeries.map(series => (
+              <span
+                key={series.key}
+                className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-background/90 px-3 py-1 font-medium shadow-sm"
+              >
+                <span
+                  className="h-2 w-2 rounded-full"
+                  style={{ backgroundColor: series.color }}
+                />
+                <span className={series.isPrimary ? 'text-foreground' : 'text-muted-foreground'}>
+                  {series.label}
+                </span>
+              </span>
+            ))}
           </div>
         )}
       </div>
