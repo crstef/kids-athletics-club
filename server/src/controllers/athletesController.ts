@@ -34,12 +34,15 @@ async function getTableColumns(client: PoolClient, table: string): Promise<Set<s
 const buildAthleteSelect = (columns: Set<string>): string => {
   const has = (column: string) => columns.has(column.toLowerCase());
 
-  return [
-    'id',
-    'first_name',
-    'last_name',
-    'age',
-    'category',
+  const selectParts = [
+    has('id') ? 'id' : 'NULL::uuid AS id',
+    has('first_name') ? 'first_name' : "''::text AS first_name",
+    has('last_name') ? 'last_name' : "''::text AS last_name",
+    has('age') ? 'age' :
+      has('date_of_birth') ?
+        "DATE_PART('year', AGE(COALESCE(date_of_birth, CURRENT_DATE)))::int AS age" :
+        'NULL::int AS age',
+    has('category') ? 'category' : "''::text AS category",
     has('gender') ? 'gender' : "NULL::text AS gender",
     has('date_of_birth') ? 'date_of_birth' : "NULL::date AS date_of_birth",
     has('date_joined') ? 'date_joined' : "NULL::timestamp AS date_joined",
@@ -48,14 +51,16 @@ const buildAthleteSelect = (columns: Set<string>): string => {
     has('parent_id') ? 'parent_id' : "NULL::uuid AS parent_id",
     has('notes') ? 'notes' : "NULL::text AS notes",
     has('created_at') ? 'created_at' : 'NOW() AS created_at'
-  ].join(', ');
+  ];
+
+  return selectParts.join(', ');
 };
 
 const mapAthleteRow = (athlete: any) => ({
   id: athlete.id,
   firstName: athlete.first_name,
   lastName: athlete.last_name,
-  age: athlete.age,
+  age: athlete.age ?? (athlete.date_of_birth ? Math.max(0, Math.floor((Date.now() - new Date(athlete.date_of_birth).getTime()) / (365.25 * 24 * 60 * 60 * 1000))) : null),
   category: athlete.category,
   gender: athlete.gender ?? null,
   dateOfBirth: athlete.date_of_birth ? new Date(athlete.date_of_birth).toISOString().slice(0, 10) : null,
@@ -73,8 +78,17 @@ export const getAllAthletes = async (req: AuthRequest, res: Response) => {
   try {
     const userRole = req.user?.role;
     const userId = req.user?.userId;
-  const columns = await getTableColumns(client, 'athletes');
-  const userColumns = userRole === 'athlete' ? await getTableColumns(client, 'users') : null;
+    const columns = await getTableColumns(client, 'athletes');
+    const essentialColumns = ['id', 'first_name', 'last_name'];
+    for (const column of essentialColumns) {
+      if (!columns.has(column)) {
+        console.error(`[getAllAthletes] Missing essential column '${column}' in athletes table`);
+        res.status(500).json({ error: 'Athlete table is missing required columns' });
+        return;
+      }
+    }
+
+    const userColumns = userRole === 'athlete' ? await getTableColumns(client, 'users') : null;
     const selectClause = buildAthleteSelect(columns);
 
     let query = `SELECT ${selectClause} FROM athletes`;
