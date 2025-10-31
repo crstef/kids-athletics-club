@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -148,6 +148,9 @@ export function EditAthleteDialog({ athlete, parents, coaches, onEdit, onUploadA
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Editează Sportiv</DialogTitle>
+          <DialogDescription>
+            Actualizează informațiile sportivului și imaginea de profil, apoi salvează modificările.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-4">
           <PermissionGate perm="athletes.avatar.upload">

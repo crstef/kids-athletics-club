@@ -71,20 +71,20 @@ export function DateSelector({
       const dayNum = parseInt(day, 10)
       if (dayNum > daysInMonth) {
         const clamped = `${daysInMonth}`.padStart(2, '0')
-        setDay(clamped)
-        if (year && month) {
-          onChange(`${year}-${month}-${clamped}`)
+        if (clamped !== day) {
+          setDay(clamped)
         }
         return
       }
     }
 
-    if (year && month && day) {
-      onChange(`${year}-${month}-${day}`)
-    } else {
-      onChange('')
+    const nextValue = year && month && day ? `${year}-${month}-${day}` : ''
+    const currentValue = value ?? ''
+
+    if (nextValue !== currentValue) {
+      onChange(nextValue)
     }
-  }, [day, daysInMonth, month, onChange, year])
+  }, [day, daysInMonth, month, onChange, value, year])
 
   const yearOptions = useMemo(() => {
     const items: string[] = []
