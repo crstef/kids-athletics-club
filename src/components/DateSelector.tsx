@@ -1,5 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useMemo, useState } from 'react'
+import { format, parseISO } from 'date-fns'
+import { ro } from 'date-fns/locale'
+import { CalendarBlank } from '@phosphor-icons/react'
+import { Button } from '@/components/ui/button'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Calendar } from '@/components/ui/calendar'
 import { cn } from '@/lib/utils'
 
 interface DateSelectorProps {
@@ -12,26 +17,21 @@ interface DateSelectorProps {
   maxYear?: number
 }
 
-const MONTHS = [
-  { value: '01', label: 'Ianuarie' },
-  { value: '02', label: 'Februarie' },
-  { value: '03', label: 'Martie' },
-  { value: '04', label: 'Aprilie' },
-  { value: '05', label: 'Mai' },
-  { value: '06', label: 'Iunie' },
-  { value: '07', label: 'Iulie' },
-  { value: '08', label: 'August' },
-  { value: '09', label: 'Septembrie' },
-  { value: '10', label: 'Octombrie' },
-  { value: '11', label: 'Noiembrie' },
-  { value: '12', label: 'Decembrie' },
-]
-
-function getDaysInMonth(year: number, month: number) {
-  return new Date(year, month, 0).getDate()
+const formatDisplayDate = (date: Date | undefined) => {
+  if (!date) return ''
+  return format(date, "d MMMM yyyy", { locale: ro })
 }
 
-const padDay = (value: number) => `${value}`.padStart(2, '0')
+const normalizeDate = (value?: string | null): Date | undefined => {
+  if (!value) return undefined
+  try {
+    return parseISO(value)
+  } catch {
+    return undefined
+  }
+}
+
+const asDateString = (date: Date) => format(date, 'yyyy-MM-dd')
 
 export function DateSelector({
   id,
@@ -40,137 +40,62 @@ export function DateSelector({
   disabled,
   className,
   minYear,
-  maxYear,
+  maxYear
 }: DateSelectorProps) {
-  const currentYear = useMemo(() => new Date().getFullYear(), [])
-  const effectiveMaxYear = maxYear ?? currentYear
-  const effectiveMinYear = minYear ?? currentYear - 30
+  const [open, setOpen] = useState(false)
+  const parsedValue = useMemo(() => normalizeDate(value), [value])
+  const displayValue = formatDisplayDate(parsedValue)
+  const today = useMemo(() => new Date(), [])
+  const fallbackMaxYear = today.getFullYear()
+  const fallbackMinYear = fallbackMaxYear - 30
 
-  const [year, setYear] = useState<string>('')
-  const [month, setMonth] = useState<string>('')
-  const [day, setDay] = useState<string>('')
+  const computedMinYear = minYear ?? fallbackMinYear
+  const computedMaxYear = maxYear ?? fallbackMaxYear
 
-  const buildDateValue = useCallback((yyyy: string, mm: string, dd: string) => {
-    if (!yyyy || !mm || !dd) {
-      return ''
-    }
-    return `${yyyy}-${mm}-${dd}`
-  }, [])
+  const fromDate = useMemo(() => new Date(computedMinYear, 0, 1), [computedMinYear])
+  const toDate = useMemo(() => new Date(computedMaxYear, 11, 31), [computedMaxYear])
 
-  const clampDayValue = useCallback((yyyy: string, mm: string, dd: string) => {
-    if (!yyyy || !mm || !dd) return dd
-    const maxDays = getDaysInMonth(parseInt(yyyy, 10), parseInt(mm, 10))
-    const parsedDay = parseInt(dd, 10)
-    if (Number.isNaN(parsedDay)) {
-      return ''
-    }
-    return padDay(Math.min(parsedDay, maxDays))
-  }, [])
-
-  useEffect(() => {
-    if (!value) {
-      setYear('')
-      setMonth('')
-      setDay('')
-      return
-    }
-    const [yyyy, mm, dd] = value.split('-')
-    setYear(yyyy ?? '')
-    setMonth(mm ?? '')
-    setDay(dd ?? '')
-  }, [value])
-
-  const emitChange = useCallback((nextYear: string, nextMonth: string, nextDay: string) => {
-    const nextValue = buildDateValue(nextYear, nextMonth, nextDay)
-    const currentValue = value ?? ''
-    if (nextValue !== currentValue) {
+  const handleSelect = (date?: Date) => {
+    if (!date) return
+    const nextValue = asDateString(date)
+    if (nextValue !== (value ?? '')) {
       onChange(nextValue)
     }
-  }, [buildDateValue, onChange, value])
-
-  const handleYearChange = useCallback((nextYear: string) => {
-    setYear(nextYear)
-
-    const clampedDay = clampDayValue(nextYear, month, day)
-    if (clampedDay !== day) {
-      setDay(clampedDay)
-    }
-
-    emitChange(nextYear, month, clampedDay)
-  }, [clampDayValue, day, emitChange, month])
-
-  const handleMonthChange = useCallback((nextMonth: string) => {
-    setMonth(nextMonth)
-
-    const clampedDay = clampDayValue(year, nextMonth, day)
-    if (clampedDay !== day) {
-      setDay(clampedDay)
-    }
-
-    emitChange(year, nextMonth, clampedDay)
-  }, [clampDayValue, day, emitChange, year])
-
-  const handleDayChange = useCallback((nextDay: string) => {
-    const clampedDay = clampDayValue(year, month, nextDay)
-    setDay(clampedDay)
-    emitChange(year, month, clampedDay)
-  }, [clampDayValue, emitChange, month, year])
-
-  const yearOptions = useMemo(() => {
-    const items: string[] = []
-    for (let current = effectiveMaxYear; current >= effectiveMinYear; current -= 1) {
-      items.push(current.toString())
-    }
-    return items
-  }, [effectiveMaxYear, effectiveMinYear])
-
-  const dayOptions = useMemo(() => {
-    const items: string[] = []
-    const limit = year && month ? getDaysInMonth(parseInt(year, 10), parseInt(month, 10)) : 31
-    for (let current = 1; current <= limit; current += 1) {
-      items.push(`${current}`.padStart(2, '0'))
-    }
-    return items
-  }, [month, year])
+    setOpen(false)
+  }
 
   return (
-    <div className={cn('grid gap-3 md:grid-cols-3', className)}>
-      <Select value={day} onValueChange={handleDayChange} disabled={disabled}>
-        <SelectTrigger id={`${id}-day`}>
-          <SelectValue placeholder="Zi" />
-        </SelectTrigger>
-        <SelectContent>
-          {dayOptions.map((option) => (
-            <SelectItem key={option} value={option}>
-              {parseInt(option, 10)}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <Select value={month} onValueChange={handleMonthChange} disabled={disabled}>
-        <SelectTrigger id={`${id}-month`}>
-          <SelectValue placeholder="Lună" />
-        </SelectTrigger>
-        <SelectContent>
-          {MONTHS.map((monthOption) => (
-            <SelectItem key={monthOption.value} value={monthOption.value}>
-              {monthOption.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <Select value={year} onValueChange={handleYearChange} disabled={disabled}>
-        <SelectTrigger id={`${id}-year`}>
-          <SelectValue placeholder="An" />
-        </SelectTrigger>
-        <SelectContent>
-          {yearOptions.map((yearOption) => (
-            <SelectItem key={yearOption} value={yearOption}>
-              {yearOption}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          id={id}
+          variant="outline"
+          disabled={disabled}
+          className={cn(
+            'w-full justify-start text-left font-normal h-10',
+            !displayValue && 'text-muted-foreground',
+            className
+          )}
+        >
+          <CalendarBlank className="mr-2 h-4 w-4" />
+          {displayValue || 'Selectează data'}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          mode="single"
+          selected={parsedValue}
+          onSelect={handleSelect}
+          disabled={disabled}
+          fromYear={computedMinYear}
+          toYear={computedMaxYear}
+          fromDate={fromDate}
+          toDate={toDate}
+          captionLayout="dropdown"
+          initialFocus
+        />
+      </PopoverContent>
+    </Popover>
   )
 }

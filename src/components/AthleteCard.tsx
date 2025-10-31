@@ -87,56 +87,8 @@ export function AthleteCard({ athlete, resultsCount, parents, coaches, onViewDet
                   {resultsCount}
                 </div>
               )}
-              <div
-                className="absolute top-0 right-0 translate-x-1/2 -translate-y-1/2"
-                onClick={(event) => event.stopPropagation()}
-              >
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="secondary"
-                      className="h-8 w-8 rounded-full shadow-sm"
-                      onClick={(event) => event.stopPropagation()}
-                    >
-                      <SlidersHorizontal size={16} />
-                      <span className="sr-only">Ajustează dimensiunea avatarului</span>
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    align="end"
-                    className="w-60 space-y-3"
-                    onClick={(event) => event.stopPropagation()}
-                  >
-                    <div className="flex items-center justify-between text-sm font-medium">
-                      <span>Dimensiune avatar</span>
-                      <span>{avatarDimension}px</span>
-                    </div>
-                    <Slider
-                      value={[avatarDimension]}
-                      min={minAvatarSize}
-                      max={maxAvatarSize}
-                      step={2}
-                      onValueChange={(values) => setAvatarSize(values[0] ?? defaultAvatarSize)}
-                    />
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>Compact</span>
-                      <span>Maxim</span>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setAvatarSize(defaultAvatarSize)}
-                    >
-                      Resetare
-                    </Button>
-                  </PopoverContent>
-                </Popover>
-              </div>
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-[0]">
               <CardTitle className="text-base group-hover:text-primary transition-colors">
                 {athlete.firstName} {athlete.lastName}
               </CardTitle>
@@ -148,6 +100,54 @@ export function AthleteCard({ athlete, resultsCount, parents, coaches, onViewDet
                   {athlete.gender === 'M' ? 'Băiat' : 'Fată'}
                 </Badge>
               </div>
+            </div>
+            <div
+              className="flex-shrink-0"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    className="h-9 w-9 rounded-full border-muted-foreground/30 text-muted-foreground hover:text-primary"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <SlidersHorizontal size={16} />
+                    <span className="sr-only">Ajustează dimensiunea avatarului</span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                  align="end"
+                  className="w-60 space-y-3"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <div className="flex items-center justify-between text-sm font-medium">
+                    <span>Dimensiune avatar</span>
+                    <span>{avatarDimension}px</span>
+                  </div>
+                  <Slider
+                    value={[avatarDimension]}
+                    min={minAvatarSize}
+                    max={maxAvatarSize}
+                    step={2}
+                    onValueChange={(values) => setAvatarSize(values[0] ?? defaultAvatarSize)}
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Compact</span>
+                    <span>Maxim</span>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setAvatarSize(defaultAvatarSize)}
+                  >
+                    Resetare
+                  </Button>
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
           {coachName && (
