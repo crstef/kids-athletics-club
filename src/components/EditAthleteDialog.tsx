@@ -300,7 +300,7 @@ export function EditAthleteDialog({ athlete, parents, coaches, onEdit, onUploadA
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="edit-notes">Observații (opțional)</Label>
+            <Label htmlFor="edit-notes">Rezultate excepționale (opțional)</Label>
             <Textarea
               id="edit-notes"
               value={notes}

@@ -182,88 +182,90 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
               </div>
             </>
           )}
-          <PermissionGate perm="athletes.avatar.upload">
-            <div className="space-y-2">
-              <Label htmlFor="avatar">Poză (opțional)</Label>
-              <div className="flex items-center gap-4">
-                {avatarPreview && (
-                  <img
-                    src={avatarPreview}
-                    alt="preview"
-                    className="w-20 h-20 rounded-full object-cover border-2 border-primary"
-                  />
-                )}
-                <div className="flex-1">
-                  <div className="relative">
-                    <input
-                      id="avatar"
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0]
-                        if (file) setAvatarFile(file)
-                      }}
-                      className="hidden"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => document.getElementById('avatar')?.click()}
-                      className="w-full"
-                    >
-                      📷 {avatarPreview ? 'Schimbă Poza' : 'Încarcă Poză'}
-                    </Button>
-                  </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <PermissionGate perm="athletes.avatar.upload">
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="avatar">Poză (opțional)</Label>
+                <div className="flex items-center gap-4">
                   {avatarPreview && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setAvatarFile(null)
-                        setAvatarPreview(null)
-                      }}
-                      className="mt-2 w-full text-destructive hover:text-destructive"
-                    >
-                      Șterge Poza
-                    </Button>
+                    <img
+                      src={avatarPreview}
+                      alt="preview"
+                      className="w-20 h-20 rounded-full object-cover border-2 border-primary"
+                    />
                   )}
+                  <div className="flex-1">
+                    <div className="relative">
+                      <input
+                        id="avatar"
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (file) setAvatarFile(file)
+                        }}
+                        className="hidden"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => document.getElementById('avatar')?.click()}
+                        className="w-full"
+                      >
+                        📷 {avatarPreview ? 'Schimbă Poza' : 'Încarcă Poză'}
+                      </Button>
+                    </div>
+                    {avatarPreview && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setAvatarFile(null)
+                          setAvatarPreview(null)
+                        }}
+                        className="mt-2 w-full text-destructive hover:text-destructive"
+                      >
+                        Șterge Poza
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          </PermissionGate>
-          <div className="space-y-2">
-            <Label htmlFor="gender">Gen *</Label>
-            <Select value={gender} onValueChange={(value) => setGender(value as Gender)}>
-              <SelectTrigger id="gender">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="M">Masculin</SelectItem>
-                <SelectItem value="F">Feminin</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          {coaches.length > 0 && (
+            </PermissionGate>
             <div className="space-y-2">
-              <Label htmlFor="coach">Antrenor (opțional)</Label>
-              <Select value={coachId || 'none'} onValueChange={(val) => setCoachId(val === 'none' ? '' : val)}>
-                <SelectTrigger id="coach">
-                  <SelectValue placeholder="Selectează antrenor..." />
+              <Label htmlFor="gender">Gen *</Label>
+              <Select value={gender} onValueChange={(value) => setGender(value as Gender)}>
+                <SelectTrigger id="gender">
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Fără antrenor</SelectItem>
-                  {coaches.map((coach) => (
-                    <SelectItem key={coach.id} value={coach.id}>
-                      {`${coach.firstName} ${coach.lastName}`}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="M">Masculin</SelectItem>
+                  <SelectItem value="F">Feminin</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-          )}
+            {coaches.length > 0 && (
+              <div className="space-y-2">
+                <Label htmlFor="coach">Antrenor (opțional)</Label>
+                <Select value={coachId || 'none'} onValueChange={(val) => setCoachId(val === 'none' ? '' : val)}>
+                  <SelectTrigger id="coach">
+                    <SelectValue placeholder="Selectează antrenor..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Fără antrenor</SelectItem>
+                    {coaches.map((coach) => (
+                      <SelectItem key={coach.id} value={coach.id}>
+                        {`${coach.firstName} ${coach.lastName}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
           <div className="space-y-2">
-            <Label htmlFor="notes">Observații (opțional)</Label>
+            <Label htmlFor="notes">Rezultate excepționale (opțional)</Label>
             <Textarea
               id="notes"
               value={notes}

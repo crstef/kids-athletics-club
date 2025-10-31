@@ -83,7 +83,7 @@ export function AthleteCard({ athlete, resultsCount, parents, coaches, onViewDet
         </div>
         {athlete.notes?.trim() && (
           <p className="text-sm font-medium text-primary/80">
-            Observații:
+            Rezultate excepționale:
             <span className="ml-1 font-normal text-muted-foreground">{athlete.notes}</span>
           </p>
         )}
