@@ -218,7 +218,11 @@ export interface AccessRequest {
 export interface Message {
   id: string
   fromUserId: string
+  fromUserName?: string
+  fromUserRole?: UserRole | string
   toUserId: string
+  toUserName?: string
+  toUserRole?: UserRole | string
   athleteId?: string
   content: string
   timestamp: string

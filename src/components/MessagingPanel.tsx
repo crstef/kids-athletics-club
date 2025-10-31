@@ -44,16 +44,55 @@ export function MessagingPanel({
 
   const userLookup = useMemo(() => {
     const map = new Map<string, User>()
-    users.forEach((user) => {
-      map.set(user.id, user)
+
+    const registerUser = (user?: User) => {
+      if (!user || !user.id) return
+      if (!map.has(user.id)) {
+        map.set(user.id, user)
+      }
+    }
+
+    users.forEach(registerUser)
+    ;(availableUsers ?? []).forEach(registerUser)
+
+    const ensureParticipant = (id?: string, fullName?: string, role?: User['role']) => {
+      if (!id || map.has(id)) return
+
+      const safeName = (fullName ?? '').trim()
+      const [firstNameRaw, ...rest] = safeName.length > 0 ? safeName.split(/\s+/) : ['Utilizator']
+      const firstName = firstNameRaw || 'Utilizator'
+      const lastName = rest.join(' ')
+
+      const placeholder: User = {
+        id,
+        email: '',
+        password: '',
+        firstName,
+        lastName,
+        role: role ?? 'user',
+        createdAt: '1970-01-01T00:00:00.000Z',
+        isActive: true
+      }
+
+      map.set(id, placeholder)
+    }
+
+    messages.forEach((message) => {
+      ensureParticipant(message.fromUserId, message.fromUserName, message.fromUserRole as User['role'])
+      ensureParticipant(message.toUserId, message.toUserName, message.toUserRole as User['role'])
     })
+
     return map
-  }, [users])
+  }, [users, availableUsers, messages])
 
   const conversationCandidates = useMemo(() => {
     const base = availableUsers ?? users
-    return base.filter((user) => user.id !== currentUserId)
-  }, [availableUsers, users, currentUserId])
+    if (base.length > 0) {
+      return base.filter((user) => user.id !== currentUserId)
+    }
+
+    return Array.from(userLookup.values()).filter((user) => user.id !== currentUserId)
+  }, [availableUsers, users, currentUserId, userLookup])
 
   const conversations = useMemo<ConversationSummary[]>(() => {
     const summaries = new Map<string, ConversationSummary>()
@@ -68,7 +107,7 @@ export function MessagingPanel({
       if (!allowAll && !allowedIds.has(otherUserId)) {
         return
       }
-      const otherUser = userLookup.get(otherUserId)
+  const otherUser = userLookup.get(otherUserId)
       if (!otherUser) return
 
       const existing = summaries.get(otherUserId)

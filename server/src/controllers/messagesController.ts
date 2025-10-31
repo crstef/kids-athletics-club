@@ -8,8 +8,8 @@ export const getAllMessages = async (req: AuthRequest, res: Response) => {
   try {
     let query = `
       SELECT m.*, 
-             uf.first_name as from_fn, uf.last_name as from_ln, 
-             ut.first_name as to_fn, ut.last_name as to_ln 
+        uf.first_name as from_fn, uf.last_name as from_ln, uf.role as from_role,
+        ut.first_name as to_fn, ut.last_name as to_ln, ut.role as to_role 
       FROM messages m
       JOIN users uf ON m.from_user_id = uf.id
       JOIN users ut ON m.to_user_id = ut.id
@@ -31,8 +31,10 @@ export const getAllMessages = async (req: AuthRequest, res: Response) => {
       id: m.id,
       fromUserId: m.from_user_id,
       fromUserName: `${m.from_fn} ${m.from_ln}`,
+  fromUserRole: m.from_role,
       toUserId: m.to_user_id,
       toUserName: `${m.to_fn} ${m.to_ln}`,
+  toUserRole: m.to_role,
       athleteId: m.athlete_id,
       content: m.content,
       read: m.read,

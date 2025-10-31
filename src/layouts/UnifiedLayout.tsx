@@ -331,10 +331,52 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
   const showAccessRequests = !hasGlobalApprovalPermission && hasAccessRequestPermission
 
   const messagingUsers = useMemo(() => {
-    const otherUsers = (users || []).filter((user) => user.id !== currentUser.id)
+    const map = new Map<string, User>()
+
+    const registerUser = (user?: User) => {
+      if (!user || user.id === currentUser.id) {
+        return
+      }
+      if (!map.has(user.id)) {
+        map.set(user.id, user)
+      }
+    }
+
+    ;(users || []).forEach(registerUser)
+
+    ;(messages || []).forEach((message) => {
+      const addFromMeta = (userId: string, fullName?: string, role?: User['role']) => {
+        if (!userId || userId === currentUser.id || map.has(userId)) {
+          return
+        }
+
+        const safeName = (fullName ?? '').trim()
+        const [firstNameRaw, ...rest] = safeName.length > 0 ? safeName.split(/\s+/) : ['Utilizator']
+        const firstName = firstNameRaw || 'Utilizator'
+        const lastName = rest.join(' ')
+
+        const placeholder: User = {
+          id: userId,
+          email: '',
+          password: '',
+          firstName,
+          lastName,
+          role: role ?? 'user',
+          createdAt: '1970-01-01T00:00:00.000Z',
+          isActive: true
+        }
+
+        map.set(userId, placeholder)
+      }
+
+      addFromMeta(message.fromUserId, message.fromUserName, message.fromUserRole as User['role'])
+      addFromMeta(message.toUserId, message.toUserName, message.toUserRole as User['role'])
+    })
+
+    const allOthers = Array.from(map.values())
 
     if (!isParentUser) {
-      return otherUsers
+      return allOthers
     }
 
     const coachIds = new Set<string>()
@@ -365,11 +407,11 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
     partnerIds.forEach((id) => allowedIds.add(id))
 
     if (allowedIds.size === 0) {
-      return otherUsers
+      return allOthers
     }
 
-    return otherUsers.filter((user) => allowedIds.has(user.id))
-  }, [users, currentUser.id, isParentUser, athletes, messages])
+    return allOthers.filter((user) => allowedIds.has(user.id))
+  }, [users, currentUser.id, messages, isParentUser, athletes])
 
   // Load widgets from database on mount
   useEffect(() => {
