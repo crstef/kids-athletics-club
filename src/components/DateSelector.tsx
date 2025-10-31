@@ -88,11 +88,31 @@ export function DateSelector({
           selected={parsedValue}
           onSelect={handleSelect}
           disabled={disabled}
+          locale={ro}
           fromYear={computedMinYear}
           toYear={computedMaxYear}
           fromDate={fromDate}
           toDate={toDate}
           captionLayout="dropdown"
+          numberOfMonths={1}
+          classNames={{
+            caption: 'flex flex-col gap-2 text-center',
+            caption_label: 'hidden',
+            dropdowns: 'flex w-full items-center justify-between gap-2',
+            dropdown: 'flex-1 rounded-md border border-input bg-background px-2 py-1 text-sm capitalize focus:outline-none focus:ring-2 focus:ring-primary',
+            months: 'flex flex-col',
+            month: 'space-y-4',
+            weekdays: 'grid grid-cols-7 text-center text-[0.75rem] font-medium text-muted-foreground',
+            weekday: 'text-center text-xs uppercase tracking-tight text-muted-foreground',
+            week: 'grid grid-cols-7 gap-1',
+            row: 'grid grid-cols-7 gap-1',
+            head_row: 'grid grid-cols-7',
+            head_cell: 'text-center text-xs font-semibold text-muted-foreground',
+            day: 'size-8 rounded-md p-0 font-normal aria-selected:bg-primary aria-selected:text-primary-foreground',
+            day_outside: 'text-muted-foreground/60 opacity-60',
+            day_today: 'border border-primary/40 text-primary',
+            nav: 'hidden'
+          }}
           initialFocus
         />
       </PopoverContent>
