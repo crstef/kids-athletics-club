@@ -1,15 +1,16 @@
-import { useRef, useEffect, useState, useMemo } from 'react'
+import { useRef, useEffect, useState, useMemo, useId } from 'react'
 import * as d3 from 'd3'
-import { Period, PerformanceData } from '@/lib/types'
-import { formatResult, EVENT_UNITS } from '@/lib/constants'
+import type { PerformanceData, Period } from '@/lib/types'
 import { PeriodFilter, getInitialDateRange, getFilteredResults, getFirstDataDate } from './PeriodFilter'
+import { normalizeUnit, getUnitDisplayLabel, formatResultValue, preferLowerValues } from '@/lib/units'
 
 interface PerformanceChartProps {
   data: PerformanceData[]
   eventType: string
+  unit?: string | null
 }
 
-export function PerformanceChart({ data, eventType }: PerformanceChartProps) {
+export function PerformanceChart({ data, eventType, unit }: PerformanceChartProps) {
   const svgRef = useRef<SVGSVGElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 })
@@ -20,7 +21,15 @@ export function PerformanceChart({ data, eventType }: PerformanceChartProps) {
   )
 
   const firstDataDate = useMemo(() => getFirstDataDate(data), [data])
-  const unit = useMemo(() => EVENT_UNITS[eventType as keyof typeof EVENT_UNITS] || 'points', [eventType])
+  const fallbackUnit = useMemo(() => {
+    if (unit) return unit
+    const withUnit = data.find(point => point.unit)
+    return withUnit?.unit ?? null
+  }, [data, unit])
+  const canonicalUnit = useMemo(() => normalizeUnit(fallbackUnit), [fallbackUnit])
+  const displayUnit = useMemo(() => getUnitDisplayLabel(fallbackUnit), [fallbackUnit])
+  const lowerIsBetter = useMemo(() => preferLowerValues(fallbackUnit), [fallbackUnit])
+  const gradientId = useId()
 
   useEffect(() => {
     setDateRange(getInitialDateRange(data, period))
@@ -46,6 +55,14 @@ export function PerformanceChart({ data, eventType }: PerformanceChartProps) {
     return () => resizeObserver.disconnect()
   }, [])
 
+  const activeRangeLabel = useMemo(() => {
+    if (filteredData.length === 0) return null
+    const first = new Date(filteredData[0].date)
+    const last = new Date(filteredData[filteredData.length - 1].date)
+    const formatter = new Intl.DateTimeFormat('ro-RO', { day: 'numeric', month: 'short', year: 'numeric' })
+    return `${formatter.format(first)} – ${formatter.format(last)}`
+  }, [filteredData])
+
   useEffect(() => {
     if (!svgRef.current || dimensions.width === 0) {
       return
@@ -58,30 +75,44 @@ export function PerformanceChart({ data, eventType }: PerformanceChartProps) {
       return
     }
 
-    const margin = { top: 20, right: 40, bottom: 50, left: 60 }
+    const margin = { top: 20, right: 48, bottom: 52, left: 72 }
     const width = dimensions.width - margin.left - margin.right
     const height = dimensions.height - margin.top - margin.bottom
 
     const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`)
 
+    const values = filteredData.map(d => d.value)
+    const minValue = d3.min(values) as number
+    const maxValue = d3.max(values) as number
+    const valueSpread = Math.max(maxValue - minValue, 1)
+    const padding = valueSpread * 0.08
+
     const x = d3.scaleTime()
       .domain(d3.extent(filteredData, d => new Date(d.date)) as [Date, Date])
       .range([0, width])
 
+    const yDomain = (() => {
+      if (lowerIsBetter) {
+        return [maxValue + padding, Math.max(minValue - padding, 0)]
+      }
+      const lowerBound = Math.min(minValue - padding, 0)
+      return [lowerBound, maxValue + padding]
+    })()
+
     const y = d3.scaleLinear()
-      .domain(unit === 'seconds' 
-        ? [d3.max(filteredData, d => d.value) as number * 1.05, (d3.min(filteredData, d => d.value) as number) * 0.95] 
-        : [0, (d3.max(filteredData, d => d.value) as number) * 1.1])
+      .domain(yDomain as [number, number])
       .range([height, 0])
       .nice()
 
     // Gradient
     const defs = svg.append('defs')
     const gradient = defs.append('linearGradient')
-      .attr('id', 'line-gradient')
+      .attr('id', gradientId)
       .attr('gradientUnits', 'userSpaceOnUse')
-      .attr('x1', 0).attr('y1', y(0))
-      .attr('x2', 0).attr('y2', y(d3.max(filteredData, d => d.value) as number))
+      .attr('x1', 0)
+      .attr('y1', y(y.domain()[1]))
+      .attr('x2', 0)
+      .attr('y2', y(y.domain()[0]))
     
     gradient.append('stop').attr('offset', '0%').attr('stop-color', 'hsl(var(--primary))').attr('stop-opacity', 0.2)
     gradient.append('stop').attr('offset', '100%').attr('stop-color', 'hsl(var(--primary))').attr('stop-opacity', 0)
@@ -90,25 +121,51 @@ export function PerformanceChart({ data, eventType }: PerformanceChartProps) {
     g.append('g')
       .attr('class', 'grid')
       .attr('stroke', 'hsl(var(--border))')
-      .attr('stroke-opacity', 0.7)
-      .attr('stroke-dasharray', '2,2')
+      .attr('stroke-opacity', 0.6)
+      .attr('stroke-dasharray', '3,3')
       .call(d3.axisLeft(y)
         .tickSize(-width)
         .tickFormat(() => '')
       )
 
     // X axis
+    const totalTimespan = filteredData.length > 1
+      ? new Date(filteredData[filteredData.length - 1].date).getTime() - new Date(filteredData[0].date).getTime()
+      : 0
+    const tickFormat = totalTimespan > 1000 * 60 * 60 * 24 * 200
+      ? d3.timeFormat('%b %Y')
+      : d3.timeFormat('%d %b')
+
     g.append('g')
       .attr('transform', `translate(0,${height})`)
-      .call(d3.axisBottom(x).ticks(5).tickFormat(d3.timeFormat('%b %d')))
+      .call(d3.axisBottom(x).ticks(Math.min(8, filteredData.length)).tickFormat(tickFormat))
       .attr('font-size', '12px')
       .select('.domain').remove()
     
     // Y axis
     g.append('g')
-      .call(d3.axisLeft(y).ticks(5).tickFormat(d => formatResult(d as number, unit)))
+      .call(d3.axisLeft(y)
+        .ticks(6)
+        .tickFormat(d => formatResultValue(d as number, fallbackUnit ?? undefined)))
       .attr('font-size', '12px')
       .select('.domain').remove()
+
+    // Axis labels
+    g.append('text')
+      .attr('transform', `translate(-48, ${height / 2}) rotate(-90)`)
+      .attr('text-anchor', 'middle')
+      .attr('fill', 'hsl(var(--muted-foreground))')
+      .attr('font-size', '12px')
+      .text(displayUnit)
+
+    if (activeRangeLabel) {
+      svg.append('text')
+        .attr('x', margin.left)
+        .attr('y', dimensions.height - 6)
+        .attr('fill', 'hsl(var(--muted-foreground))')
+        .attr('font-size', '12px')
+        .text(activeRangeLabel)
+    }
 
     // Area
     const area = d3.area<PerformanceData>()
@@ -119,7 +176,7 @@ export function PerformanceChart({ data, eventType }: PerformanceChartProps) {
 
     g.append('path')
       .datum(filteredData)
-      .attr('fill', 'url(#line-gradient)')
+      .attr('fill', `url(#${gradientId})`)
       .attr('d', area)
 
     // Line
@@ -141,13 +198,13 @@ export function PerformanceChart({ data, eventType }: PerformanceChartProps) {
       .attr('class', 'chart-tooltip')
       .style('position', 'absolute')
       .style('visibility', 'hidden')
-      .style('background', 'hsl(var(--popover))')
-      .style('color', 'hsl(var(--popover-foreground))')
+  .style('background', 'rgba(15, 23, 42, 0.9)')
+  .style('color', 'white')
       .style('border', '1px solid hsl(var(--border))')
       .style('border-radius', '0.5rem')
       .style('padding', '0.5rem 0.75rem')
       .style('font-size', '0.875rem')
-      .style('box-shadow', 'hsl(var(--shadow))')
+  .style('box-shadow', '0 10px 30px rgba(15, 23, 42, 0.18)')
       .style('pointer-events', 'none')
       .style('z-index', '10')
       .style('transition', 'all 0.1s ease-out')
@@ -201,7 +258,7 @@ export function PerformanceChart({ data, eventType }: PerformanceChartProps) {
           tooltip
             .style('visibility', 'visible')
             .html(`
-              <div class="font-semibold">${formatResult(d.value, unit)}</div>
+              <div class="font-semibold">${formatResultValue(d.value, fallbackUnit ?? undefined)}</div>
               <div class="text-xs text-muted-foreground">${new Date(d.date).toLocaleDateString('ro-RO', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
               ${d.notes ? `<div class="text-xs text-muted-foreground italic mt-1">"${d.notes}"</div>` : ''}
             `)
@@ -226,7 +283,7 @@ export function PerformanceChart({ data, eventType }: PerformanceChartProps) {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
         <div className="flex items-baseline gap-2">
           <h4 className="text-base font-semibold">{eventType}</h4>
-          <span className="text-sm text-muted-foreground">({unit})</span>
+          <span className="text-sm text-muted-foreground">({displayUnit})</span>
         </div>
         <PeriodFilter 
           period={period}
@@ -236,8 +293,13 @@ export function PerformanceChart({ data, eventType }: PerformanceChartProps) {
           firstDataDate={firstDataDate}
         />
       </div>
-      <div ref={containerRef} className="relative w-full h-[300px]">
-        <svg ref={svgRef} width={dimensions.width} height={dimensions.height} />
+      <div ref={containerRef} className="relative w-full h-[320px] rounded-xl border border-border/60 bg-card/60 shadow-sm backdrop-blur-sm">
+        <svg
+          ref={svgRef}
+          width={dimensions.width}
+          height={dimensions.height}
+          className="absolute inset-0"
+        />
         {filteredData.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm bg-muted/30 rounded-lg">
             Nu sunt date disponibile pentru perioada selectată.

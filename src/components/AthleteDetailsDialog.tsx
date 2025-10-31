@@ -15,6 +15,7 @@ import type { Athlete, Result, EventType, PerformanceData } from '@/lib/types'
 import { useState, useMemo } from 'react'
 import { PermissionGate } from './PermissionGate'
 import { resolveMediaUrl } from '@/lib/media'
+import { getUnitDisplayLabel } from '@/lib/units'
 
 interface AthleteDetailsDialogProps {
   athlete: Athlete | null
@@ -60,6 +61,12 @@ export function AthleteDetailsDialog({
         notes: r.notes,
         unit: r.unit
       }))
+  }, [athleteResults, selectedEvent])
+
+  const selectedEventUnit = useMemo(() => {
+    if (selectedEvent === 'all') return null
+    const match = athleteResults.find(r => r.eventType === selectedEvent)
+    return match?.unit ?? null
   }, [athleteResults, selectedEvent])
 
   if (!athlete) return null
@@ -200,6 +207,7 @@ export function AthleteDetailsDialog({
                   <PerformanceChart
                     data={chartData}
                     eventType={selectedEvent}
+                    unit={selectedEventUnit || undefined}
                   />
                 </div>
               )}

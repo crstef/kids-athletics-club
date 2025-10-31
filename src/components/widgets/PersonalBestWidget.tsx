@@ -2,7 +2,8 @@ import { useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowUpRight } from '@phosphor-icons/react'
 import type { Athlete, Result } from '@/lib/types'
-import { formatResult, formatDateToDisplay } from '@/lib/utils'
+import { formatDateToDisplay, cn } from '@/lib/utils'
+import { formatResultValue, normalizeUnit, preferLowerValues, getUnitDisplayLabel } from '@/lib/units'
 
 interface PersonalBestWidgetProps {
   athletes: Athlete[]
@@ -11,8 +12,8 @@ interface PersonalBestWidgetProps {
 }
 
 function isBetter(unit: Result['unit'], a: number, b: number) {
-  if (unit === 'seconds') return a < b
-  return a > b
+  const canonical = normalizeUnit(unit)
+  return preferLowerValues(canonical) ? a < b : a > b
 }
 
 export default function PersonalBestWidget({ athletes, results, onViewAthleteDetails }: PersonalBestWidgetProps) {
@@ -57,7 +58,8 @@ export default function PersonalBestWidget({ athletes, results, onViewAthleteDet
   return (
     <Card className="h-full flex flex-col">
       <CardHeader className="pb-2">
-        <CardTitle>Recorduri Personale Recente</CardTitle>
+        <CardTitle className="text-lg font-semibold">Recorduri Personale Recente</CardTitle>
+        <p className="text-sm text-muted-foreground">Ultimele îmbunătățiri ale atleților pe probele preferate</p>
       </CardHeader>
       <CardContent className="grow">
         {top.length === 0 ? (
@@ -66,13 +68,22 @@ export default function PersonalBestWidget({ athletes, results, onViewAthleteDet
           <ul className="divide-y">
             {top.map(pb => {
               const athlete = athletes.find(a => a.id === pb.athleteId)
-              const delta = pb.previousBest != null
-                ? (pb.unit === 'seconds' ? (pb.previousBest - pb.value) : (pb.value - pb.previousBest))
+              const canonical = normalizeUnit(pb.unit)
+              const lowerIsBetter = preferLowerValues(canonical)
+              const improvement = pb.previousBest != null
+                ? (lowerIsBetter ? pb.previousBest - pb.value : pb.value - pb.previousBest)
                 : undefined
+              const hasImprovement = improvement != null && Math.abs(improvement) > 0.0001
+              const deltaLabel = hasImprovement
+                ? `${improvement > 0 ? (lowerIsBetter ? '-' : '+') : (lowerIsBetter ? '+' : '-')}${Math.abs(improvement).toFixed(2)} ${getUnitDisplayLabel(pb.unit)}`
+                : null
               return (
                 <li
                   key={pb.id}
-                  className="py-2 flex items-center justify-between gap-3 hover:bg-accent/50 rounded px-2 cursor-pointer"
+                  className={cn(
+                    'py-2 flex items-center justify-between gap-3 rounded-lg px-3 transition-colors',
+                    athlete ? 'hover:bg-accent/50 cursor-pointer' : 'cursor-default'
+                  )}
                   onClick={() => athlete && onViewAthleteDetails?.(athlete)}
                 >
                   <div className="min-w-0">
@@ -84,11 +95,16 @@ export default function PersonalBestWidget({ athletes, results, onViewAthleteDet
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-sm font-semibold">{formatResult(pb.value, pb.unit)}</div>
-                    {delta != null && (
-                      <div className="text-xs text-emerald-600 flex items-center justify-end gap-1">
+                    <div className="text-sm font-semibold">{formatResultValue(pb.value, pb.unit)}</div>
+                    {deltaLabel && (
+                      <div className={cn(
+                        'text-xs flex items-center justify-end gap-1 font-medium',
+                        improvement && improvement > 0
+                          ? 'text-emerald-600'
+                          : 'text-amber-500'
+                      )}>
                         <ArrowUpRight size={12} />
-                        {pb.unit === 'seconds' ? `-${delta.toFixed(2)}s` : `+${delta.toFixed(2)}m`}
+                        {deltaLabel}
                       </div>
                     )}
                   </div>

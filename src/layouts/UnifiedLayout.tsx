@@ -32,6 +32,7 @@ import { AthleteDetailsDialog } from '@/components/AthleteDetailsDialog'
 import { WIDGET_REGISTRY, userCanAccessWidget } from '@/lib/widgetRegistry'
 import { useAuth } from '@/lib/auth-context'
 import { apiClient } from '@/lib/api-client'
+import { cn } from '@/lib/utils'
 
 // Types
 import { User, Role, Permission, AgeCategoryCustom, EventTypeCustom, Result, Athlete, AccessRequest, Message, AccountApprovalRequest, UserPermission } from '@/lib/types'
@@ -45,6 +46,8 @@ interface DashboardWidget {
 }
 
 const DEFAULT_WIDGET_IDS = ['stats-users', 'stats-athletes', 'stats-probes', 'recent-results', 'performance-chart']
+
+const GRAPHIC_WIDGET_IDS = new Set(['performance-chart', 'age-distribution', 'personal-bests'])
 
 const LEGACY_WIDGET_ID_MAP: Record<string, string> = {
   statistics: 'stats-users',
@@ -656,7 +659,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 auto-rows-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-6 auto-rows-fr">
           {widgetsToRender.map(widgetId => {
             console.log('[debug] rendering widget', widgetId)
             const widgetConfig = WIDGET_REGISTRY[widgetId]
@@ -672,13 +675,29 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
             }
 
             const WidgetComponent = widgetConfig.component
+            const baseSpan = (() => {
+              switch (widgetConfig.defaultSize) {
+                case 'small':
+                  return 'md:col-span-1 xl:col-span-3'
+                case 'large':
+                  return 'md:col-span-2 xl:col-span-12'
+                case 'xlarge':
+                  return 'md:col-span-2 xl:col-span-12'
+                case 'medium':
+                default:
+                  return 'md:col-span-2 xl:col-span-6'
+              }
+            })()
+            const spanClass = GRAPHIC_WIDGET_IDS.has(widgetId)
+              ? 'md:col-span-2 xl:col-span-12'
+              : baseSpan
             
             // Build props based on widget type
             const widgetProps = buildWidgetProps(widgetId, props)
 
             try {
               return (
-                <div key={widgetId} className="col-span-1">
+                <div key={widgetId} className={cn('col-span-1', spanClass)}>
                   <WidgetComponent {...widgetProps} />
                 </div>
               )
