@@ -170,8 +170,9 @@ export function PerformanceChart({ data, eventType, unit, comparisons = [] }: Pe
 
     const minValue = d3.min(allValues) ?? 0
     const maxValue = d3.max(allValues) ?? 0
-    const valueSpread = Math.max(maxValue - minValue, 1)
-    const padding = valueSpread * 0.08
+    const rawSpread = maxValue - minValue
+    const safeSpread = rawSpread === 0 ? Math.max(Math.abs(maxValue), 1) * 0.25 : rawSpread
+    const padding = safeSpread * 0.2
 
     const xDomain = ((): [Date, Date] => {
       const extent = d3.extent(allDates) as [Date | undefined, Date | undefined]
@@ -192,13 +193,9 @@ export function PerformanceChart({ data, eventType, unit, comparisons = [] }: Pe
       .domain(xDomain)
       .range([0, width])
 
-    const yDomain = (() => {
-      if (lowerIsBetter) {
-        return [maxValue + padding, Math.max(minValue - padding, 0)] as [number, number]
-      }
-      const lowerBound = Math.min(minValue - padding, 0)
-      return [lowerBound, maxValue + padding] as [number, number]
-    })()
+    const lowerBound = Math.max(minValue - padding, 0)
+    const upperBound = maxValue + padding
+    const yDomain: [number, number] = [lowerBound, upperBound]
 
     const y = d3.scaleLinear()
       .domain(yDomain)
@@ -225,27 +222,24 @@ export function PerformanceChart({ data, eventType, unit, comparisons = [] }: Pe
       .attr('stop-color', primarySeries.color)
       .attr('stop-opacity', 0)
 
-    g.append('g')
-      .attr('class', 'grid')
-      .attr('stroke', 'hsl(var(--border))')
-      .attr('stroke-opacity', 0.6)
-      .attr('stroke-dasharray', '3,3')
-      .call(
-        d3.axisLeft(y)
-          .tickSize(-width)
-          .tickFormat(() => '')
-      )
-
     const totalTimespan = xDomain[1].getTime() - xDomain[0].getTime()
-    const tickFormat = totalTimespan > 1000 * 60 * 60 * 24 * 200
+    const dateTickFormat = totalTimespan > 1000 * 60 * 60 * 24 * 200
       ? d3.timeFormat('%b %Y')
       : d3.timeFormat('%d %b')
 
+    const uniqueDateValues = Array.from(new Set(allDates.map(date => date.getTime())))
+      .sort((a, b) => a - b)
+      .map(timestamp => new Date(timestamp))
+
     g.append('g')
       .attr('transform', `translate(0,${height})`)
-      .call(d3.axisBottom(x).ticks(Math.min(8, allDates.length)).tickFormat(tickFormat))
+      .call(
+        d3.axisBottom(x)
+          .tickValues(uniqueDateValues)
+          .tickFormat(d => dateTickFormat(d as Date) as unknown as string)
+      )
       .attr('font-size', '12px')
-      .call(axis => axis.select('.domain').remove())
+      .call(axis => axis.select('.domain').attr('stroke', 'hsl(var(--border))'))
       .call(axis => axis.selectAll('text').attr('fill', 'hsl(var(--muted-foreground))'))
       .call(axis => axis.selectAll('line').attr('stroke', 'hsl(var(--border))'))
 
@@ -301,7 +295,7 @@ export function PerformanceChart({ data, eventType, unit, comparisons = [] }: Pe
         .datum(series.data)
         .attr('fill', 'none')
         .attr('stroke', series.color)
-        .attr('stroke-width', series.isPrimary ? 2.5 : 2)
+        .attr('stroke-width', series.isPrimary ? 3 : 2.25)
         .attr('stroke-dasharray', series.isPrimary ? null : '6 4')
         .attr('opacity', series.isPrimary ? 1 : 0.9)
         .attr('d', lineGenerator)
@@ -313,7 +307,7 @@ export function PerformanceChart({ data, eventType, unit, comparisons = [] }: Pe
         .attr('class', `data-point-${series.key}`)
         .attr('cx', d => x(new Date(d.date)))
         .attr('cy', d => y(d.value))
-        .attr('r', series.isPrimary ? 4.5 : 4)
+        .attr('r', series.isPrimary ? 5.5 : 4.5)
         .attr('fill', series.color)
         .attr('stroke', '#fff')
         .attr('stroke-width', 1.5)
@@ -475,7 +469,6 @@ export function PerformanceChart({ data, eventType, unit, comparisons = [] }: Pe
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
         <div className="flex items-baseline gap-2">
           <h4 className="text-base font-semibold">{eventType}</h4>
-          <span className="text-sm text-muted-foreground">({displayUnit})</span>
         </div>
         <PeriodFilter
           period={period}
