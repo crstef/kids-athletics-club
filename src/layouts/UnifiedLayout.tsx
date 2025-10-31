@@ -659,7 +659,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-6 auto-rows-fr">
+  <div className="grid grid-cols-1 md:grid-cols-6 xl:grid-cols-12 gap-6 auto-rows-fr">
           {widgetsToRender.map(widgetId => {
             console.log('[debug] rendering widget', widgetId)
             const widgetConfig = WIDGET_REGISTRY[widgetId]
@@ -678,18 +678,18 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
             const baseSpan = (() => {
               switch (widgetConfig.defaultSize) {
                 case 'small':
-                  return 'md:col-span-1 xl:col-span-3'
+                  return 'md:col-span-3 xl:col-span-3'
                 case 'large':
-                  return 'md:col-span-2 xl:col-span-12'
+                  return 'md:col-span-6 xl:col-span-8'
                 case 'xlarge':
-                  return 'md:col-span-2 xl:col-span-12'
+                  return 'md:col-span-6 xl:col-span-12'
                 case 'medium':
                 default:
-                  return 'md:col-span-2 xl:col-span-6'
+                  return 'md:col-span-3 xl:col-span-6'
               }
             })()
             const spanClass = GRAPHIC_WIDGET_IDS.has(widgetId)
-              ? 'md:col-span-2 xl:col-span-12'
+              ? 'md:col-span-6 xl:col-span-12'
               : baseSpan
             
             // Build props based on widget type

@@ -203,7 +203,7 @@ export function AthleteDetailsDialog({
                   <p className="text-muted-foreground">Selectează o probă pentru a vedea evoluția.</p>
                 </div>
               ) : (
-                <div className="mt-4 p-4 border rounded-lg bg-muted/20">
+                <div className="mt-4 rounded-xl border border-border/70 bg-card/70 p-4 shadow-sm backdrop-blur-sm">
                   <PerformanceChart
                     data={chartData}
                     eventType={selectedEvent}

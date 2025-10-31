@@ -2,7 +2,7 @@ import { useRef, useEffect, useState, useMemo, useId } from 'react'
 import * as d3 from 'd3'
 import type { PerformanceData, Period } from '@/lib/types'
 import { PeriodFilter, getInitialDateRange, getFilteredResults, getFirstDataDate } from './PeriodFilter'
-import { normalizeUnit, getUnitDisplayLabel, formatResultValue, preferLowerValues } from '@/lib/units'
+import { getUnitDisplayLabel, formatResultValue, preferLowerValues } from '@/lib/units'
 
 interface PerformanceChartProps {
   data: PerformanceData[]
@@ -26,7 +26,6 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
     const withUnit = data.find(point => point.unit)
     return withUnit?.unit ?? null
   }, [data, unit])
-  const canonicalUnit = useMemo(() => normalizeUnit(fallbackUnit), [fallbackUnit])
   const displayUnit = useMemo(() => getUnitDisplayLabel(fallbackUnit), [fallbackUnit])
   const lowerIsBetter = useMemo(() => preferLowerValues(fallbackUnit), [fallbackUnit])
   const gradientId = useId()
@@ -44,7 +43,7 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
     const resizeObserver = new ResizeObserver(entries => {
       if (entries[0]) {
         const { width } = entries[0].contentRect
-        setDimensions({ width, height: 250 })
+        setDimensions({ width, height: 280 })
       }
     })
 
@@ -81,11 +80,12 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
 
     const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`)
 
-    const values = filteredData.map(d => d.value)
-    const minValue = d3.min(values) as number
-    const maxValue = d3.max(values) as number
-    const valueSpread = Math.max(maxValue - minValue, 1)
-    const padding = valueSpread * 0.08
+  const values = filteredData.map(d => d.value)
+  const minValue = d3.min(values) as number
+  const maxValue = d3.max(values) as number
+  const valueSpread = Math.max(maxValue - minValue, 1)
+  const padding = valueSpread * 0.08
+  const primaryColor = 'var(--chart-primary, hsl(var(--primary)))'
 
     const x = d3.scaleTime()
       .domain(d3.extent(filteredData, d => new Date(d.date)) as [Date, Date])
@@ -114,8 +114,8 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
       .attr('x2', 0)
       .attr('y2', y(y.domain()[0]))
     
-    gradient.append('stop').attr('offset', '0%').attr('stop-color', 'hsl(var(--primary))').attr('stop-opacity', 0.2)
-    gradient.append('stop').attr('offset', '100%').attr('stop-color', 'hsl(var(--primary))').attr('stop-opacity', 0)
+  gradient.append('stop').attr('offset', '0%').attr('stop-color', primaryColor).attr('stop-opacity', 0.25)
+  gradient.append('stop').attr('offset', '100%').attr('stop-color', primaryColor).attr('stop-opacity', 0)
 
     // Grid lines
     g.append('g')
@@ -140,7 +140,9 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
       .attr('transform', `translate(0,${height})`)
       .call(d3.axisBottom(x).ticks(Math.min(8, filteredData.length)).tickFormat(tickFormat))
       .attr('font-size', '12px')
-      .select('.domain').remove()
+      .call(axis => axis.select('.domain').remove())
+      .call(axis => axis.selectAll('text').attr('fill', 'hsl(var(--muted-foreground))'))
+      .call(axis => axis.selectAll('line').attr('stroke', 'hsl(var(--border))'))
     
     // Y axis
     g.append('g')
@@ -148,7 +150,9 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
         .ticks(6)
         .tickFormat(d => formatResultValue(d as number, fallbackUnit ?? undefined)))
       .attr('font-size', '12px')
-      .select('.domain').remove()
+      .call(axis => axis.select('.domain').remove())
+      .call(axis => axis.selectAll('text').attr('fill', 'hsl(var(--muted-foreground))'))
+      .call(axis => axis.selectAll('line').attr('stroke', 'hsl(var(--border))'))
 
     // Axis labels
     g.append('text')
@@ -188,9 +192,22 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
     g.append('path')
       .datum(filteredData)
       .attr('fill', 'none')
-      .attr('stroke', 'hsl(var(--primary))')
+      .attr('stroke', primaryColor)
       .attr('stroke-width', 2.5)
       .attr('d', line)
+
+    g.selectAll('circle.data-point')
+      .data(filteredData)
+      .enter()
+      .append('circle')
+      .attr('class', 'data-point')
+      .attr('cx', d => x(new Date(d.date)))
+      .attr('cy', d => y(d.value))
+      .attr('r', 4.5)
+      .attr('fill', primaryColor)
+      .attr('stroke', '#fff')
+      .attr('stroke-width', 1.5)
+      .attr('opacity', 0.95)
 
     // Tooltip
     const tooltip = d3.select(containerRef.current)
@@ -198,27 +215,27 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
       .attr('class', 'chart-tooltip')
       .style('position', 'absolute')
       .style('visibility', 'hidden')
-  .style('background', 'rgba(15, 23, 42, 0.9)')
-  .style('color', 'white')
-      .style('border', '1px solid hsl(var(--border))')
-      .style('border-radius', '0.5rem')
-      .style('padding', '0.5rem 0.75rem')
+      .style('background', '#ffffff')
+      .style('color', '#0f172a')
+      .style('border', '1px solid rgba(15, 23, 42, 0.08)')
+      .style('border-radius', '0.75rem')
+      .style('padding', '0.75rem 0.9rem')
       .style('font-size', '0.875rem')
-  .style('box-shadow', '0 10px 30px rgba(15, 23, 42, 0.18)')
+      .style('box-shadow', '0 25px 45px rgba(15, 23, 42, 0.18)')
       .style('pointer-events', 'none')
       .style('z-index', '10')
       .style('transition', 'all 0.1s ease-out')
 
     const hoverLine = g.append('line')
       .attr('class', 'hover-line')
-      .attr('stroke', 'hsl(var(--primary))')
+      .attr('stroke', primaryColor)
       .attr('stroke-width', 1)
       .style('opacity', 0)
 
     const hoverCircle = g.append('circle')
       .attr('class', 'hover-circle')
       .attr('r', 6)
-      .attr('fill', 'hsl(var(--primary))')
+      .attr('fill', primaryColor)
       .attr('stroke', 'hsl(var(--background))')
       .attr('stroke-width', 2)
       .style('opacity', 0)
@@ -257,11 +274,32 @@ export function PerformanceChart({ data, eventType, unit }: PerformanceChartProp
 
           tooltip
             .style('visibility', 'visible')
-            .html(`
-              <div class="font-semibold">${formatResultValue(d.value, fallbackUnit ?? undefined)}</div>
-              <div class="text-xs text-muted-foreground">${new Date(d.date).toLocaleDateString('ro-RO', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
-              ${d.notes ? `<div class="text-xs text-muted-foreground italic mt-1">"${d.notes}"</div>` : ''}
-            `)
+            .html(() => {
+              const valueLabel = formatResultValue(d.value, fallbackUnit ?? undefined)
+              const dateLabel = new Intl.DateTimeFormat('ro-RO', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              }).format(new Date(d.date))
+              const badge = `
+                <div style="display:flex;align-items:center;gap:0.45rem;margin-bottom:0.4rem;">
+                  <span style="display:inline-block;width:10px;height:10px;border-radius:9999px;background:${primaryColor};"></span>
+                  <span style="font-size:0.72rem;font-weight:600;color:#1e293b;text-transform:uppercase;letter-spacing:0.08em;">${eventType}</span>
+                </div>
+              `
+              const notesBlock = d.notes && d.notes.trim().length > 0
+                ? `<div style="margin-top:0.4rem;font-size:0.72rem;color:#475569;font-style:italic;">${d.notes}</div>`
+                : ''
+              return `
+                <div style="display:flex;flex-direction:column;gap:0.35rem;">
+                  ${badge}
+                  <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:#94a3b8;">Rezultat</div>
+                  <div style="font-weight:600;font-size:1rem;color:#0f172a;">${valueLabel}</div>
+                  <div style="font-size:0.75rem;color:#475569;">${dateLabel}</div>
+                  ${notesBlock}
+                </div>
+              `
+            })
             .style('left', `${xPos + margin.left + 15}px`)
             .style('top', `${yPos + margin.top - 15}px`)
         }

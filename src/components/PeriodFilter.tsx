@@ -1,13 +1,7 @@
 import { useMemo } from 'react'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Button } from './ui/button'
 import { CaretLeft, CaretRight, CalendarBlank } from '@phosphor-icons/react'
+import { cn } from '@/lib/utils'
 import { Period } from '@/lib/types'
 
 export function getFilteredResults<T extends { date: string }>(
@@ -42,20 +36,23 @@ export function PeriodFilter({
   className = '',
 }: PeriodFilterProps) {
   const periods: Array<{ value: Period; label: string }> = [
-    { value: '7days', label: '7 Zile' },
-    { value: '4weeks', label: '4 Săptămâni' },
-    { value: '6months', label: '6 Luni' },
-    { value: '1year', label: '1 An' },
+    { value: '7days', label: 'Curent' },
+    { value: '4weeks', label: '4 săptămâni' },
+    { value: '6months', label: '6 luni' },
+    { value: '1year', label: '1 an' },
     { value: 'all', label: 'Tot' }
   ]
 
-  const canNavigate = period !== 'all' && firstDataDate
+  const canNavigate = period !== 'all' && Boolean(firstDataDate)
 
   const formatDateRange = () => {
     if (!dateRange) return ''
-    const start = dateRange.start.toLocaleDateString('ro-RO', { day: 'numeric', month: 'short' })
-    const end = dateRange.end.toLocaleDateString('ro-RO', { day: 'numeric', month: 'short', year: 'numeric' })
-    return `${start} - ${end}`
+    const formatter = new Intl.DateTimeFormat('ro-RO', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    })
+    return `${formatter.format(dateRange.start)} – ${formatter.format(dateRange.end)}`
   }
 
   const handlePrevious = () => {
@@ -112,7 +109,7 @@ export function PeriodFilter({
         newStart.setDate(newStart.getDate() + 7)
         break
       case '4weeks':
-        newStart.setDate(newStart.getDate() - 28)
+        newStart.setDate(newStart.getDate() + 28)
         break
       case '6months':
         newStart.setMonth(newStart.getMonth() + 6)
@@ -155,32 +152,51 @@ export function PeriodFilter({
   }, [dateRange])
 
   return (
-    <div className={`flex items-center gap-2 ${className}`}>
-      <Select value={period} onValueChange={(p) => setPeriod(p as Period)}>
-        <SelectTrigger className="w-[140px]">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {periods.map(p => (
-            <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      
-      {canNavigate && (
-        <div className="flex items-center gap-1 rounded-md border bg-background text-sm font-medium">
-          <Button variant="ghost" size="icon" onClick={handlePrevious} className="h-9 w-9">
-            <CaretLeft size={16} />
-          </Button>
-          <div className="px-2 text-center w-48 flex items-center justify-center gap-1.5">
-            <CalendarBlank size={15} className="text-muted-foreground" />
-            {formatDateRange()}
-          </div>
-          <Button variant="ghost" size="icon" onClick={handleNext} disabled={isNextDisabled} className="h-9 w-9">
-            <CaretRight size={16} />
-          </Button>
+    <div className={cn('flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between', className)}>
+      <div className="flex items-center gap-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handlePrevious}
+          disabled={!canNavigate}
+          className="h-9 w-9 rounded-full border border-border/60 text-muted-foreground hover:text-primary"
+        >
+          <CaretLeft size={16} />
+        </Button>
+        <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/40 px-3 py-1.5 text-sm font-medium text-muted-foreground shadow-sm">
+          <CalendarBlank size={16} />
+          <span>{formatDateRange()}</span>
         </div>
-      )}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleNext}
+          disabled={!canNavigate || isNextDisabled}
+          className="h-9 w-9 rounded-full border border-border/60 text-muted-foreground hover:text-primary"
+        >
+          <CaretRight size={16} />
+        </Button>
+      </div>
+
+  <div className="flex items-center gap-1 rounded-full border border-border/60 bg-muted/30 p-1 overflow-x-auto">
+        {periods.map((p) => (
+          <Button
+            key={p.value}
+            type="button"
+            size="sm"
+            variant={period === p.value ? 'default' : 'ghost'}
+            onClick={() => setPeriod(p.value)}
+            className={cn(
+              'rounded-full px-3 py-1 text-xs font-medium transition-all',
+              period === p.value
+                ? 'bg-primary text-primary-foreground shadow'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            {p.label}
+          </Button>
+        ))}
+      </div>
     </div>
   )
 }
