@@ -92,6 +92,8 @@ function AppContent() {
   const [categoryFilter, setCategoryFilter] = useState<AgeCategory | 'all'>('all')
   const [genderFilter, setGenderFilter] = useState<'all' | 'M' | 'F'>('all')
   const [sortBy, setSortBy] = useState<'name' | 'age' | 'results'>('name')
+  const [athletePage, setAthletePage] = useState(1)
+  const ATHLETES_PER_PAGE = 6
   const [authDialogOpen, setAuthDialogOpen] = useState(false)
   
   const [activeTab, setActiveTab] = useState('dashboard')
@@ -963,6 +965,26 @@ function AppContent() {
     return sorted
   }, [myAthletes, searchQuery, categoryFilter, genderFilter, sortBy, results])
 
+  const totalAthletePages = useMemo(() => {
+    return Math.max(1, Math.ceil(filteredAndSortedAthletes.length / ATHLETES_PER_PAGE))
+  }, [filteredAndSortedAthletes.length])
+
+  const paginatedAthletes = useMemo(() => {
+    const clampedPage = Math.min(athletePage, totalAthletePages)
+    const start = (clampedPage - 1) * ATHLETES_PER_PAGE
+    return filteredAndSortedAthletes.slice(start, start + ATHLETES_PER_PAGE)
+  }, [filteredAndSortedAthletes, athletePage, totalAthletePages])
+
+  useEffect(() => {
+    setAthletePage(1)
+  }, [searchQuery, categoryFilter, genderFilter, sortBy])
+
+  useEffect(() => {
+    if (athletePage > totalAthletePages) {
+      setAthletePage(totalAthletePages)
+    }
+  }, [athletePage, totalAthletePages])
+
   const deleteAthleteName = useMemo(() => {
     const athlete = (athletes || []).find(a => a.id === deleteAthleteId)
     return athlete ? `${athlete.firstName} ${athlete.lastName}` : ''
@@ -1082,6 +1104,12 @@ function AppContent() {
         coaches,
         parents,
         filteredAndSortedAthletes,
+  paginatedAthletes,
+  athletePage,
+  setAthletePage,
+  totalAthletePages,
+  athletesPerPage: ATHLETES_PER_PAGE,
+  totalAthleteCount: filteredAndSortedAthletes.length,
         getAthleteResultsCount,
         searchQuery,
         setSearchQuery,

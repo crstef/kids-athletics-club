@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis } from '@/components/ui/pagination'
 
 // Components
 import { UserManagement } from '@/components/UserManagement'
@@ -178,6 +179,12 @@ interface UnifiedLayoutProps {
   sortBy: 'name' | 'age' | 'results'
   setSortBy: (sort: 'name' | 'age' | 'results') => void
   filteredAndSortedAthletes: Athlete[]
+  paginatedAthletes: Athlete[]
+  totalAthletePages: number
+  athletePage: number
+  setAthletePage: (page: number) => void
+  athletesPerPage: number
+  totalAthleteCount: number
   getAthleteResultsCount: (athleteId: string) => number
   
   // Helper data
@@ -244,6 +251,12 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
     genderFilter,
     setGenderFilter,
     filteredAndSortedAthletes,
+  paginatedAthletes,
+  totalAthletePages,
+  athletePage,
+  setAthletePage,
+  athletesPerPage,
+  totalAthleteCount,
     getAthleteResultsCount,
     selectedAthlete,
     handleCloseAthleteDialog,
@@ -412,6 +425,53 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
 
     return allOthers.filter((user) => allowedIds.has(user.id))
   }, [users, currentUser.id, messages, isParentUser, athletes])
+
+  const hasAthleteResults = totalAthleteCount > 0
+  const pageRangeStart = hasAthleteResults ? (athletePage - 1) * athletesPerPage + 1 : 0
+  const pageRangeEnd = hasAthleteResults
+    ? Math.min(pageRangeStart + paginatedAthletes.length - 1, totalAthleteCount)
+    : 0
+  const showAthletePagination = totalAthletePages > 1
+
+  const paginationRange = useMemo<(number | 'ellipsis')[]>(() => {
+    if (totalAthletePages <= 7) {
+      return Array.from({ length: totalAthletePages }, (_, index) => index + 1)
+    }
+
+    const pages = new Set<number>()
+    pages.add(1)
+    pages.add(2)
+    pages.add(totalAthletePages - 1)
+    pages.add(totalAthletePages)
+    pages.add(athletePage)
+
+    const siblings = 1
+    for (let offset = 1; offset <= siblings; offset += 1) {
+      if (athletePage - offset > 1) {
+        pages.add(athletePage - offset)
+      }
+      if (athletePage + offset < totalAthletePages) {
+        pages.add(athletePage + offset)
+      }
+    }
+
+    const sorted = Array.from(pages)
+      .filter(page => page >= 1 && page <= totalAthletePages)
+      .sort((a, b) => a - b)
+
+    const range: (number | 'ellipsis')[] = []
+    let previous = 0
+
+    for (const page of sorted) {
+      if (previous !== 0 && page - previous > 1) {
+        range.push('ellipsis')
+      }
+      range.push(page)
+      previous = page
+    }
+
+    return range
+  }, [athletePage, totalAthletePages])
 
   // Load widgets from database on mount
   useEffect(() => {
@@ -750,23 +810,88 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
                   </div>
                 )}
 
-                <div className="grid gap-4 md:grid-cols-2 lg-grid-cols-3">
-                  {filteredAndSortedAthletes.map((athlete) => (
-                    <AthleteCard
-                      key={athlete.id}
-                      athlete={athlete}
-                      resultsCount={getAthleteResultsCount(athlete.id)}
-                      coaches={coaches}
-                      parents={parents}
-                      onViewDetails={props.handleViewAthleteDetails}
-                      onViewChart={props.handleViewAthleteChart}
-                      onEdit={hasPermission('athletes.edit') ? props.handleEditAthlete : undefined}
-                      onDelete={(id: string) => setDeleteAthleteId(id)}
-                      hideDelete={!hasPermission('athletes.delete')}
-                      onUploadAvatar={hasPermission('athletes.avatar.upload') ? props.handleUploadAthleteAvatar : undefined}
-                    />
-                  ))}
-                </div>
+                {!hasAthleteResults ? (
+                  <div className="rounded-md border border-dashed py-10 text-center text-sm text-muted-foreground">
+                    Nu am găsit atleți care să corespundă filtrului curent.
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      {paginatedAthletes.map((athlete) => (
+                        <AthleteCard
+                          key={athlete.id}
+                          athlete={athlete}
+                          resultsCount={getAthleteResultsCount(athlete.id)}
+                          coaches={coaches}
+                          parents={parents}
+                          onViewDetails={props.handleViewAthleteDetails}
+                          onViewChart={props.handleViewAthleteChart}
+                          onEdit={hasPermission('athletes.edit') ? props.handleEditAthlete : undefined}
+                          onDelete={(id: string) => setDeleteAthleteId(id)}
+                          hideDelete={!hasPermission('athletes.delete')}
+                          onUploadAvatar={hasPermission('athletes.avatar.upload') ? props.handleUploadAthleteAvatar : undefined}
+                        />
+                      ))}
+                    </div>
+
+                    <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:items-center sm:justify-between">
+                      <p className="text-sm text-muted-foreground">
+                        {`Afișare ${pageRangeStart}-${pageRangeEnd} din ${totalAthleteCount} atleți`}
+                      </p>
+
+                      {showAthletePagination && (
+                        <Pagination className="w-full justify-center sm:w-auto sm:justify-end">
+                          <PaginationContent>
+                            <PaginationItem>
+                              <PaginationPrevious
+                                href="#"
+                                onClick={(event) => {
+                                  event.preventDefault()
+                                  if (athletePage > 1) {
+                                    setAthletePage(athletePage - 1)
+                                  }
+                                }}
+                              />
+                            </PaginationItem>
+
+                            {paginationRange.map((item, index) => (
+                              item === 'ellipsis' ? (
+                                <PaginationItem key={`ellipsis-${index}`}>
+                                  <PaginationEllipsis />
+                                </PaginationItem>
+                              ) : (
+                                <PaginationItem key={item}>
+                                  <PaginationLink
+                                    href="#"
+                                    onClick={(event) => {
+                                      event.preventDefault()
+                                      setAthletePage(item)
+                                    }}
+                                    isActive={athletePage === item}
+                                  >
+                                    {item}
+                                  </PaginationLink>
+                                </PaginationItem>
+                              )
+                            ))}
+
+                            <PaginationItem>
+                              <PaginationNext
+                                href="#"
+                                onClick={(event) => {
+                                  event.preventDefault()
+                                  if (athletePage < totalAthletePages) {
+                                    setAthletePage(athletePage + 1)
+                                  }
+                                }}
+                              />
+                            </PaginationItem>
+                          </PaginationContent>
+                        </Pagination>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
             </TabsContent>
           )}
