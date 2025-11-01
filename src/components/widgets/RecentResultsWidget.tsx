@@ -17,8 +17,14 @@ export function RecentResultsWidget({ athletes, results }: RecentResultsWidgetPr
   )
 
   useEffect(() => {
-    setDateRange(getInitialDateRange(results, period))
-  }, [period, results])
+    const nextRange = getInitialDateRange(results, period)
+    if (
+      dateRange.start.getTime() !== nextRange.start.getTime() ||
+      dateRange.end.getTime() !== nextRange.end.getTime()
+    ) {
+      setDateRange(nextRange)
+    }
+  }, [period, results, dateRange])
 
   const filteredResults = useMemo(() => {
     return getFilteredResults(results, period, dateRange)

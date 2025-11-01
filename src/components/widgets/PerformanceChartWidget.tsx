@@ -11,9 +11,12 @@ interface PerformanceChartWidgetProps {
   results: Result[]
 }
 
+const EMPTY_ATHLETES: Athlete[] = []
+const EMPTY_RESULTS: Result[] = []
+
 export function PerformanceChartWidget({ athletes, results }: PerformanceChartWidgetProps) {
-  const safeAthletes = useMemo(() => athletes ?? [], [athletes])
-  const safeResults = useMemo(() => results ?? [], [results])
+  const safeAthletes = athletes && athletes.length > 0 ? athletes : EMPTY_ATHLETES
+  const safeResults = results && results.length > 0 ? results : EMPTY_RESULTS
 
   const [selectedEvent, setSelectedEvent] = useState<string | null>(null)
   const [selectedAthleteId, setSelectedAthleteId] = useState<string | null>(safeAthletes[0]?.id || null)
