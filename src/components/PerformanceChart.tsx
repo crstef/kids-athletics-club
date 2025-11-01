@@ -139,11 +139,14 @@ interface CustomTooltipProps extends TooltipProps<ValueType, NameType> {
 function CustomTooltip({ active, payload, label, fallbackUnit, seriesMap }: CustomTooltipProps) {
   if (!active || !payload || payload.length === 0) return null
 
+  const basePayload = payload[0]?.payload as Partial<ChartDatum>
+  const timestamp = typeof basePayload?.timestamp === 'number' ? basePayload.timestamp : Number(label)
+
   const date = new Intl.DateTimeFormat('ro-RO', {
     month: 'short',
     day: 'numeric',
     year: 'numeric'
-  }).format(new Date(Number(label)))
+  }).format(new Date(Number.isFinite(timestamp) ? timestamp : Date.now()))
 
   const rawMap = (payload[0].payload?.__raw as ChartDatum['__raw']) ?? {}
 
@@ -267,7 +270,26 @@ export function PerformanceChart({ data, eventType, unit, comparisons = [] }: Pe
     [filteredSeries]
   )
 
-  const chartData = useMemo(() => buildChartData(plottedSeries), [plottedSeries])
+  const chartDataRaw = useMemo(() => buildChartData(plottedSeries), [plottedSeries])
+
+  const chartData = useMemo(() => {
+    const length = chartDataRaw.length
+    if (length === 0) {
+      return chartDataRaw
+    }
+    return chartDataRaw.map((datum, index) => ({
+      ...datum,
+      ordinalIndex: index,
+      ordinalPosition: (index + 1) / (length + 1)
+    }))
+  }, [chartDataRaw])
+
+  const uniqueTimestamps = useMemo(
+    () => Array.from(new Set(chartDataRaw.map(point => point.timestamp))).sort((a, b) => a - b),
+    [chartDataRaw]
+  )
+
+  const useOrdinalAxis = uniqueTimestamps.length <= 3
 
   const yValues = useMemo(() => {
     const vals: number[] = []
@@ -283,18 +305,44 @@ export function PerformanceChart({ data, eventType, unit, comparisons = [] }: Pe
 
   const [yMin, yMax] = useMemo(() => getAxisDomain(yValues), [yValues])
 
-  const [xMin, xMax] = useMemo(() => {
-    if (chartData.length === 0) {
+  const xDomain = useMemo<[number, number]>(() => {
+    if (useOrdinalAxis) {
+      if (chartData.length === 0) return [0, 1]
+      return [0, 1]
+    }
+
+    if (uniqueTimestamps.length === 0) {
       const now = Date.now()
       return [now - 1000 * 60 * 60 * 24 * 7, now]
     }
-    const timestamps = chartData.map(point => point.timestamp)
-    return [Math.min(...timestamps), Math.max(...timestamps)]
-  }, [chartData])
+
+    if (uniqueTimestamps.length === 1) {
+      const ts = uniqueTimestamps[0]
+      const oneDay = 1000 * 60 * 60 * 24
+      return [ts - oneDay, ts + oneDay]
+    }
+
+    const min = uniqueTimestamps[0]
+    const max = uniqueTimestamps[uniqueTimestamps.length - 1]
+    return [min, max]
+  }, [chartData, uniqueTimestamps, useOrdinalAxis])
 
   const xTicks = useMemo(
-    () => Array.from(new Set(chartData.map(point => point.timestamp))),
-    [chartData]
+    () => (useOrdinalAxis ? chartData.map(point => point.ordinalPosition) : uniqueTimestamps),
+    [chartData, uniqueTimestamps, useOrdinalAxis]
+  )
+
+  const xTickFormatter = useMemo(
+    () => (value: number | string) => {
+      if (useOrdinalAxis) {
+        const position = Number(value)
+        const matchedEntry = chartData.find(point => Math.abs(point.ordinalPosition - position) < 1e-6)
+        const timestamp = matchedEntry?.timestamp
+        return timestamp ? formatDateLabel(timestamp) : ''
+      }
+      return formatDateLabel(Number(value))
+    },
+    [chartData, uniqueTimestamps, useOrdinalAxis]
   )
 
   const axisTickFormatter = useMemo(
@@ -338,11 +386,12 @@ export function PerformanceChart({ data, eventType, unit, comparisons = [] }: Pe
             <LineChart data={chartData} margin={{ top: 12, right: 24, bottom: 12, left: 12 }}>
               <CartesianGrid stroke="rgba(148, 163, 184, 0.18)" vertical={false} />
               <XAxis
-                dataKey="timestamp"
+                dataKey={useOrdinalAxis ? 'ordinalPosition' : 'timestamp'}
                 type="number"
-                domain={[xMin, xMax]}
+                domain={xDomain}
                 ticks={xTicks}
-                tickFormatter={value => formatDateLabel(Number(value))}
+                allowDecimals={false}
+                tickFormatter={xTickFormatter}
                 stroke="rgba(148, 163, 184, 0.45)"
                 tick={{ fill: 'rgba(71, 85, 105, 0.9)', fontSize: 12 }}
                 axisLine={{ stroke: 'rgba(148, 163, 184, 0.45)' }}

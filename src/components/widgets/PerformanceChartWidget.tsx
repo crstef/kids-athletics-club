@@ -12,11 +12,27 @@ interface PerformanceChartWidgetProps {
 }
 
 export function PerformanceChartWidget({ athletes, results }: PerformanceChartWidgetProps) {
-  const eventTypes = useMemo(() => [...new Set(results.map(r => r.eventType))], [results])
-  const [selectedEvent, setSelectedEvent] = useState<string | null>(eventTypes[0] || null)
+  const [selectedEvent, setSelectedEvent] = useState<string | null>(null)
   const [selectedAthleteId, setSelectedAthleteId] = useState<string | null>(athletes[0]?.id || null)
 
   const athleteOptions = athletes.map(a => ({ value: a.id, label: `${a.firstName} ${a.lastName}` }))
+
+  const eventsByAthlete = useMemo(() => {
+    const map = new Map<string, Set<string>>()
+    results.forEach(result => {
+      if (!map.has(result.athleteId)) {
+        map.set(result.athleteId, new Set())
+      }
+      map.get(result.athleteId)!.add(result.eventType)
+    })
+    return map
+  }, [results])
+
+  const eventsForSelectedAthlete = useMemo(() => {
+    if (!selectedAthleteId) return []
+    const set = eventsByAthlete.get(selectedAthleteId)
+    return set ? Array.from(set) : []
+  }, [eventsByAthlete, selectedAthleteId])
 
   useEffect(() => {
     if (!selectedAthleteId && athletes.length > 0) {
@@ -25,12 +41,15 @@ export function PerformanceChartWidget({ athletes, results }: PerformanceChartWi
   }, [athletes, selectedAthleteId])
 
   useEffect(() => {
-    if (!selectedEvent && eventTypes.length > 0) {
-      setSelectedEvent(eventTypes[0])
-    } else if (selectedEvent && !eventTypes.includes(selectedEvent)) {
-      setSelectedEvent(eventTypes[0] || null)
+    if (eventsForSelectedAthlete.length === 0) {
+      setSelectedEvent(null)
+      return
     }
-  }, [eventTypes, selectedEvent])
+
+    if (!selectedEvent || !eventsForSelectedAthlete.includes(selectedEvent)) {
+      setSelectedEvent(eventsForSelectedAthlete[0])
+    }
+  }, [eventsForSelectedAthlete, selectedEvent])
 
   const chartData = useMemo(() => {
     if (!selectedAthleteId || !selectedEvent) return []
@@ -45,7 +64,7 @@ export function PerformanceChartWidget({ athletes, results }: PerformanceChartWi
     return record?.unit ?? null
   }, [results, selectedAthleteId, selectedEvent])
 
-  const insufficientData = athletes.length === 0 || results.length === 0
+  const insufficientData = athletes.length === 0 || results.length === 0 || !selectedAthleteId || eventsForSelectedAthlete.length === 0
   const selectedEventUnitLabel = selectedUnit ? getUnitDisplayLabel(selectedUnit) : null
 
   return (
@@ -70,12 +89,18 @@ export function PerformanceChartWidget({ athletes, results }: PerformanceChartWi
               {athleteOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Select value={selectedEvent || ''} onValueChange={(val) => setSelectedEvent(val)}>
+          <Select
+            value={selectedEvent || ''}
+            onValueChange={(val) => setSelectedEvent(val)}
+            disabled={eventsForSelectedAthlete.length === 0}
+          >
             <SelectTrigger className="md:w-[220px]">
               <SelectValue placeholder="Selectează Probă" />
             </SelectTrigger>
             <SelectContent>
-              {eventTypes.map(event => <SelectItem key={event} value={event}>{event}</SelectItem>)}
+              {eventsForSelectedAthlete.map(event => (
+                <SelectItem key={event} value={event}>{event}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
