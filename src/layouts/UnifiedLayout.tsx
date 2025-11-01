@@ -735,7 +735,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
           : [canonicalId, ...prev]
     ))
 
-    if (!isEnabled) {
+    if (allowedWidgetSet.size === 0 || allowedWidgetSet.has(canonicalId)) {
       setWidgetSizes(prev => {
         const nextSize = enforceWidgetSize(canonicalId, prev[canonicalId])
         if (prev[canonicalId] === nextSize) {
