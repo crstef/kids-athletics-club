@@ -11,17 +11,21 @@ interface PerformanceChartWidgetProps {
   results: Result[]
 }
 
-const EMPTY_ATHLETES: Athlete[] = []
-const EMPTY_RESULTS: Result[] = []
-
 export function PerformanceChartWidget({ athletes, results }: PerformanceChartWidgetProps) {
-  const safeAthletes = athletes && athletes.length > 0 ? athletes : EMPTY_ATHLETES
-  const safeResults = results && results.length > 0 ? results : EMPTY_RESULTS
+  const safeAthletes = useMemo(() => athletes ?? [], [athletes])
+  const safeResults = useMemo(() => results ?? [], [results])
+  const resultsSignature = useMemo(
+    () => safeResults.map(r => `${r.athleteId}:${r.eventType}:${r.date}`).join('|'),
+    [safeResults]
+  )
 
   const [selectedEvent, setSelectedEvent] = useState<string | null>(null)
   const [selectedAthleteId, setSelectedAthleteId] = useState<string | null>(safeAthletes[0]?.id || null)
 
-  const athleteOptions = safeAthletes.map(a => ({ value: a.id, label: `${a.firstName} ${a.lastName}` }))
+  const athleteOptions = useMemo(
+    () => safeAthletes.map(a => ({ value: a.id, label: `${a.firstName} ${a.lastName}` })),
+    [safeAthletes]
+  )
 
   const eventsByAthlete = useMemo(() => {
     const map = new Map<string, Set<string>>()
@@ -32,38 +36,52 @@ export function PerformanceChartWidget({ athletes, results }: PerformanceChartWi
       map.get(result.athleteId)!.add(result.eventType)
     })
     return map
-  }, [safeResults])
+  }, [resultsSignature])
 
   const eventsForSelectedAthlete = useMemo(() => {
     if (!selectedAthleteId) return []
     const set = eventsByAthlete.get(selectedAthleteId)
     return set ? Array.from(set) : []
   }, [eventsByAthlete, selectedAthleteId])
+  const eventsSignature = useMemo(() => eventsForSelectedAthlete.join('|'), [eventsForSelectedAthlete])
 
-  const defaultAthleteId = safeAthletes[0]?.id || null
+  const defaultAthleteId = safeAthletes.length > 0 ? safeAthletes[0].id : null
+  const athletesSignature = useMemo(() => safeAthletes.map(a => a.id).join('|'), [safeAthletes])
+  const athleteIdSet = useMemo(() => new Set(safeAthletes.map(a => a.id)), [athletesSignature])
 
   useEffect(() => {
-    if (!selectedAthleteId && defaultAthleteId) {
-      setSelectedAthleteId(prev => (prev === defaultAthleteId ? prev : defaultAthleteId))
+    if (!defaultAthleteId) {
+      if (selectedAthleteId !== null) {
+        setSelectedAthleteId(null)
+      }
       return
     }
-    if (selectedAthleteId && !safeAthletes.some(athlete => athlete.id === selectedAthleteId)) {
-      const fallbackId = defaultAthleteId ?? null
-      setSelectedAthleteId(prev => (prev === fallbackId ? prev : fallbackId))
+
+    const exists = selectedAthleteId ? athleteIdSet.has(selectedAthleteId) : false
+    if (!exists) {
+      setSelectedAthleteId(defaultAthleteId)
     }
-  }, [defaultAthleteId, selectedAthleteId, safeAthletes])
+  }, [defaultAthleteId, selectedAthleteId, athletesSignature, athleteIdSet])
 
   useEffect(() => {
+    if (!selectedAthleteId) {
+      if (selectedEvent !== null) {
+        setSelectedEvent(null)
+      }
+      return
+    }
+
     if (eventsForSelectedAthlete.length === 0) {
-      setSelectedEvent(prev => (prev === null ? prev : null))
+      if (selectedEvent !== null) {
+        setSelectedEvent(null)
+      }
       return
     }
 
     if (!selectedEvent || !eventsForSelectedAthlete.includes(selectedEvent)) {
-      const nextEvent = eventsForSelectedAthlete[0]
-      setSelectedEvent(prev => (prev === nextEvent ? prev : nextEvent))
+      setSelectedEvent(eventsForSelectedAthlete[0])
     }
-  }, [eventsForSelectedAthlete, selectedEvent])
+  }, [selectedAthleteId, eventsSignature, eventsForSelectedAthlete, selectedEvent])
 
   const chartData = useMemo(() => {
     if (!selectedAthleteId || !selectedEvent) return []
