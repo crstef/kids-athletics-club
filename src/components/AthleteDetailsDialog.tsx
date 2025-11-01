@@ -75,7 +75,7 @@ export function AthleteDetailsDialog({
 
   return (
     <Dialog open={!!athlete} onOpenChange={() => onClose()}>
-      <DialogContent className="w-full max-h-[95vh] flex flex-col p-0 max-w-[min(100vw-2rem,1120px)]">
+  <DialogContent className="w-full max-h-[95vh] flex flex-col p-0 max-w-[min(100vw-1rem,1280px)]">
         <DialogHeader className="p-6 pb-4">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
