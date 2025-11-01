@@ -56,7 +56,7 @@ export function EditResultDialog({ result, athleteName, onUpdate }: EditResultDi
           <PencilSimple size={14} />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+  <DialogContent className="w-[min(92vw,360px)] sm:w-[360px]">
         <DialogHeader>
           <DialogTitle>Editează Rezultat{athleteName ? ` — ${athleteName}` : ''}</DialogTitle>
         </DialogHeader>
