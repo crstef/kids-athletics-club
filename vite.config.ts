@@ -5,15 +5,6 @@ import { resolve } from 'path'
 
 const projectRoot = process.env.PROJECT_ROOT || process.cwd()
 
-// Shared hosts often cap process threads; keep esbuild single-threaded
-if (!process.env.ESBUILD_WORKER_THREADS) {
-  process.env.ESBUILD_WORKER_THREADS = '1'
-}
-
-if (!process.env.GOMAXPROCS) {
-  process.env.GOMAXPROCS = '1'
-}
-
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -23,9 +14,15 @@ export default defineConfig({
     }
   },
   build: {
+    minify: 'terser',
     outDir: 'dist',
     assetsDir: '.',
-    minify: false,
+    terserOptions: {
+      compress: {
+        drop_console: process.env.NODE_ENV === 'production',
+        drop_debugger: process.env.NODE_ENV === 'production'
+      }
+    },
     rollupOptions: {
       output: {
         entryFileNames: '[name]-[hash].js',
