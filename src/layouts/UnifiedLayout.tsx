@@ -44,7 +44,7 @@ import { apiClient } from '@/lib/api-client'
 import { cn } from '@/lib/utils'
 
 // Types
-import { User, Role, Permission, AgeCategoryCustom, EventTypeCustom, Result, Athlete, AccessRequest, Message, AccountApprovalRequest, UserPermission } from '@/lib/types'
+import { User, Role, Permission, AgeCategoryCustom, EventTypeCustom, Result, Athlete, AthleteUser, AccessRequest, Message, AccountApprovalRequest, UserPermission } from '@/lib/types'
 
 interface DashboardWidget {
   id: string
@@ -1296,7 +1296,43 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
   )
 }
 
-// Helper function to build widget-specific props
+// Helper functions to build widget-specific props
+function resolveRoleScopedAthleteData(props: UnifiedLayoutProps): { athletes: Athlete[]; results: Result[] } {
+  const { currentUser, athletes, results } = props
+  const isParent = currentUser.role === 'parent'
+  const isAthlete = currentUser.role === 'athlete'
+
+  if (!isParent && !isAthlete) {
+    return { athletes, results }
+  }
+
+  const allowedIds = new Set<string>()
+
+  if (isParent) {
+    athletes.forEach((athlete) => {
+      if (athlete.parentId === currentUser.id) {
+        allowedIds.add(athlete.id)
+      }
+    })
+  }
+
+  if (isAthlete) {
+    const athleteId = (currentUser as AthleteUser).athleteId
+    if (athleteId) {
+      allowedIds.add(athleteId)
+    }
+  }
+
+  if (allowedIds.size === 0) {
+    return { athletes: [], results: [] }
+  }
+
+  const scopedAthletes = athletes.filter((athlete) => allowedIds.has(athlete.id))
+  const scopedResults = results.filter((result) => allowedIds.has(result.athleteId))
+
+  return { athletes: scopedAthletes, results: scopedResults }
+}
+
 function buildWidgetProps(widgetId: string, props: UnifiedLayoutProps): any {
   const baseProps = {
     onNavigateToTab: props.setActiveTab
@@ -1325,24 +1361,32 @@ function buildWidgetProps(widgetId: string, props: UnifiedLayoutProps): any {
     case 'recent-probes':
       return { probes: props.probes }
     
-    case 'performance-chart':
-      return { 
-        athletes: props.athletes, 
-        results: props.results 
-      }
-    
-    case 'recent-results':
-      return { 
-        athletes: props.athletes, 
-        results: props.results 
-      }
-
-    case 'personal-bests':
+    case 'performance-chart': {
+      const { athletes: scopedAthletes, results: scopedResults } = resolveRoleScopedAthleteData(props)
+      const canCompare = props.currentUser.role !== 'parent' && props.currentUser.role !== 'athlete'
       return {
-        athletes: props.athletes,
-        results: props.results,
+        athletes: scopedAthletes,
+        results: scopedResults,
+        canCompare
+      }
+    }
+    
+    case 'recent-results': {
+      const { athletes: scopedAthletes, results: scopedResults } = resolveRoleScopedAthleteData(props)
+      return {
+        athletes: scopedAthletes,
+        results: scopedResults
+      }
+    }
+
+    case 'personal-bests': {
+      const { athletes: scopedAthletes, results: scopedResults } = resolveRoleScopedAthleteData(props)
+      return {
+        athletes: scopedAthletes,
+        results: scopedResults,
         onViewAthleteDetails: props.handleViewAthleteDetails
       }
+    }
     
     case 'pending-requests':
       return {

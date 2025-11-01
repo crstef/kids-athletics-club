@@ -14,9 +14,10 @@ import { getUnitDisplayLabel } from '@/lib/units'
 interface PerformanceChartWidgetProps {
   athletes: Athlete[]
   results: Result[]
+  canCompare?: boolean
 }
 
-export function PerformanceChartWidget({ athletes, results }: PerformanceChartWidgetProps) {
+export function PerformanceChartWidget({ athletes, results, canCompare = true }: PerformanceChartWidgetProps) {
   const safeAthletes = useMemo(() => athletes ?? [], [athletes])
   const safeResults = useMemo(() => results ?? [], [results])
   const resultsSignature = useMemo(
@@ -27,6 +28,7 @@ export function PerformanceChartWidget({ athletes, results }: PerformanceChartWi
   const [selectedEvent, setSelectedEvent] = useState<string | null>(null)
   const [selectedAthleteId, setSelectedAthleteId] = useState<string | null>(safeAthletes[0]?.id || null)
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
+  const [selectedGender, setSelectedGender] = useState<'all' | 'M' | 'F'>('all')
   const [comparisonAthleteIds, setComparisonAthleteIds] = useState<string[]>([])
 
   const athleteOptions = useMemo(
@@ -63,19 +65,24 @@ export function PerformanceChartWidget({ athletes, results }: PerformanceChartWi
   }, [safeAthletes])
 
   const comparisonOptions = useMemo(() => {
+    if (!canCompare) {
+      return []
+    }
     const filteredAthletes = safeAthletes.filter(a => a.id !== selectedAthleteId)
 
     if (!selectedEvent) {
       return filteredAthletes
+        .filter(a => selectedGender === 'all' || a.gender === selectedGender)
         .filter(a => selectedCategory === 'all' || a.category === selectedCategory)
         .map(a => ({ value: a.id, label: `${a.firstName} ${a.lastName}` }))
     }
 
     return filteredAthletes
+      .filter(a => selectedGender === 'all' || a.gender === selectedGender)
       .filter(a => selectedCategory === 'all' || a.category === selectedCategory)
-      .filter(a => eventsByAthlete.get(a.id)?.has(selectedEvent))
-      .map(a => ({ value: a.id, label: `${a.firstName} ${a.lastName}` }))
-  }, [safeAthletes, selectedAthleteId, selectedEvent, eventsByAthlete, selectedCategory])
+    .filter(a => eventsByAthlete.get(a.id)?.has(selectedEvent))
+    .map(a => ({ value: a.id, label: `${a.firstName} ${a.lastName}` }))
+  }, [canCompare, safeAthletes, selectedAthleteId, selectedEvent, eventsByAthlete, selectedCategory, selectedGender])
 
   const defaultAthleteId = safeAthletes.length > 0 ? safeAthletes[0].id : null
   const athletesSignature = useMemo(() => safeAthletes.map(a => a.id).join('|'), [safeAthletes])
@@ -119,32 +126,50 @@ export function PerformanceChartWidget({ athletes, results }: PerformanceChartWi
     } else if (categoryOptions.length === 0 && selectedCategory !== 'all') {
       setSelectedCategory('all')
     }
-  }, [selectedAthleteId, safeAthletes, categoryOptions, selectedCategory])
 
-  useEffect(() => {
-    setComparisonAthleteIds(prev => {
-      const filtered = prev.filter(id => id !== selectedAthleteId && athleteIdSet.has(id))
-      if (filtered.length === prev.length && filtered.every((id, index) => id === prev[index])) {
-        return prev
+    if (athlete?.gender) {
+      if (selectedGender !== athlete.gender) {
+        setSelectedGender(athlete.gender)
       }
-      return filtered
-    })
-  }, [selectedAthleteId, athleteIdSet])
+    } else if (!selectedAthleteId && selectedGender !== 'all') {
+      setSelectedGender('all')
+    }
+  }, [selectedAthleteId, safeAthletes, categoryOptions, selectedCategory, selectedGender])
 
   useEffect(() => {
+    if (!canCompare) {
+      if (selectedCategory !== 'all') {
+        setSelectedCategory('all')
+      }
+      if (selectedGender !== 'all') {
+        setSelectedGender('all')
+      }
+    }
+  }, [canCompare, selectedCategory, selectedGender])
+
+  useEffect(() => {
+    if (!canCompare) {
+      setComparisonAthleteIds([])
+      return
+    }
+
     setComparisonAthleteIds(prev => {
       const filtered = prev.filter(id => {
         const athlete = safeAthletes.find(a => a.id === id)
         if (!athlete) return false
-        if (selectedCategory === 'all') return true
-        return athlete.category === selectedCategory
+        if (!athleteIdSet.has(id)) return false
+        if (id === selectedAthleteId) return false
+        if (selectedCategory !== 'all' && athlete.category !== selectedCategory) return false
+        if (selectedGender !== 'all' && athlete.gender !== selectedGender) return false
+        return true
       })
+
       if (filtered.length === prev.length && filtered.every((id, index) => id === prev[index])) {
         return prev
       }
       return filtered
     })
-  }, [selectedCategory, safeAthletes])
+  }, [canCompare, selectedAthleteId, athleteIdSet, selectedCategory, selectedGender, safeAthletes])
 
   useEffect(() => {
     if (!selectedAthleteId) {
@@ -186,7 +211,7 @@ export function PerformanceChartWidget({ athletes, results }: PerformanceChartWi
   }, [safeResults, selectedAthleteId, selectedEvent])
 
   const comparisonSeries = useMemo(() => {
-    if (!selectedEvent) return []
+    if (!canCompare || !selectedEvent) return []
 
     return comparisonSelectionDetails
       .map(({ id, label }) => {
@@ -204,7 +229,7 @@ export function PerformanceChartWidget({ athletes, results }: PerformanceChartWi
         }
       })
       .filter((series): series is { label: string; data: PerformanceData[] } => Boolean(series))
-  }, [comparisonSelectionDetails, safeResults, selectedEvent])
+  }, [canCompare, comparisonSelectionDetails, safeResults, selectedEvent])
 
   const selectedUnit = useMemo(() => {
     if (!selectedAthleteId || !selectedEvent) return null
@@ -253,91 +278,108 @@ export function PerformanceChartWidget({ athletes, results }: PerformanceChartWi
               ))}
             </SelectContent>
           </Select>
-          <Select
-            value={selectedCategory}
-            onValueChange={(val) => setSelectedCategory(val)}
-            disabled={categoryOptions.length === 0 && selectedCategory === 'all'}
-          >
-            <SelectTrigger className="md:w-[180px]">
-              <SelectValue placeholder="Filtrează categorie" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Toate categoriile</SelectItem>
-              {categoryOptions.map(category => (
-                <SelectItem key={category} value={category}>{category}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="w-full justify-between gap-2 md:w-auto"
-                disabled={comparisonOptions.length === 0}
+          {canCompare && (
+            <>
+              <Select
+                value={selectedCategory}
+                onValueChange={(val) => setSelectedCategory(val)}
+                disabled={categoryOptions.length === 0 && selectedCategory === 'all'}
               >
-                <span className="inline-flex items-center gap-2">
-                  <UsersThree size={16} />
-                  {comparisonSelectionDetails.length > 0
-                    ? `Compară (${comparisonSelectionDetails.length})`
-                    : 'Compară atleți'}
-                </span>
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-64 p-3">
-              <div className="space-y-3">
-                <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Selectează atleți pentru comparație
-                </div>
-                {comparisonOptions.length > 0 ? (
-                  <ScrollArea className="max-h-48">
-                    <div className="space-y-2 pr-1">
-                      {comparisonOptions.map(option => {
-                        const isChecked = comparisonAthleteIds.includes(option.value)
-                        return (
-                          <label key={option.value} className="flex items-center gap-2 text-sm">
-                            <Checkbox
-                              checked={isChecked}
-                              onCheckedChange={(checked) => {
-                                setComparisonAthleteIds(prev => {
-                                  if (checked === true) {
-                                    if (prev.includes(option.value)) {
-                                      return prev
-                                    }
-                                    return [...prev, option.value]
-                                  }
-                                  return prev.filter(id => id !== option.value)
-                                })
-                              }}
-                            />
-                            <span className="truncate">{option.label}</span>
-                          </label>
-                        )
-                      })}
-                    </div>
-                  </ScrollArea>
-                ) : (
-                  <p className="text-xs text-muted-foreground">
-                    Nu există alți atleți disponibili pentru această probă.
-                  </p>
-                )}
-                {comparisonAthleteIds.length > 0 && (
+                <SelectTrigger className="md:w-[180px]">
+                  <SelectValue placeholder="Filtrează categorie" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toate categoriile</SelectItem>
+                  {categoryOptions.map(category => (
+                    <SelectItem key={category} value={category}>{category}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={selectedGender}
+                onValueChange={(val) => setSelectedGender(val as 'all' | 'M' | 'F')}
+              >
+                <SelectTrigger className="md:w-[160px]">
+                  <SelectValue placeholder="Filtrează gen" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toate genurile</SelectItem>
+                  <SelectItem value="F">Fete</SelectItem>
+                  <SelectItem value="M">Băieți</SelectItem>
+                </SelectContent>
+              </Select>
+              <Popover>
+                <PopoverTrigger asChild>
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
-                    className="self-start"
-                    onClick={() => setComparisonAthleteIds([])}
+                    className="w-full justify-between gap-2 md:w-auto"
+                    disabled={comparisonOptions.length === 0}
                   >
-                    Resetează selecția
+                    <span className="inline-flex items-center gap-2">
+                      <UsersThree size={16} />
+                      {comparisonSelectionDetails.length > 0
+                        ? `Compară (${comparisonSelectionDetails.length})`
+                        : 'Compară atleți'}
+                    </span>
                   </Button>
-                )}
-              </div>
-            </PopoverContent>
-          </Popover>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-64 p-3">
+                  <div className="space-y-3">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Selectează atleți pentru comparație
+                    </div>
+                    {comparisonOptions.length > 0 ? (
+                      <ScrollArea className="max-h-48">
+                        <div className="space-y-2 pr-1">
+                          {comparisonOptions.map(option => {
+                            const isChecked = comparisonAthleteIds.includes(option.value)
+                            return (
+                              <label key={option.value} className="flex items-center gap-2 text-sm">
+                                <Checkbox
+                                  checked={isChecked}
+                                  onCheckedChange={(checked) => {
+                                    setComparisonAthleteIds(prev => {
+                                      if (checked === true) {
+                                        if (prev.includes(option.value)) {
+                                          return prev
+                                        }
+                                        return [...prev, option.value]
+                                      }
+                                      return prev.filter(id => id !== option.value)
+                                    })
+                                  }}
+                                />
+                                <span className="truncate">{option.label}</span>
+                              </label>
+                            )
+                          })}
+                        </div>
+                      </ScrollArea>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        Nu există alți atleți disponibili pentru această probă.
+                      </p>
+                    )}
+                    {comparisonAthleteIds.length > 0 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="self-start"
+                        onClick={() => setComparisonAthleteIds([])}
+                      >
+                        Resetează selecția
+                      </Button>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </>
+          )}
         </div>
-        {comparisonSelectionDetails.length > 0 && (
+        {canCompare && comparisonSelectionDetails.length > 0 && (
           <div className="flex flex-wrap gap-2 pt-1">
             {comparisonSelectionDetails.map(({ id, label }) => (
               <Badge key={id} variant="outline" className="flex items-center gap-1">
