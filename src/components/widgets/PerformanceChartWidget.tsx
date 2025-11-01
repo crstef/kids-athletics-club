@@ -26,6 +26,7 @@ export function PerformanceChartWidget({ athletes, results }: PerformanceChartWi
 
   const [selectedEvent, setSelectedEvent] = useState<string | null>(null)
   const [selectedAthleteId, setSelectedAthleteId] = useState<string | null>(safeAthletes[0]?.id || null)
+  const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [comparisonAthleteIds, setComparisonAthleteIds] = useState<string[]>([])
 
   const athleteOptions = useMemo(
@@ -51,17 +52,30 @@ export function PerformanceChartWidget({ athletes, results }: PerformanceChartWi
   }, [eventsByAthlete, selectedAthleteId])
   const eventsSignature = useMemo(() => eventsForSelectedAthlete.join('|'), [eventsForSelectedAthlete])
 
+  const categoryOptions = useMemo(() => {
+    const unique = new Set<string>()
+    safeAthletes.forEach(a => {
+      if (a.category) {
+        unique.add(a.category)
+      }
+    })
+    return Array.from(unique).sort()
+  }, [safeAthletes])
+
   const comparisonOptions = useMemo(() => {
     const filteredAthletes = safeAthletes.filter(a => a.id !== selectedAthleteId)
 
     if (!selectedEvent) {
-      return filteredAthletes.map(a => ({ value: a.id, label: `${a.firstName} ${a.lastName}` }))
+      return filteredAthletes
+        .filter(a => selectedCategory === 'all' || a.category === selectedCategory)
+        .map(a => ({ value: a.id, label: `${a.firstName} ${a.lastName}` }))
     }
 
     return filteredAthletes
+      .filter(a => selectedCategory === 'all' || a.category === selectedCategory)
       .filter(a => eventsByAthlete.get(a.id)?.has(selectedEvent))
       .map(a => ({ value: a.id, label: `${a.firstName} ${a.lastName}` }))
-  }, [safeAthletes, selectedAthleteId, selectedEvent, eventsByAthlete])
+  }, [safeAthletes, selectedAthleteId, selectedEvent, eventsByAthlete, selectedCategory])
 
   const defaultAthleteId = safeAthletes.length > 0 ? safeAthletes[0].id : null
   const athletesSignature = useMemo(() => safeAthletes.map(a => a.id).join('|'), [safeAthletes])
@@ -93,6 +107,21 @@ export function PerformanceChartWidget({ athletes, results }: PerformanceChartWi
   }, [defaultAthleteId, selectedAthleteId, athletesSignature, athleteIdSet])
 
   useEffect(() => {
+    const athlete = selectedAthleteId ? safeAthletes.find(a => a.id === selectedAthleteId) : undefined
+    if (athlete?.category) {
+      if (selectedCategory !== athlete.category) {
+        setSelectedCategory(athlete.category)
+      }
+    } else if (!selectedAthleteId && categoryOptions.length > 0) {
+      if (selectedCategory !== categoryOptions[0]) {
+        setSelectedCategory(categoryOptions[0])
+      }
+    } else if (categoryOptions.length === 0 && selectedCategory !== 'all') {
+      setSelectedCategory('all')
+    }
+  }, [selectedAthleteId, safeAthletes, categoryOptions, selectedCategory])
+
+  useEffect(() => {
     setComparisonAthleteIds(prev => {
       const filtered = prev.filter(id => id !== selectedAthleteId && athleteIdSet.has(id))
       if (filtered.length === prev.length && filtered.every((id, index) => id === prev[index])) {
@@ -101,6 +130,21 @@ export function PerformanceChartWidget({ athletes, results }: PerformanceChartWi
       return filtered
     })
   }, [selectedAthleteId, athleteIdSet])
+
+  useEffect(() => {
+    setComparisonAthleteIds(prev => {
+      const filtered = prev.filter(id => {
+        const athlete = safeAthletes.find(a => a.id === id)
+        if (!athlete) return false
+        if (selectedCategory === 'all') return true
+        return athlete.category === selectedCategory
+      })
+      if (filtered.length === prev.length && filtered.every((id, index) => id === prev[index])) {
+        return prev
+      }
+      return filtered
+    })
+  }, [selectedCategory, safeAthletes])
 
   useEffect(() => {
     if (!selectedAthleteId) {
@@ -206,6 +250,21 @@ export function PerformanceChartWidget({ athletes, results }: PerformanceChartWi
             <SelectContent>
               {eventsForSelectedAthlete.map(event => (
                 <SelectItem key={event} value={event}>{event}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={selectedCategory}
+            onValueChange={(val) => setSelectedCategory(val)}
+            disabled={categoryOptions.length === 0 && selectedCategory === 'all'}
+          >
+            <SelectTrigger className="md:w-[180px]">
+              <SelectValue placeholder="Filtrează categorie" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Toate categoriile</SelectItem>
+              {categoryOptions.map(category => (
+                <SelectItem key={category} value={category}>{category}</SelectItem>
               ))}
             </SelectContent>
           </Select>
