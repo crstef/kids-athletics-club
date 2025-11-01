@@ -1,7 +1,17 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { Toaster } from '@/components/ui/sonner'
 import { Button } from '@/components/ui/button'
-import { ShieldCheck, SignOut, Gear } from '@phosphor-icons/react'
+import { ShieldCheck, SignOut, Gear, DotsSixVertical } from '@phosphor-icons/react'
+import {
+  DndContext,
+  PointerSensor,
+  closestCenter,
+  type DragEndEvent,
+  useSensor,
+  useSensors
+} from '@dnd-kit/core'
+import { SortableContext, rectSortingStrategy, arrayMove, useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -277,6 +287,24 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
   const { hasPermission } = useAuth()
   const [customizeOpen, setCustomizeOpen] = useState(false)
   const [enabledWidgets, setEnabledWidgets] = useState<string[]>([])
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 }
+    })
+  )
+
+  const handleWidgetDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    setEnabledWidgets(prev => {
+      const oldIndex = prev.indexOf(String(active.id))
+      const newIndex = prev.indexOf(String(over.id))
+      if (oldIndex === -1 || newIndex === -1) return prev
+      return arrayMove(prev, oldIndex, newIndex)
+    })
+  }, [])
+
   const [widgetsLoaded, setWidgetsLoaded] = useState(false)
   const [allowedWidgetIds, setAllowedWidgetIds] = useState<string[]>([])
   const isParentUser = currentUser.role === 'parent'
@@ -656,58 +684,65 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
           </div>
         </div>
 
-  <div className="grid grid-cols-1 md:grid-cols-6 xl:grid-cols-12 gap-6 auto-rows-fr">
-          {widgetsToRender.map(widgetId => {
-            console.log('[debug] rendering widget', widgetId)
-            const widgetConfig = WIDGET_REGISTRY[widgetId]
-            if (!widgetConfig) return null
-            
-            // Check permission
-            if (!userCanAccessWidget(widgetId, currentUser.permissions || [])) {
-              return null
-            }
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleWidgetDragEnd}>
+          <SortableContext items={widgetsToRender} strategy={rectSortingStrategy}>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-6 xl:grid-cols-12 auto-rows-[minmax(0,1fr)] [grid-auto-flow:dense]">
+              {widgetsToRender.map(widgetId => {
+                console.log('[debug] rendering widget', widgetId)
+                const widgetConfig = WIDGET_REGISTRY[widgetId]
+                if (!widgetConfig) return null
 
-            if (allowedWidgetSet.size > 0 && !allowedWidgetSet.has(widgetId)) {
-              return null
-            }
+                // Check permission
+                if (!userCanAccessWidget(widgetId, currentUser.permissions || [])) {
+                  return null
+                }
 
-            const WidgetComponent = widgetConfig.component
-            const baseSpan = (() => {
-              switch (widgetConfig.defaultSize) {
-                case 'small':
-                  return 'md:col-span-3 xl:col-span-3'
-                case 'large':
-                  return 'md:col-span-6 xl:col-span-8'
-                case 'xlarge':
-                  return 'md:col-span-6 xl:col-span-12'
-                case 'medium':
-                default:
-                  return 'md:col-span-3 xl:col-span-6'
-              }
-            })()
-            const spanClass = GRAPHIC_WIDGET_IDS.has(widgetId)
-              ? 'md:col-span-6 xl:col-span-12'
-              : baseSpan
-            
-            // Build props based on widget type
-            const widgetProps = buildWidgetProps(widgetId, props)
+                if (allowedWidgetSet.size > 0 && !allowedWidgetSet.has(widgetId)) {
+                  return null
+                }
 
-            try {
-              return (
-                <div key={widgetId} className={cn('col-span-1', spanClass)}>
-                  <WidgetComponent {...widgetProps} />
-                </div>
-              )
-            } catch (err) {
-              console.error('[debug] widget render error', widgetId, err)
-              return (
-                <div key={widgetId} className="col-span-1 border border-destructive rounded p-4 text-destructive">
-                  Widget {widgetId} failed to render.
-                </div>
-              )
-            }
-          })}
-        </div>
+                const WidgetComponent = widgetConfig.component
+                const baseSpan = (() => {
+                  switch (widgetConfig.defaultSize) {
+                    case 'small':
+                      return 'md:col-span-3 xl:col-span-3'
+                    case 'large':
+                      return 'md:col-span-6 xl:col-span-8'
+                    case 'xlarge':
+                      return 'md:col-span-6 xl:col-span-12'
+                    case 'medium':
+                    default:
+                      return 'md:col-span-3 xl:col-span-6'
+                  }
+                })()
+                const spanClass = GRAPHIC_WIDGET_IDS.has(widgetId)
+                  ? 'md:col-span-6 xl:col-span-12'
+                  : baseSpan
+
+                // Build props based on widget type
+                const widgetProps = buildWidgetProps(widgetId, props)
+
+                let rendered: React.ReactNode
+                try {
+                  rendered = <WidgetComponent {...widgetProps} />
+                } catch (err) {
+                  console.error('[debug] widget render error', widgetId, err)
+                  rendered = (
+                    <div className="border border-destructive rounded p-4 text-destructive">
+                      Widget {widgetId} failed to render.
+                    </div>
+                  )
+                }
+
+                return (
+                  <SortableWidget key={widgetId} id={widgetId} spanClass={spanClass}>
+                    {rendered}
+                  </SortableWidget>
+                )
+              })}
+            </div>
+          </SortableContext>
+        </DndContext>
       </div>
     )
   }
@@ -1179,6 +1214,45 @@ function buildWidgetProps(widgetId: string, props: UnifiedLayoutProps): any {
     default:
       return baseProps
   }
+}
+
+interface SortableWidgetProps {
+  id: string
+  spanClass: string
+  children: React.ReactNode
+}
+
+const SortableWidget = ({ id, spanClass, children }: SortableWidgetProps) => {
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id })
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn('col-span-1', spanClass, isDragging ? 'z-50 opacity-90' : '')}
+    >
+      <div className="group relative h-full">
+        <button
+          type="button"
+          ref={setActivatorNodeRef}
+          {...listeners}
+          {...attributes}
+          className="absolute right-3 top-3 flex rounded-full border border-border/60 bg-background/80 p-1 text-muted-foreground shadow-sm opacity-0 transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:opacity-100 group-hover:opacity-100 group-hover:shadow-md"
+          aria-label="Reordonează widget"
+        >
+          <DotsSixVertical size={16} weight="bold" />
+        </button>
+        <div className="h-full">
+          {children}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export default UnifiedLayout
