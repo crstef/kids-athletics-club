@@ -14,14 +14,11 @@ export default defineConfig({
     }
   },
   build: {
-    minify: 'terser',
+    minify: 'esbuild',
     outDir: 'dist',
     assetsDir: '.',
-    terserOptions: {
-      compress: {
-        drop_console: process.env.NODE_ENV === 'production',
-        drop_debugger: process.env.NODE_ENV === 'production'
-      }
+    esbuild: {
+      drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : undefined
     },
     rollupOptions: {
       output: {
