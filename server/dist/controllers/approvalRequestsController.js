@@ -175,7 +175,7 @@ const approveRequest = async (req, res) => {
         const approverId = authUser?.userId || null;
         const effectiveCoachId = request.effective_coach_id;
         const effectiveAthleteId = request.effective_athlete_id;
-        const metadata = parseApprovalMetadata(request.effective_approval_notes);
+        const approvalMetadata = parseApprovalMetadata(request.effective_approval_notes);
         switch (request.requested_role) {
             case 'parent': {
                 if (authUser?.role !== 'superadmin' && authUser?.userId !== effectiveCoachId) {
@@ -189,7 +189,12 @@ const approveRequest = async (req, res) => {
              WHERE parent_id = $1 AND athlete_id = $2 AND coach_id = $3`, [request.user_id, effectiveAthleteId, effectiveCoachId]);
                     if (updateAccess.rowCount === 0) {
                         await client.query(`INSERT INTO access_requests (parent_id, athlete_id, coach_id, status, response_date, message)
-               VALUES ($1, $2, $3, 'approved', CURRENT_TIMESTAMP, $4)`, [request.user_id, effectiveAthleteId, effectiveCoachId, request.effective_approval_notes || null]);
+               VALUES ($1, $2, $3, 'approved', CURRENT_TIMESTAMP, $4)`, [
+                            request.user_id,
+                            effectiveAthleteId,
+                            effectiveCoachId,
+                            approvalMetadata.message ?? request.effective_approval_notes ?? null
+                        ]);
                     }
                 }
                 break;
@@ -205,7 +210,7 @@ const approveRequest = async (req, res) => {
                     return res.status(404).json({ error: 'User not found for approval request' });
                 }
                 const userRow = userResult.rows[0];
-                const profile = metadata.profile;
+                const profile = approvalMetadata.profile;
                 if (!profile?.dateOfBirth || !profile.gender) {
                     await client.query('ROLLBACK');
                     return res.status(400).json({ error: 'Missing athlete profile data for approval' });
@@ -302,7 +307,6 @@ const rejectRequest = async (req, res) => {
         }
         const effectiveCoachId = request.effective_coach_id;
         const effectiveAthleteId = request.effective_athlete_id;
-        const metadata = parseApprovalMetadata(request.effective_approval_notes);
         switch (request.requested_role) {
             case 'parent': {
                 if (authUser?.role !== 'superadmin' && authUser?.userId !== effectiveCoachId) {

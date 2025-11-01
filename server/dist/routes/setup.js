@@ -1440,7 +1440,6 @@ const resetDatabase = async (req, res) => {
         }
         // Get user IDs for linking
         console.log('Getting user IDs for linking...');
-        const adminUser = await client.query('SELECT id FROM users WHERE role = $1 LIMIT 1', ['superadmin']);
         const coach1 = await client.query('SELECT id FROM users WHERE email = $1', ['coach1@kidsathletics.ro']);
         const parent1 = await client.query('SELECT id FROM users WHERE email = $1', ['parent1@kidsathletics.ro']);
         const parent2 = await client.query('SELECT id FROM users WHERE email = $1', ['parent2@kidsathletics.ro']);

@@ -11,8 +11,8 @@ const getAllMessages = async (req, res) => {
     try {
         let query = `
       SELECT m.*, 
-          uf.first_name as from_fn, uf.last_name as from_ln, uf.role as from_role,
-          ut.first_name as to_fn, ut.last_name as to_ln, ut.role as to_role 
+        uf.first_name as from_fn, uf.last_name as from_ln, uf.role as from_role,
+        ut.first_name as to_fn, ut.last_name as to_ln, ut.role as to_role 
       FROM messages m
       JOIN users uf ON m.from_user_id = uf.id
       JOIN users ut ON m.to_user_id = ut.id
