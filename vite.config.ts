@@ -5,6 +5,11 @@ import { resolve } from 'path'
 
 const projectRoot = process.env.PROJECT_ROOT || process.cwd()
 
+// Shared hosts often cap process threads; this keeps esbuild single-threaded
+if (!process.env.ESBUILD_WORKER_THREADS) {
+  process.env.ESBUILD_WORKER_THREADS = '0'
+}
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
