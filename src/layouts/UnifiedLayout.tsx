@@ -1154,6 +1154,13 @@ function buildWidgetProps(widgetId: string, props: UnifiedLayoutProps): any {
         athletes: props.athletes, 
         results: props.results 
       }
+
+    case 'personal-bests':
+      return {
+        athletes: props.athletes,
+        results: props.results,
+        onViewAthleteDetails: props.handleViewAthleteDetails
+      }
     
     case 'pending-requests':
       return {

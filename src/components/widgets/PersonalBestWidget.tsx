@@ -6,8 +6,8 @@ import { formatDateToDisplay, cn } from '@/lib/utils'
 import { formatResultValue, normalizeUnit, preferLowerValues, getUnitDisplayLabel } from '@/lib/units'
 
 interface PersonalBestWidgetProps {
-  athletes: Athlete[]
-  results: Result[]
+  athletes?: Athlete[]
+  results?: Result[]
   onViewAthleteDetails?: (athlete: Athlete) => void
 }
 
@@ -17,9 +17,12 @@ function isBetter(unit: Result['unit'], a: number, b: number) {
 }
 
 export default function PersonalBestWidget({ athletes, results, onViewAthleteDetails }: PersonalBestWidgetProps) {
+  const safeAthletes = useMemo(() => athletes ?? [], [athletes])
+  const safeResults = useMemo(() => results ?? [], [results])
+
   const recentPBs = useMemo(() => {
     // Sort results by date asc to build progression
-    const sorted = [...results].sort((r1, r2) => new Date(r1.date).getTime() - new Date(r2.date).getTime())
+    const sorted = [...safeResults].sort((r1, r2) => new Date(r1.date).getTime() - new Date(r2.date).getTime())
 
     // Map key: `${athleteId}::${eventType}` -> current best value
     const bestMap = new Map<string, { value: number; unit: Result['unit'] }>()
@@ -51,7 +54,7 @@ export default function PersonalBestWidget({ athletes, results, onViewAthleteDet
 
     // Keep most recent PBs
     return pbs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-  }, [results])
+  }, [safeResults])
 
   const top = recentPBs.slice(0, 8)
 
@@ -67,7 +70,7 @@ export default function PersonalBestWidget({ athletes, results, onViewAthleteDet
         ) : (
           <ul className="divide-y">
             {top.map(pb => {
-              const athlete = athletes.find(a => a.id === pb.athleteId)
+              const athlete = safeAthletes.find(a => a.id === pb.athleteId)
               const canonical = normalizeUnit(pb.unit)
               const lowerIsBetter = preferLowerValues(canonical)
               const improvement = pb.previousBest != null

@@ -12,21 +12,24 @@ interface PerformanceChartWidgetProps {
 }
 
 export function PerformanceChartWidget({ athletes, results }: PerformanceChartWidgetProps) {
-  const [selectedEvent, setSelectedEvent] = useState<string | null>(null)
-  const [selectedAthleteId, setSelectedAthleteId] = useState<string | null>(athletes[0]?.id || null)
+  const safeAthletes = useMemo(() => athletes ?? [], [athletes])
+  const safeResults = useMemo(() => results ?? [], [results])
 
-  const athleteOptions = athletes.map(a => ({ value: a.id, label: `${a.firstName} ${a.lastName}` }))
+  const [selectedEvent, setSelectedEvent] = useState<string | null>(null)
+  const [selectedAthleteId, setSelectedAthleteId] = useState<string | null>(safeAthletes[0]?.id || null)
+
+  const athleteOptions = safeAthletes.map(a => ({ value: a.id, label: `${a.firstName} ${a.lastName}` }))
 
   const eventsByAthlete = useMemo(() => {
     const map = new Map<string, Set<string>>()
-    results.forEach(result => {
+    safeResults.forEach(result => {
       if (!map.has(result.athleteId)) {
         map.set(result.athleteId, new Set())
       }
       map.get(result.athleteId)!.add(result.eventType)
     })
     return map
-  }, [results])
+  }, [safeResults])
 
   const eventsForSelectedAthlete = useMemo(() => {
     if (!selectedAthleteId) return []
@@ -34,37 +37,45 @@ export function PerformanceChartWidget({ athletes, results }: PerformanceChartWi
     return set ? Array.from(set) : []
   }, [eventsByAthlete, selectedAthleteId])
 
+  const defaultAthleteId = safeAthletes[0]?.id || null
+
   useEffect(() => {
-    if (!selectedAthleteId && athletes.length > 0) {
-      setSelectedAthleteId(athletes[0].id)
+    if (!selectedAthleteId && defaultAthleteId) {
+      setSelectedAthleteId(prev => (prev === defaultAthleteId ? prev : defaultAthleteId))
+      return
     }
-  }, [athletes, selectedAthleteId])
+    if (selectedAthleteId && !safeAthletes.some(athlete => athlete.id === selectedAthleteId)) {
+      const fallbackId = defaultAthleteId ?? null
+      setSelectedAthleteId(prev => (prev === fallbackId ? prev : fallbackId))
+    }
+  }, [defaultAthleteId, selectedAthleteId, safeAthletes])
 
   useEffect(() => {
     if (eventsForSelectedAthlete.length === 0) {
-      setSelectedEvent(null)
+      setSelectedEvent(prev => (prev === null ? prev : null))
       return
     }
 
     if (!selectedEvent || !eventsForSelectedAthlete.includes(selectedEvent)) {
-      setSelectedEvent(eventsForSelectedAthlete[0])
+      const nextEvent = eventsForSelectedAthlete[0]
+      setSelectedEvent(prev => (prev === nextEvent ? prev : nextEvent))
     }
   }, [eventsForSelectedAthlete, selectedEvent])
 
   const chartData = useMemo(() => {
     if (!selectedAthleteId || !selectedEvent) return []
-    return results
+    return safeResults
       .filter(r => r.athleteId === selectedAthleteId && r.eventType === selectedEvent)
       .map(r => ({ date: r.date, value: r.value, notes: r.notes, unit: r.unit }))
-  }, [results, selectedAthleteId, selectedEvent])
+  }, [safeResults, selectedAthleteId, selectedEvent])
 
   const selectedUnit = useMemo(() => {
     if (!selectedAthleteId || !selectedEvent) return null
-    const record = results.find(r => r.athleteId === selectedAthleteId && r.eventType === selectedEvent)
+    const record = safeResults.find(r => r.athleteId === selectedAthleteId && r.eventType === selectedEvent)
     return record?.unit ?? null
-  }, [results, selectedAthleteId, selectedEvent])
+  }, [safeResults, selectedAthleteId, selectedEvent])
 
-  const insufficientData = athletes.length === 0 || results.length === 0 || !selectedAthleteId || eventsForSelectedAthlete.length === 0
+  const insufficientData = safeAthletes.length === 0 || safeResults.length === 0 || !selectedAthleteId || eventsForSelectedAthlete.length === 0
   const selectedEventUnitLabel = selectedUnit ? getUnitDisplayLabel(selectedUnit) : null
 
   return (
