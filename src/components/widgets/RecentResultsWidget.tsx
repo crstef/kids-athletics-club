@@ -1,9 +1,9 @@
 import { useMemo, useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Trophy } from '@phosphor-icons/react'
-import { formatResult } from '@/lib/utils'
-import { PeriodFilter, getFilteredResults, getInitialDateRange, getFirstDataDate, Period } from '../PeriodFilter'
-import type { Athlete, Result } from '@/lib/types'
+import { PeriodFilter, getFilteredResults, getInitialDateRange, getFirstDataDate } from '../PeriodFilter'
+import { formatResultValue } from '@/lib/units'
+import type { Athlete, Result, Period } from '@/lib/types'
 
 interface RecentResultsWidgetProps {
   athletes: Athlete[]
@@ -42,12 +42,33 @@ export function RecentResultsWidget({ athletes, results }: RecentResultsWidgetPr
           setDateRange={setDateRange}
           firstDataDate={firstDataDate}
         />
-        <ul className="space-y-2 mt-4">
+        <ul className="mt-4 space-y-2">
           {filteredResults.slice(0, 10).map(result => {
             const athlete = athletes.find(a => a.id === result.athleteId)
+            const note = result.notes?.trim()
             return (
-              <li key={result.id} className="text-sm p-2 border rounded hover:bg-accent/5">
-                <strong>{athlete?.firstName} {athlete?.lastName}</strong>: {result.eventType} - {formatResult(result.value, result.unit)}
+              <li
+                key={result.id}
+                className="rounded-lg border border-border/60 bg-background/90 px-3 py-2 text-sm shadow-sm transition hover:border-border hover:bg-accent/10"
+              >
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="space-y-0.5">
+                    <p className="font-semibold text-foreground">
+                      {athlete ? `${athlete.firstName} ${athlete.lastName}` : 'Atlet necunoscut'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {result.eventType}
+                    </p>
+                  </div>
+                  <span className="text-sm font-semibold text-primary">
+                    {formatResultValue(result.value, result.unit)}
+                  </span>
+                </div>
+                {note && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    La concurs: {note}
+                  </p>
+                )}
               </li>
             )
           })}
