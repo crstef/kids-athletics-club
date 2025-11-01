@@ -732,7 +732,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
         ? prev.filter(id => id !== canonicalId)
         : prev.includes(canonicalId)
           ? prev
-          : [...prev, canonicalId]
+          : [canonicalId, ...prev]
     ))
 
     if (!isEnabled) {

@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ArrowUpRight } from '@phosphor-icons/react'
+import { ArrowUpRight, ArrowDownRight } from '@phosphor-icons/react'
 import type { Athlete, Result } from '@/lib/types'
 import { formatDateToDisplay, cn } from '@/lib/utils'
 import { formatResultValue, normalizeUnit, preferLowerValues, getUnitDisplayLabel } from '@/lib/units'
@@ -52,8 +52,19 @@ export default function PersonalBestWidget({ athletes, results, onViewAthleteDet
       }
     }
 
-    // Keep most recent PBs
-    return pbs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    const sortedDesc = [...pbs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
+    const unique: typeof sortedDesc = []
+    const seenKeys = new Set<string>()
+
+    for (const pb of sortedDesc) {
+      const key = `${pb.athleteId}::${pb.eventType}`
+      if (seenKeys.has(key)) continue
+      seenKeys.add(key)
+      unique.push(pb)
+    }
+
+    return unique
   }, [safeResults])
 
   const top = recentPBs.slice(0, 8)
@@ -80,6 +91,7 @@ export default function PersonalBestWidget({ athletes, results, onViewAthleteDet
               const deltaLabel = hasImprovement
                 ? `${improvement > 0 ? (lowerIsBetter ? '-' : '+') : (lowerIsBetter ? '+' : '-')}${Math.abs(improvement).toFixed(2)} ${getUnitDisplayLabel(pb.unit)}`
                 : null
+              const ArrowIcon = lowerIsBetter ? ArrowDownRight : ArrowUpRight
               return (
                 <li
                   key={pb.id}
@@ -100,13 +112,8 @@ export default function PersonalBestWidget({ athletes, results, onViewAthleteDet
                   <div className="text-right">
                     <div className="text-sm font-semibold">{formatResultValue(pb.value, pb.unit)}</div>
                     {deltaLabel && (
-                      <div className={cn(
-                        'text-xs flex items-center justify-end gap-1 font-medium',
-                        improvement && improvement > 0
-                          ? 'text-emerald-600'
-                          : 'text-amber-500'
-                      )}>
-                        <ArrowUpRight size={12} />
+                      <div className="text-xs flex items-center justify-end gap-1 font-medium text-emerald-600">
+                        <ArrowIcon size={12} />
                         {deltaLabel}
                       </div>
                     )}
