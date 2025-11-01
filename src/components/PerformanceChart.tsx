@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef, useState, useId } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import * as d3 from 'd3'
 import type { PerformanceData, Period } from '@/lib/types'
 import { PeriodFilter, getFilteredResults, getFirstDataDate, getInitialDateRange } from './PeriodFilter'
-import { formatResultValue, getUnitDisplayLabel, preferLowerValues } from '@/lib/units'
+import { formatResultValue, getUnitDisplayLabel, preferLowerValues, normalizeUnit } from '@/lib/units'
 
 const COMPARISON_COLORS = ['#0ea5e9', '#f97316', '#22c55e', '#a855f7', '#facc15', '#ec4899']
 
@@ -15,6 +15,7 @@ interface ComparisonSeries {
 interface ChartSeries {
   key: string
   label: string
+  tooltipLabel: string
   data: PerformanceData[]
   color: string
   isPrimary: boolean
@@ -33,8 +34,6 @@ export function PerformanceChart({ data, eventType, unit, comparisons = [] }: Pe
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 })
   const [period, setPeriod] = useState<Period>('all')
   const [dateRange, setDateRange] = useState(() => getInitialDateRange(data, 'all'))
-
-  const gradientId = useId()
 
   const allSeriesData = useMemo(() => {
     const combined: PerformanceData[] = [...data]
@@ -89,6 +88,28 @@ export function PerformanceChart({ data, eventType, unit, comparisons = [] }: Pe
     [fallbackUnit]
   )
 
+  const axisTickFormatter = useMemo(() => {
+    const canonical = normalizeUnit(fallbackUnit ?? undefined)
+    const rawUnit = fallbackUnit ? String(fallbackUnit).trim() : ''
+
+    return (value: number) => {
+      const formatted = formatResultValue(value, fallbackUnit ?? undefined)
+
+      switch (canonical) {
+        case 'meters':
+          return formatted.replace(/\s*m$/i, '')
+        case 'points':
+          return formatted.replace(/\s*pct$/i, '')
+        case 'seconds':
+          return formatted.replace(/\s*sec(unde)?$/i, '')
+        default:
+          if (!rawUnit) return formatted
+          const escapedUnit = rawUnit.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+          return formatted.replace(new RegExp(`\\s*${escapedUnit}$`, 'i'), '')
+      }
+    }
+  }, [fallbackUnit])
+
   const baseSeries = useMemo<ChartSeries[]>(() => {
     const sortByDate = (points: PerformanceData[]) =>
       [...points].sort(
@@ -98,6 +119,7 @@ export function PerformanceChart({ data, eventType, unit, comparisons = [] }: Pe
     const primarySeries: ChartSeries = {
       key: 'primary',
       label: 'Serie principală',
+      tooltipLabel: eventType || 'Serie principală',
       data: sortByDate(data),
       color: 'hsl(var(--primary))',
       isPrimary: true,
@@ -106,13 +128,14 @@ export function PerformanceChart({ data, eventType, unit, comparisons = [] }: Pe
     const comparisonSeries = comparisons.map((series, index): ChartSeries => ({
       key: `comparison-${index}`,
       label: series.label,
+      tooltipLabel: series.label,
       data: sortByDate(series.data),
       color: series.color ?? COMPARISON_COLORS[index % COMPARISON_COLORS.length],
       isPrimary: false,
     }))
 
     return [primarySeries, ...comparisonSeries]
-  }, [data, comparisons])
+  }, [data, comparisons, eventType])
 
   const filteredSeries = useMemo(() => {
     return baseSeries.map(series => ({
@@ -152,7 +175,7 @@ export function PerformanceChart({ data, eventType, unit, comparisons = [] }: Pe
       return
     }
 
-    const margin = { top: 20, right: 48, bottom: 52, left: 72 }
+  const margin = { top: 24, right: 36, bottom: 56, left: 68 }
     const width = Math.max(dimensions.width - margin.left - margin.right, 0)
     const height = Math.max(dimensions.height - margin.top - margin.bottom, 0)
 
@@ -193,34 +216,33 @@ export function PerformanceChart({ data, eventType, unit, comparisons = [] }: Pe
       .domain(xDomain)
       .range([0, width])
 
-    const lowerBound = Math.max(minValue - padding, 0)
+    const lowerBound = minValue - padding
     const upperBound = maxValue + padding
-    const yDomain: [number, number] = [lowerBound, upperBound]
+    const yDomain: [number, number] = lowerIsBetter
+      ? [upperBound, Math.max(lowerBound, 0)]
+      : [Math.min(lowerBound, 0), upperBound]
 
     const y = d3.scaleLinear()
       .domain(yDomain)
       .range([height, 0])
       .nice()
 
-    const defs = svg.append('defs')
-    const primarySeries = filteredSeries[0]
-    const gradient = defs.append('linearGradient')
-      .attr('id', gradientId)
-      .attr('gradientUnits', 'userSpaceOnUse')
-      .attr('x1', 0)
-      .attr('y1', y(y.domain()[1]))
-      .attr('x2', 0)
-      .attr('y2', y(y.domain()[0]))
+  const yTicks = y.ticks(6)
 
-    gradient.append('stop')
-      .attr('offset', '0%')
-      .attr('stop-color', primarySeries.color)
-      .attr('stop-opacity', 0.25)
+    const grid = g.append('g')
+      .attr('class', 'chart-grid')
+      .call(
+        d3.axisLeft(y)
+          .tickValues(yTicks)
+          .tickSize(-width)
+          .tickFormat(() => '')
+      )
 
-    gradient.append('stop')
-      .attr('offset', '100%')
-      .attr('stop-color', primarySeries.color)
-      .attr('stop-opacity', 0)
+    grid
+      .call(axis => axis.select('.domain').remove())
+      .call(axis => axis.selectAll('line')
+        .attr('stroke', 'rgba(15, 23, 42, 0.12)')
+        .attr('stroke-dasharray', ''))
 
     const totalTimespan = xDomain[1].getTime() - xDomain[0].getTime()
     const dateTickFormat = totalTimespan > 1000 * 60 * 60 * 24 * 200
@@ -231,7 +253,7 @@ export function PerformanceChart({ data, eventType, unit, comparisons = [] }: Pe
       .sort((a, b) => a - b)
       .map(timestamp => new Date(timestamp))
 
-    g.append('g')
+    const xAxisGroup = g.append('g')
       .attr('transform', `translate(0,${height})`)
       .call(
         d3.axisBottom(x)
@@ -239,23 +261,27 @@ export function PerformanceChart({ data, eventType, unit, comparisons = [] }: Pe
           .tickFormat(d => dateTickFormat(d as Date) as unknown as string)
       )
       .attr('font-size', '12px')
-      .call(axis => axis.select('.domain').attr('stroke', 'hsl(var(--border))'))
-      .call(axis => axis.selectAll('text').attr('fill', 'hsl(var(--muted-foreground))'))
-      .call(axis => axis.selectAll('line').attr('stroke', 'hsl(var(--border))'))
 
-    g.append('g')
+    xAxisGroup
+      .call(axis => axis.select('.domain').attr('stroke', 'rgba(15, 23, 42, 0.16)'))
+      .call(axis => axis.selectAll('text').attr('fill', 'hsl(var(--muted-foreground))'))
+      .call(axis => axis.selectAll('line').attr('stroke', 'rgba(15, 23, 42, 0.16)'))
+
+    const yAxisGroup = g.append('g')
       .call(
         d3.axisLeft(y)
-          .ticks(6)
-          .tickFormat(d => formatResultValue(d as number, fallbackUnit ?? undefined))
+          .tickValues(yTicks)
+          .tickFormat(d => axisTickFormatter(d as number))
       )
       .attr('font-size', '12px')
-      .call(axis => axis.select('.domain').remove())
+
+    yAxisGroup
+      .call(axis => axis.select('.domain').attr('stroke', 'rgba(15, 23, 42, 0.16)'))
       .call(axis => axis.selectAll('text').attr('fill', 'hsl(var(--muted-foreground))'))
-      .call(axis => axis.selectAll('line').attr('stroke', 'hsl(var(--border))'))
+      .call(axis => axis.selectAll('line').remove())
 
     g.append('text')
-      .attr('transform', `translate(-48, ${height / 2}) rotate(-90)`)
+      .attr('transform', `translate(${-margin.left + 16}, ${height / 2}) rotate(-90)`)
       .attr('text-anchor', 'middle')
       .attr('fill', 'hsl(var(--muted-foreground))')
       .attr('font-size', '12px')
@@ -270,19 +296,6 @@ export function PerformanceChart({ data, eventType, unit, comparisons = [] }: Pe
         .text(activeRangeLabel)
     }
 
-    if (primarySeries.data.length > 0) {
-      const area = d3.area<PerformanceData>()
-        .x(d => x(new Date(d.date)))
-        .y0(height)
-        .y1(d => y(d.value))
-        .curve(d3.curveMonotoneX)
-
-      g.append('path')
-        .datum(primarySeries.data)
-        .attr('fill', `url(#${gradientId})`)
-        .attr('d', area)
-    }
-
     const hoverMarkers: Record<string, d3.Selection<SVGCircleElement, unknown, null, undefined>> = {}
 
     const lineGenerator = d3.line<PerformanceData>()
@@ -295,9 +308,11 @@ export function PerformanceChart({ data, eventType, unit, comparisons = [] }: Pe
         .datum(series.data)
         .attr('fill', 'none')
         .attr('stroke', series.color)
-        .attr('stroke-width', series.isPrimary ? 3 : 2.25)
+        .attr('stroke-width', series.isPrimary ? 2.75 : 2)
         .attr('stroke-dasharray', series.isPrimary ? null : '6 4')
         .attr('opacity', series.isPrimary ? 1 : 0.9)
+        .attr('stroke-linecap', 'round')
+        .attr('stroke-linejoin', 'round')
         .attr('d', lineGenerator)
 
       g.selectAll(`circle.data-point-${series.key}`)
@@ -307,10 +322,10 @@ export function PerformanceChart({ data, eventType, unit, comparisons = [] }: Pe
         .attr('class', `data-point-${series.key}`)
         .attr('cx', d => x(new Date(d.date)))
         .attr('cy', d => y(d.value))
-        .attr('r', series.isPrimary ? 5.5 : 4.5)
+        .attr('r', series.isPrimary ? 5 : 4.25)
         .attr('fill', series.color)
         .attr('stroke', '#fff')
-        .attr('stroke-width', 1.5)
+        .attr('stroke-width', 2)
         .attr('opacity', 0.95)
 
       hoverMarkers[series.key] = g.append('circle')
@@ -342,8 +357,9 @@ export function PerformanceChart({ data, eventType, unit, comparisons = [] }: Pe
 
     const hoverLine = g.append('line')
       .attr('class', 'hover-line')
-      .attr('stroke', referenceSeries.color)
-      .attr('stroke-width', 1)
+      .attr('stroke', 'rgba(15, 23, 42, 0.35)')
+      .attr('stroke-width', 1.5)
+      .attr('stroke-dasharray', '4 4')
       .style('opacity', 0)
 
     g.append('rect')
@@ -379,7 +395,8 @@ export function PerformanceChart({ data, eventType, unit, comparisons = [] }: Pe
             .style('opacity', 1)
 
           return {
-            label: series.label,
+            key: series.key,
+            label: series.tooltipLabel,
             value: formatResultValue(chosen.value, fallbackUnit ?? undefined),
             date: new Date(chosen.date),
             color: series.color,
@@ -393,7 +410,7 @@ export function PerformanceChart({ data, eventType, unit, comparisons = [] }: Pe
           return
         }
 
-        const referenceEntry = entries.find(entry => entry.label === referenceSeries.label) ?? entries[0]
+  const referenceEntry = entries.find(entry => entry.key === referenceSeries.key) ?? entries[0]
         const refX = x(referenceEntry.date)
 
         hoverLine
@@ -415,7 +432,7 @@ export function PerformanceChart({ data, eventType, unit, comparisons = [] }: Pe
 
         const headerDate = new Intl.DateTimeFormat('ro-RO', {
           year: 'numeric',
-          month: 'long',
+          month: 'short',
           day: 'numeric',
         }).format(referenceEntry.date)
 
@@ -456,11 +473,10 @@ export function PerformanceChart({ data, eventType, unit, comparisons = [] }: Pe
   }, [
     dimensions,
     plottedSeries,
-    filteredSeries,
     fallbackUnit,
     displayUnit,
     lowerIsBetter,
-    gradientId,
+    axisTickFormatter,
     activeRangeLabel,
   ])
 
@@ -469,6 +485,9 @@ export function PerformanceChart({ data, eventType, unit, comparisons = [] }: Pe
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
         <div className="flex items-baseline gap-2">
           <h4 className="text-base font-semibold">{eventType}</h4>
+          {displayUnit && (
+            <span className="text-sm text-muted-foreground">• {displayUnit}</span>
+          )}
         </div>
         <PeriodFilter
           period={period}
