@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Toaster } from '@/components/ui/sonner'
-import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { ShieldCheck, SignOut, Gear } from '@phosphor-icons/react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -181,7 +180,6 @@ interface UnifiedLayoutProps {
   setGenderFilter: (filter: 'all' | 'M' | 'F') => void
   sortBy: 'name' | 'age' | 'results'
   setSortBy: (sort: 'name' | 'age' | 'results') => void
-  filteredAndSortedAthletes: Athlete[]
   paginatedAthletes: Athlete[]
   totalAthletePages: number
   athletePage: number
@@ -253,7 +251,6 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
     setCategoryFilter,
     genderFilter,
     setGenderFilter,
-    filteredAndSortedAthletes,
   paginatedAthletes,
   totalAthletePages,
   athletePage,

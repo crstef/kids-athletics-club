@@ -191,10 +191,9 @@ export const approveRequest = async (req: AuthRequest, res: Response) => {
     }
 
     const approverId = authUser?.userId || null;
-
     const effectiveCoachId = request.effective_coach_id;
     const effectiveAthleteId = request.effective_athlete_id;
-    const metadata = parseApprovalMetadata(request.effective_approval_notes);
+    const approvalMetadata = parseApprovalMetadata(request.effective_approval_notes);
 
     switch (request.requested_role) {
       case 'parent': {
@@ -220,7 +219,12 @@ export const approveRequest = async (req: AuthRequest, res: Response) => {
             await client.query(
               `INSERT INTO access_requests (parent_id, athlete_id, coach_id, status, response_date, message)
                VALUES ($1, $2, $3, 'approved', CURRENT_TIMESTAMP, $4)`,
-              [request.user_id, effectiveAthleteId, effectiveCoachId, request.effective_approval_notes || null]
+              [
+                request.user_id,
+                effectiveAthleteId,
+                effectiveCoachId,
+                approvalMetadata.message ?? request.effective_approval_notes ?? null
+              ]
             );
           }
         }
@@ -243,7 +247,7 @@ export const approveRequest = async (req: AuthRequest, res: Response) => {
         }
 
         const userRow = userResult.rows[0];
-        const profile = metadata.profile;
+        const profile = approvalMetadata.profile;
 
         if (!profile?.dateOfBirth || !profile.gender) {
           await client.query('ROLLBACK');
@@ -253,7 +257,7 @@ export const approveRequest = async (req: AuthRequest, res: Response) => {
         const derivedAge = calculateAge(profile.dateOfBirth);
         const derivedCategory = determineCategory(derivedAge);
 
-      if (derivedAge === null || derivedAge < 4 || derivedAge > 18 || !derivedCategory) {
+        if (derivedAge === null || derivedAge < 4 || derivedAge > 18 || !derivedCategory) {
           await client.query('ROLLBACK');
           return res.status(400).json({ error: 'Invalid athlete age or category' });
         }
@@ -376,7 +380,6 @@ export const rejectRequest = async (req: AuthRequest, res: Response) => {
 
     const effectiveCoachId = request.effective_coach_id;
     const effectiveAthleteId = request.effective_athlete_id;
-    const metadata = parseApprovalMetadata(request.effective_approval_notes);
 
     switch (request.requested_role) {
       case 'parent': {
@@ -417,7 +420,7 @@ export const rejectRequest = async (req: AuthRequest, res: Response) => {
       }
     }
 
-  await client.query(
+    await client.query(
       `UPDATE approval_requests
        SET status = 'rejected', response_date = CURRENT_TIMESTAMP,
            approved_by = $1, rejection_reason = $2

@@ -1,20 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   CartesianGrid,
-  Legend,
   Line,
   LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
-  type LegendProps,
   type TooltipProps
 } from 'recharts'
 import type { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent'
 import type { PerformanceData, Period } from '@/lib/types'
 import { PeriodFilter, getFilteredResults, getFirstDataDate, getInitialDateRange } from './PeriodFilter'
-import { formatResultValue, getUnitDisplayLabel, normalizeUnit, preferLowerValues } from '@/lib/units'
+import { formatResultValue, getUnitDisplayLabel, normalizeUnit } from '@/lib/units'
 
 const PRIMARY_COLOR = '#3DDC84'
 const COMPARISON_COLORS = ['#0ea5e9', '#f97316', '#22c55e', '#a855f7', '#facc15', '#ec4899']
@@ -34,12 +32,15 @@ interface ChartSeries {
   isPrimary: boolean
 }
 
-interface ChartDatum {
+interface ChartDatumBase {
   timestamp: number
   dateLabel: string
   __raw: Record<string, PerformanceData | undefined>
-  [key: string]: number | string | Record<string, PerformanceData | undefined>
+  ordinalIndex?: number
+  ordinalPosition?: number
 }
+
+type ChartDatum = ChartDatumBase & Record<string, number | string | Record<string, PerformanceData | undefined>>
 
 interface PerformanceChartProps {
   data: PerformanceData[]
@@ -108,27 +109,6 @@ function getCanonicalTickFormatter(unit?: string | null) {
       }
     }
   }
-}
-
-function CustomLegend({ payload }: LegendProps) {
-  if (!payload) return null
-
-  return (
-    <div className="flex flex-wrap gap-2 text-xs">
-      {payload.map(item => (
-        <span
-          key={item.dataKey?.toString() ?? item.value?.toString()}
-          className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/95 px-3 py-1 font-medium text-muted-foreground shadow-sm"
-        >
-          <span
-            className="h-2 w-2 rounded-full"
-            style={{ backgroundColor: item.color ?? PRIMARY_COLOR }}
-          />
-          <span className="text-foreground">{item.value}</span>
-        </span>
-      ))}
-    </div>
-  )
 }
 
 interface CustomTooltipProps extends TooltipProps<ValueType, NameType> {
@@ -224,11 +204,6 @@ export function PerformanceChart({ data, eventType, unit, comparisons = [] }: Pe
 
   const displayUnit = useMemo(
     () => getUnitDisplayLabel(fallbackUnit ?? undefined),
-    [fallbackUnit]
-  )
-
-  const lowerIsBetter = useMemo(
-    () => preferLowerValues(fallbackUnit ?? undefined),
     [fallbackUnit]
   )
 
@@ -362,7 +337,7 @@ export function PerformanceChart({ data, eventType, unit, comparisons = [] }: Pe
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <div className="flex items-baseline gap-2">
           <h4 className="text-base font-semibold">{eventType}</h4>
           {displayUnit && <span className="text-sm text-muted-foreground">• {displayUnit}</span>}
@@ -375,58 +350,74 @@ export function PerformanceChart({ data, eventType, unit, comparisons = [] }: Pe
           firstDataDate={firstDataDate}
         />
       </div>
-      <div className="relative w-full h-[320px] rounded-xl border border-border/60 bg-card/60 shadow-sm backdrop-blur-sm p-4">
+      <div className="relative w-full h-[360px] rounded-xl border border-border/60 bg-card/60 shadow-sm backdrop-blur-sm p-4">
         {!hasData && (
           <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-muted/20 text-sm text-muted-foreground">
             Nu sunt date disponibile pentru perioada selectată.
           </div>
         )}
         {hasData && (
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData} margin={{ top: 12, right: 24, bottom: 12, left: 12 }}>
-              <CartesianGrid stroke="rgba(148, 163, 184, 0.18)" vertical={false} />
-              <XAxis
-                dataKey={useOrdinalAxis ? 'ordinalPosition' : 'timestamp'}
-                type="number"
-                domain={xDomain}
-                ticks={xTicks}
-                allowDecimals={false}
-                tickFormatter={xTickFormatter}
-                stroke="rgba(148, 163, 184, 0.45)"
-                tick={{ fill: 'rgba(71, 85, 105, 0.9)', fontSize: 12 }}
-                axisLine={{ stroke: 'rgba(148, 163, 184, 0.45)' }}
-                tickLine={{ stroke: 'rgba(148, 163, 184, 0.45)' }}
-              />
-              <YAxis
-                domain={[yMin, yMax]}
-                tickFormatter={axisTickFormatter}
-                stroke="rgba(148, 163, 184, 0.45)"
-                tick={{ fill: 'rgba(71, 85, 105, 0.9)', fontSize: 12 }}
-                axisLine={{ stroke: 'rgba(148, 163, 184, 0.45)' }}
-                tickLine={{ stroke: 'rgba(148, 163, 184, 0.45)' }}
-                width={60}
-                reversed={lowerIsBetter}
-              />
-              <Tooltip
-                cursor={{ stroke: 'rgba(15, 23, 42, 0.25)', strokeDasharray: '4 4' }}
-                content={<CustomTooltip fallbackUnit={fallbackUnit} seriesMap={seriesMap} />}
-              />
-              <Legend align="left" verticalAlign="top" content={<CustomLegend />} />
+          <div className="flex h-full flex-col gap-3">
+            <div className="flex flex-wrap items-center gap-2 text-xs">
               {plottedSeries.map(series => (
-                <Line
+                <span
                   key={series.key}
-                  type="monotone"
-                  dataKey={series.key}
-                  name={series.label}
-                  stroke={series.color}
-                  strokeWidth={series.isPrimary ? 3 : 2}
-                  dot={{ r: series.isPrimary ? 4.5 : 4, strokeWidth: 2, stroke: '#ffffff', fill: series.color }}
-                  activeDot={{ r: 6 }}
-                  connectNulls
-                />
+                  className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/95 px-3 py-1 font-medium text-muted-foreground shadow-sm"
+                >
+                  <span
+                    className="h-2 w-2 rounded-full"
+                    style={{ backgroundColor: series.color }}
+                  />
+                  <span className="text-foreground">{series.label}</span>
+                </span>
               ))}
-            </LineChart>
-          </ResponsiveContainer>
+            </div>
+            <div className="flex-1">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData} margin={{ top: 8, right: 24, bottom: 12, left: 12 }}>
+                  <CartesianGrid stroke="rgba(148, 163, 184, 0.18)" vertical={false} />
+                  <XAxis
+                    dataKey={useOrdinalAxis ? 'ordinalPosition' : 'timestamp'}
+                    type="number"
+                    domain={xDomain}
+                    ticks={xTicks}
+                    allowDecimals={false}
+                    tickFormatter={xTickFormatter}
+                    stroke="rgba(148, 163, 184, 0.45)"
+                    tick={{ fill: 'rgba(71, 85, 105, 0.9)', fontSize: 12 }}
+                    axisLine={{ stroke: 'rgba(148, 163, 184, 0.45)' }}
+                    tickLine={{ stroke: 'rgba(148, 163, 184, 0.45)' }}
+                  />
+                  <YAxis
+                    domain={[yMin, yMax]}
+                    tickFormatter={axisTickFormatter}
+                    stroke="rgba(148, 163, 184, 0.45)"
+                    tick={{ fill: 'rgba(71, 85, 105, 0.9)', fontSize: 12 }}
+                    axisLine={{ stroke: 'rgba(148, 163, 184, 0.45)' }}
+                    tickLine={{ stroke: 'rgba(148, 163, 184, 0.45)' }}
+                    width={60}
+                  />
+                  <Tooltip
+                    cursor={{ stroke: 'rgba(15, 23, 42, 0.25)', strokeDasharray: '4 4' }}
+                    content={<CustomTooltip fallbackUnit={fallbackUnit} seriesMap={seriesMap} />}
+                  />
+                  {plottedSeries.map(series => (
+                    <Line
+                      key={series.key}
+                      type="monotone"
+                      dataKey={series.key}
+                      name={series.label}
+                      stroke={series.color}
+                      strokeWidth={series.isPrimary ? 3 : 2}
+                      dot={{ r: series.isPrimary ? 4.5 : 4, strokeWidth: 2, stroke: '#ffffff', fill: series.color }}
+                      activeDot={{ r: 6 }}
+                      connectNulls
+                    />
+                  ))}
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
         )}
       </div>
     </div>

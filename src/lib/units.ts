@@ -63,8 +63,8 @@ export function formatResultValue(value: number, unit?: Result['unit'] | string 
     case 'meters':
       return `${romanian(value)} m`
     case 'metersCentimeters': {
-      const meters = Math.floor(value)
-      let centimeters = Math.round((value - meters) * 100)
+  const meters = Math.floor(value)
+  const centimeters = Math.round((value - meters) * 100)
       if (centimeters === 100) {
         return `${meters + 1}m 00cm`
       }
@@ -95,8 +95,8 @@ export function splitValueForInputs(value: number, unit?: Result['unit'] | strin
       }
     }
     case 'metersCentimeters': {
-      const meters = Math.floor(value)
-      let centimeters = Math.round((value - meters) * 100)
+  const meters = Math.floor(value)
+  const centimeters = Math.round((value - meters) * 100)
       if (centimeters === 100) {
         return {
           primary: String(meters + 1),

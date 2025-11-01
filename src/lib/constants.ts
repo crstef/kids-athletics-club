@@ -1,4 +1,4 @@
-import type { EventType, Result } from './types'
+import type { Result } from './types'
 import { formatResultValue } from './units'
 
 export const EVENT_CATEGORIES = {

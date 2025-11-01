@@ -15,7 +15,6 @@ import type { Athlete, Result, EventType, PerformanceData } from '@/lib/types'
 import { useState, useMemo } from 'react'
 import { PermissionGate } from './PermissionGate'
 import { resolveMediaUrl } from '@/lib/media'
-import { getUnitDisplayLabel } from '@/lib/units'
 
 interface AthleteDetailsDialogProps {
   athlete: Athlete | null
@@ -76,7 +75,7 @@ export function AthleteDetailsDialog({
 
   return (
     <Dialog open={!!athlete} onOpenChange={() => onClose()}>
-      <DialogContent className="max-w-4xl w-full max-h-[95vh] flex flex-col p-0">
+      <DialogContent className="w-full max-h-[95vh] flex flex-col p-0 max-w-[min(100vw-2rem,1120px)]">
         <DialogHeader className="p-6 pb-4">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
