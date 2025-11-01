@@ -188,14 +188,19 @@ export function PerformanceChart({ data, eventType, unit, comparisons = [] }: Pe
   const firstDataDate = useMemo(() => getFirstDataDate(allSeriesData), [allSeriesData])
 
   useEffect(() => {
-    const nextRange = getInitialDateRange(allSeriesData, period)
-    if (
-      dateRange.start.getTime() !== nextRange.start.getTime() ||
-      dateRange.end.getTime() !== nextRange.end.getTime()
-    ) {
-      setDateRange(nextRange)
-    }
-  }, [allSeriesData, period, dateRange])
+    setDateRange((currentRange) => {
+      const nextRange = getInitialDateRange(allSeriesData, period)
+
+      if (
+        currentRange.start.getTime() === nextRange.start.getTime() &&
+        currentRange.end.getTime() === nextRange.end.getTime()
+      ) {
+        return currentRange
+      }
+
+      return nextRange
+    })
+  }, [allSeriesData, period])
 
   const fallbackUnit = useMemo(() => {
     if (unit) return unit

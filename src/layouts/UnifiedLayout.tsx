@@ -58,6 +58,52 @@ const DEFAULT_WIDGET_IDS = ['stats-users', 'stats-athletes', 'stats-probes', 're
 
 const GRAPHIC_WIDGET_IDS = new Set(['performance-chart', 'age-distribution', 'personal-bests'])
 
+type WidgetSize = 'small' | 'medium' | 'large' | 'xlarge'
+
+const WIDGET_SIZE_ORDER: WidgetSize[] = ['small', 'medium', 'large', 'xlarge']
+const WIDGET_SIZE_CLASS_MAP: Record<WidgetSize, string> = {
+  small: 'md:col-span-3 xl:col-span-3',
+  medium: 'md:col-span-3 xl:col-span-6',
+  large: 'md:col-span-6 xl:col-span-8',
+  xlarge: 'md:col-span-6 xl:col-span-12'
+}
+const WIDGET_SIZE_LABELS: Record<WidgetSize, string> = {
+  small: 'Compact',
+  medium: 'Standard',
+  large: 'Mare',
+  xlarge: 'Lățime completă'
+}
+const WIDGET_SIZE_RANK: Record<WidgetSize, number> = {
+  small: 0,
+  medium: 1,
+  large: 2,
+  xlarge: 3
+}
+const DEFAULT_WIDGET_SIZE: WidgetSize = 'medium'
+
+const isWidgetSize = (value: unknown): value is WidgetSize =>
+  typeof value === 'string' && (WIDGET_SIZE_ORDER as string[]).includes(value)
+
+const parseWidgetSize = (value: unknown): WidgetSize | null => {
+  if (typeof value !== 'string') return null
+  const normalized = value.trim().toLowerCase() as WidgetSize
+  return isWidgetSize(normalized) ? normalized : null
+}
+
+const enforceWidgetSize = (widgetId: string, requestedSize?: WidgetSize): WidgetSize => {
+  const registryDefault = WIDGET_REGISTRY[widgetId]?.defaultSize
+  const fallback = registryDefault && isWidgetSize(registryDefault) ? registryDefault : DEFAULT_WIDGET_SIZE
+  const candidate = requestedSize && isWidgetSize(requestedSize) ? requestedSize : fallback
+
+  if (GRAPHIC_WIDGET_IDS.has(widgetId)) {
+    const candidateRank = WIDGET_SIZE_RANK[candidate] ?? WIDGET_SIZE_RANK[fallback]
+    const enforcedRank = Math.max(candidateRank, WIDGET_SIZE_RANK.large)
+    return WIDGET_SIZE_ORDER[enforcedRank] ?? 'large'
+  }
+
+  return candidate
+}
+
 const LEGACY_WIDGET_ID_MAP: Record<string, string> = {
   statistics: 'stats-users',
   probes: 'stats-probes',
@@ -307,6 +353,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
 
   const [widgetsLoaded, setWidgetsLoaded] = useState(false)
   const [allowedWidgetIds, setAllowedWidgetIds] = useState<string[]>([])
+  const [widgetSizes, setWidgetSizes] = useState<Record<string, WidgetSize>>({})
   const isParentUser = currentUser.role === 'parent'
 
   const allowedWidgetSet = useMemo(() => new Set(allowedWidgetIds), [allowedWidgetIds])
@@ -314,6 +361,22 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
     () => enabledWidgets.filter((id): id is string => typeof id === 'string' && id.length > 0),
     [enabledWidgets]
   )
+
+  const resolveWidgetSize = useCallback((widgetId: string): WidgetSize => {
+    const canonicalId = normalizeWidgetId(widgetId) ?? widgetId
+    return enforceWidgetSize(canonicalId, widgetSizes[canonicalId])
+  }, [widgetSizes])
+
+  const handleWidgetSizeChange = useCallback((widgetId: string, size: WidgetSize) => {
+    const canonicalId = normalizeWidgetId(widgetId) ?? widgetId
+    setWidgetSizes((prev) => {
+      const nextSize = enforceWidgetSize(canonicalId, size)
+      if (prev[canonicalId] === nextSize) {
+        return prev
+      }
+      return { ...prev, [canonicalId]: nextSize }
+    })
+  }, [])
 
   const displayTabs = useMemo(() => {
     const transformed = !isParentUser
@@ -538,6 +601,30 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
           }
         }
 
+        const sizePreferences: Record<string, WidgetSize> = {}
+        if (Array.isArray(savedWidgetsResponse) && savedWidgetsResponse.length > 0) {
+          for (const widget of savedWidgetsResponse) {
+            if (!widget) continue
+
+            const rawId = widget.widgetName ?? widget.widget_name ?? widget.id
+            const canonicalId = normalizeWidgetId(rawId)
+            if (!canonicalId) continue
+            if (allowedSet.size > 0 && !allowedSet.has(canonicalId)) continue
+
+            const rawConfig = widget.config ?? {}
+            const preferredSize =
+              parseWidgetSize(rawConfig.size) ??
+              parseWidgetSize(rawConfig.preferredSize) ??
+              parseWidgetSize(rawConfig.widgetSize) ??
+              parseWidgetSize(rawConfig.width) ??
+              parseWidgetSize(rawConfig.span)
+
+            if (preferredSize) {
+              sizePreferences[canonicalId] = enforceWidgetSize(canonicalId, preferredSize)
+            }
+          }
+        }
+
         let normalizedSaved: string[] = []
         if (Array.isArray(savedWidgetsResponse) && savedWidgetsResponse.length > 0) {
           normalizedSaved = savedWidgetsResponse
@@ -571,11 +658,27 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
 
         console.log('[debug] loadWidgets canonicalInitial', canonicalInitial)
 
+        const normalizedSizes: Record<string, WidgetSize> = {}
+        for (const [widgetId, storedSize] of Object.entries(sizePreferences)) {
+          normalizedSizes[widgetId] = enforceWidgetSize(widgetId, storedSize)
+        }
+        for (const widgetId of canonicalInitial) {
+          if (!normalizedSizes[widgetId]) {
+            normalizedSizes[widgetId] = enforceWidgetSize(widgetId)
+          }
+        }
+
+        setWidgetSizes(normalizedSizes)
         setEnabledWidgets(canonicalInitial)
       } catch (error) {
         console.error('Failed to load widgets:', error)
         setAllowedWidgetIds([...DEFAULT_WIDGET_IDS])
         setEnabledWidgets([...DEFAULT_WIDGET_IDS])
+        setWidgetSizes(DEFAULT_WIDGET_IDS.reduce<Record<string, WidgetSize>>((acc, widgetId) => {
+          const canonicalId = normalizeWidgetId(widgetId) ?? widgetId
+          acc[canonicalId] = enforceWidgetSize(canonicalId)
+          return acc
+        }, {}))
       } finally {
         setWidgetsLoaded(true)
       }
@@ -597,12 +700,15 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
           .filter(id => allowedSetLocal.size === 0 || allowedSetLocal.has(id))
 
         await apiClient.saveUserWidgets(
-          canonicalIds.map((widgetName, index) => ({
-            widgetName,
-            isEnabled: true,
-            sortOrder: index,
-            config: {}
-          }))
+          canonicalIds.map((widgetName, index) => {
+            const preferredSize = enforceWidgetSize(widgetName, widgetSizes[widgetName])
+            return {
+              widgetName,
+              isEnabled: true,
+              sortOrder: index,
+              config: { size: preferredSize }
+            }
+          })
         )
       } catch (_error) {
         console.error('Failed to save widgets:', _error)
@@ -610,7 +716,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
     }
 
     saveWidgets()
-  }, [safeEnabledWidgets, widgetsLoaded, allowedWidgetIds])
+  }, [safeEnabledWidgets, widgetsLoaded, allowedWidgetIds, widgetSizes])
 
   const toggleWidget = (widgetId: string) => {
     const canonicalId = normalizeWidgetId(widgetId) ?? widgetId
@@ -619,11 +725,25 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
       return
     }
 
-    setEnabledWidgets(prev => 
-      prev.includes(canonicalId) 
+    const isEnabled = safeEnabledWidgets.includes(canonicalId)
+
+    setEnabledWidgets(prev => (
+      isEnabled
         ? prev.filter(id => id !== canonicalId)
-        : [...prev, canonicalId]
-    )
+        : prev.includes(canonicalId)
+          ? prev
+          : [...prev, canonicalId]
+    ))
+
+    if (!isEnabled) {
+      setWidgetSizes(prev => {
+        const nextSize = enforceWidgetSize(canonicalId, prev[canonicalId])
+        if (prev[canonicalId] === nextSize) {
+          return prev
+        }
+        return { ...prev, [canonicalId]: nextSize }
+      })
+    }
   }
 
   // Render dashboard with dynamic widgets
@@ -702,22 +822,8 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
                 }
 
                 const WidgetComponent = widgetConfig.component
-                const baseSpan = (() => {
-                  switch (widgetConfig.defaultSize) {
-                    case 'small':
-                      return 'md:col-span-3 xl:col-span-3'
-                    case 'large':
-                      return 'md:col-span-6 xl:col-span-8'
-                    case 'xlarge':
-                      return 'md:col-span-6 xl:col-span-12'
-                    case 'medium':
-                    default:
-                      return 'md:col-span-3 xl:col-span-6'
-                  }
-                })()
-                const spanClass = GRAPHIC_WIDGET_IDS.has(widgetId)
-                  ? 'md:col-span-6 xl:col-span-12'
-                  : baseSpan
+                const effectiveSize = resolveWidgetSize(widgetId)
+                const spanClass = WIDGET_SIZE_CLASS_MAP[effectiveSize] ?? WIDGET_SIZE_CLASS_MAP.medium
 
                 // Build props based on widget type
                 const widgetProps = buildWidgetProps(widgetId, props)
@@ -735,7 +841,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
                 }
 
                 return (
-                  <SortableWidget key={widgetId} id={widgetId} spanClass={spanClass}>
+                  <SortableWidget key={widgetId} id={widgetId} spanClass={spanClass} size={effectiveSize}>
                     {rendered}
                   </SortableWidget>
                 )
@@ -1079,7 +1185,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
           <DialogHeader>
             <DialogTitle>Personalizează Dashboard</DialogTitle>
             <DialogDescription>
-              Activează sau dezactivează widget-urile pe dashboard
+              Activează, dezactivează și ajustează dimensiunea widget-urilor de pe dashboard
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -1092,17 +1198,58 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
                 return null
               }
               
+              const isActive = safeEnabledWidgets.includes(widget.id)
+              const currentSize = resolveWidgetSize(widget.id)
+
               return (
-                <div key={widget.id} className="flex items-center gap-4 p-4 border rounded-lg">
-                  <Checkbox
-                    id={`widget-${widget.id}`}
-                    checked={safeEnabledWidgets.includes(widget.id)}
-                    onCheckedChange={() => toggleWidget(widget.id)}
-                  />
-                  <Label htmlFor={`widget-${widget.id}`} className="flex-1 cursor-pointer">
-                    <div className="font-medium">{widget.name}</div>
-                    <div className="text-sm text-muted-foreground">{widget.description}</div>
-                  </Label>
+                <div key={widget.id} className="space-y-3 rounded-lg border p-4">
+                  <div className="flex items-start gap-4">
+                    <Checkbox
+                      id={`widget-${widget.id}`}
+                      checked={isActive}
+                      onCheckedChange={() => toggleWidget(widget.id)}
+                    />
+                    <div className="flex-1">
+                      <Label htmlFor={`widget-${widget.id}`} className="cursor-pointer font-medium">
+                        {widget.name}
+                      </Label>
+                      <p className="text-sm text-muted-foreground">{widget.description}</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2 pl-8 sm:flex-row sm:items-center sm:justify-between">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Dimensiune
+                    </span>
+                    <Select
+                      value={currentSize}
+                      onValueChange={(value) => {
+                        const parsed = parseWidgetSize(value)
+                        if (parsed) {
+                          handleWidgetSizeChange(widget.id, parsed)
+                        }
+                      }}
+                      disabled={!isActive}
+                    >
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Alege dimensiunea" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {WIDGET_SIZE_ORDER.map((size) => {
+                          const isDisabledOption = GRAPHIC_WIDGET_IDS.has(widget.id) && WIDGET_SIZE_RANK[size] < WIDGET_SIZE_RANK.large
+                          return (
+                            <SelectItem key={size} value={size} disabled={isDisabledOption}>
+                              {WIDGET_SIZE_LABELS[size]}
+                            </SelectItem>
+                          )
+                        })}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {GRAPHIC_WIDGET_IDS.has(widget.id) && (
+                    <p className="pl-8 text-xs text-muted-foreground">
+                      Widget-urile grafice necesită cel puțin dimensiunea „Mare” pentru claritate.
+                    </p>
+                  )}
                 </div>
               )
             })}
@@ -1219,10 +1366,11 @@ function buildWidgetProps(widgetId: string, props: UnifiedLayoutProps): any {
 interface SortableWidgetProps {
   id: string
   spanClass: string
+  size: WidgetSize
   children: React.ReactNode
 }
 
-const SortableWidget = ({ id, spanClass, children }: SortableWidgetProps) => {
+const SortableWidget = ({ id, spanClass, size, children }: SortableWidgetProps) => {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id })
 
   const style: React.CSSProperties = {
@@ -1234,6 +1382,8 @@ const SortableWidget = ({ id, spanClass, children }: SortableWidgetProps) => {
     <div
       ref={setNodeRef}
       style={style}
+      data-widget-id={id}
+      data-widget-size={size}
       className={cn('col-span-1', spanClass, isDragging ? 'z-50 opacity-90' : '')}
     >
       <div className="group relative h-full">
