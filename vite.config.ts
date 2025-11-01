@@ -5,9 +5,13 @@ import { resolve } from 'path'
 
 const projectRoot = process.env.PROJECT_ROOT || process.cwd()
 
-// Shared hosts often cap process threads; this keeps esbuild single-threaded
+// Shared hosts often cap process threads; keep esbuild single-threaded
 if (!process.env.ESBUILD_WORKER_THREADS) {
-  process.env.ESBUILD_WORKER_THREADS = '0'
+  process.env.ESBUILD_WORKER_THREADS = '1'
+}
+
+if (!process.env.GOMAXPROCS) {
+  process.env.GOMAXPROCS = '1'
 }
 
 // https://vite.dev/config/
@@ -19,7 +23,6 @@ export default defineConfig({
     }
   },
   build: {
-    minify: 'esbuild',
     outDir: 'dist',
     assetsDir: '.',
     minify: false,
