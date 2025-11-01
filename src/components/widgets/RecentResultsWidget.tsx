@@ -46,29 +46,24 @@ export function RecentResultsWidget({ athletes, results }: RecentResultsWidgetPr
           {filteredResults.slice(0, 10).map(result => {
             const athlete = athletes.find(a => a.id === result.athleteId)
             const note = result.notes?.trim()
+            const leftLabel = [
+              athlete ? `${athlete.firstName} ${athlete.lastName}` : 'Atlet necunoscut',
+              result.eventType,
+              note ? `La concurs: ${note}` : null
+            ].filter(Boolean).join(' • ')
             return (
               <li
                 key={result.id}
                 className="rounded-lg border border-border/60 bg-background/90 px-3 py-2 text-sm shadow-sm transition hover:border-border hover:bg-accent/10"
               >
-                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="space-y-0.5">
-                    <p className="font-semibold text-foreground">
-                      {athlete ? `${athlete.firstName} ${athlete.lastName}` : 'Atlet necunoscut'}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {result.eventType}
-                    </p>
-                  </div>
-                  <span className="text-sm font-semibold text-primary">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="flex-1 truncate font-medium text-foreground" title={leftLabel}>
+                    {leftLabel}
+                  </p>
+                  <span className="whitespace-nowrap text-sm font-semibold text-primary">
                     {formatResultValue(result.value, result.unit)}
                   </span>
                 </div>
-                {note && (
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    La concurs: {note}
-                  </p>
-                )}
               </li>
             )
           })}
