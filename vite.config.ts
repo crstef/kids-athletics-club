@@ -22,9 +22,7 @@ export default defineConfig({
     minify: 'esbuild',
     outDir: 'dist',
     assetsDir: '.',
-    esbuild: {
-      drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : undefined
-    },
+    minify: false,
     rollupOptions: {
       output: {
         entryFileNames: '[name]-[hash].js',
