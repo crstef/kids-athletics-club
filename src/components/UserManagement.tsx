@@ -22,7 +22,7 @@ interface UserManagementProps {
   roles: Role[]
   currentUserId: string
   onAddUser: (userData: Omit<User, 'id' | 'createdAt'> & { avatarDataUrl?: string }) => void
-  onUpdateUser: (userId: string, userData: Partial<User> & { avatarDataUrl?: string }) => void
+  onUpdateUser: (userId: string, userData: Partial<User> & { avatarDataUrl?: string; currentPassword?: string }) => void
   onDeleteUser: (userId: string) => void
 }
 
@@ -41,12 +41,17 @@ export function UserManagement({ users, roles, currentUserId, onAddUser, onUpdat
   const [isActive, setIsActive] = useState(true)
   const [needsApproval, setNeedsApproval] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false)
   const [avatarDataUrl, setAvatarDataUrl] = useState<string | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [deleteAvatar, setDeleteAvatar] = useState(false)
 
   const [searchQuery, setSearchQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState<UserRole | 'all'>('all')
+
+  const currentUser = useMemo(() => users.find((user) => user.id === currentUserId) || null, [users, currentUserId])
+  const isSuperAdmin = currentUser?.role === 'superadmin'
 
   const preferredRole = useMemo(() => {
     const activeRoles = roles.filter((r) => r.isActive)
@@ -77,6 +82,7 @@ export function UserManagement({ users, roles, currentUserId, onAddUser, onUpdat
   const resetForm = () => {
     setEmail('')
     setPassword('')
+    setCurrentPassword('')
     setFirstName('')
     setLastName('')
     setRole(preferredRole)
@@ -84,7 +90,8 @@ export function UserManagement({ users, roles, currentUserId, onAddUser, onUpdat
     setIsActive(true)
     setNeedsApproval(false)
     setShowPassword(false)
-    setAvatarDataUrl(null)
+    setShowCurrentPassword(false)
+                        {isSuperAdmin && !user.isActive && (
     setAvatarPreview(null)
     setDeleteAvatar(false)
     setSelectedUser(null)
@@ -95,23 +102,34 @@ export function UserManagement({ users, roles, currentUserId, onAddUser, onUpdat
     setAvatarPreview(previewUrl)
     setDeleteAvatar(selectedUser ? !previewUrl : false)
   }
-
-  const handleOpenAdd = () => {
-    resetForm()
-    setAddDialogOpen(true)
-  }
-
-  const handleOpenEdit = (user: User) => {
-    setSelectedUser(user)
-    setEmail(user.email)
-    setPassword('')
-    setFirstName(user.firstName)
-    setLastName(user.lastName)
+                        {(isSuperAdmin || user.id === currentUserId) && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1"
+                            onClick={() => handleOpenEdit(user)}
+                          >
+                            <PencilSimple size={14} />
+                            Editează
+                          </Button>
+                        )}
+                        {isSuperAdmin && user.id !== currentUserId && (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            className="gap-1"
+                            onClick={() => handleOpenDelete(user)}
+                          >
+                            <Trash size={14} />
+                            Șterge
+                          </Button>
+                        )}
     setRole(user.role)
     setSpecialization((user as any).specialization || '')
     setIsActive(user.isActive)
     setNeedsApproval(Boolean(user.needsApproval))
     setShowPassword(false)
+    setShowCurrentPassword(false)
     setAvatarDataUrl(null)
     setAvatarPreview(user.avatar ? resolveMediaUrl(user.avatar) : null)
     setDeleteAvatar(false)
@@ -125,6 +143,11 @@ export function UserManagement({ users, roles, currentUserId, onAddUser, onUpdat
 
   const handleAdd = (event: FormEvent) => {
     event.preventDefault()
+
+    if (!isSuperAdmin) {
+      toast.error('Nu ai permisiunea de a adăuga utilizatori')
+      return
+    }
 
     if (!email.trim() || !password || !firstName.trim() || !lastName.trim()) {
       toast.error('Completează toate câmpurile obligatorii')
@@ -173,6 +196,12 @@ export function UserManagement({ users, roles, currentUserId, onAddUser, onUpdat
       return
     }
 
+    const canEditSelectedUser = isSuperAdmin || selectedUser.id === currentUserId
+    if (!canEditSelectedUser) {
+      toast.error('Nu ai permisiunea de a edita acest utilizator')
+      return
+    }
+
     if (!email.trim() || !firstName.trim() || !lastName.trim()) {
       toast.error('Completează toate câmpurile obligatorii')
       return
@@ -192,17 +221,28 @@ export function UserManagement({ users, roles, currentUserId, onAddUser, onUpdat
       return
     }
 
-    const payload: Partial<User> & { avatarDataUrl?: string } = {
+    const payload: Partial<User> & { avatarDataUrl?: string; currentPassword?: string } = {
       email: email.trim(),
       firstName: firstName.trim(),
-      lastName: lastName.trim(),
-      role,
-      isActive,
-      needsApproval,
+      lastName: lastName.trim()
+    }
+
+    if (isSuperAdmin) {
+      payload.role = role
+      payload.isActive = isActive
+      payload.needsApproval = needsApproval
     }
 
     if (password) {
       payload.password = password
+
+      if (!isSuperAdmin && selectedUser.id === currentUserId) {
+        if (!currentPassword) {
+          toast.error('Introdu parola curentă pentru a o schimba')
+          return
+        }
+        payload.currentPassword = currentPassword
+      }
     }
 
     if (role === 'coach') {
@@ -221,6 +261,11 @@ export function UserManagement({ users, roles, currentUserId, onAddUser, onUpdat
   }
 
   const handleActivate = (user: User) => {
+    if (!isSuperAdmin) {
+      toast.error('Nu ai permisiunea de a activa utilizatori')
+      return
+    }
+
     if (!user.isActive) {
       onUpdateUser(user.id, { isActive: true, needsApproval: false })
     }
@@ -228,6 +273,11 @@ export function UserManagement({ users, roles, currentUserId, onAddUser, onUpdat
 
   const handleDelete = () => {
     if (!selectedUser) return
+
+    if (!isSuperAdmin) {
+      toast.error('Nu ai permisiunea de a șterge utilizatori')
+      return
+    }
 
     if (selectedUser.id === currentUserId) {
       toast.error('Nu te poți șterge pe tine însuți!')
@@ -271,10 +321,12 @@ export function UserManagement({ users, roles, currentUserId, onAddUser, onUpdat
           <h2 className="text-2xl font-bold">Management Utilizatori</h2>
           <p className="text-muted-foreground">Administrează utilizatorii și rolurile acestora</p>
         </div>
-        <Button onClick={handleOpenAdd} className="gap-2">
-          <Plus size={16} />
-          Adaugă Utilizator
-        </Button>
+        {isSuperAdmin && (
+          <Button onClick={handleOpenAdd} className="gap-2">
+            <Plus size={16} />
+            Adaugă Utilizator
+          </Button>
+        )}
       </div>
 
       <div className="flex flex-col gap-4 sm:flex-row">
@@ -630,6 +682,32 @@ export function UserManagement({ users, roles, currentUserId, onAddUser, onUpdat
                 Min. 6 caractere. Lasă gol dacă nu dorești modificarea parolei.
               </p>
             </div>
+            {selectedUser?.id === currentUserId && !isSuperAdmin && (
+              <div className="space-y-2">
+                <Label htmlFor="edit-current-password">Parola curentă</Label>
+                <div className="relative">
+                  <Input
+                    id="edit-current-password"
+                    type={showCurrentPassword ? 'text' : 'password'}
+                    value={currentPassword}
+                    onChange={(event) => setCurrentPassword(event.target.value)}
+                    placeholder="Necesară pentru a confirma schimbarea parolei"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 text-muted-foreground hover:bg-transparent"
+                    onClick={() => setShowCurrentPassword((prev) => !prev)}
+                  >
+                    {showCurrentPassword ? <EyeSlash size={18} /> : <Eye size={18} />}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Introdu parola curentă doar dacă dorești să o modifici.
+                </p>
+              </div>
+            )}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="edit-firstName">Prenume *</Label>
@@ -663,7 +741,9 @@ export function UserManagement({ users, roles, currentUserId, onAddUser, onUpdat
               <Select
                 value={role}
                 onValueChange={(value) => setRole(value as UserRole)}
-                disabled={selectedUser?.role === 'superadmin' && selectedUser?.id !== currentUserId}
+                disabled={
+                  !isSuperAdmin || (selectedUser?.role === 'superadmin' && selectedUser?.id !== currentUserId)
+                }
               >
                 <SelectTrigger id="edit-role">
                   <SelectValue placeholder="Alege rolul" />
@@ -708,7 +788,14 @@ export function UserManagement({ users, roles, currentUserId, onAddUser, onUpdat
                   Controlează dacă utilizatorul poate accesa platforma.
                 </p>
               </div>
-              <Switch checked={isActive} onCheckedChange={setIsActive} />
+              <Switch
+                checked={isActive}
+                onCheckedChange={(next) => {
+                  if (!isSuperAdmin) return
+                  setIsActive(next)
+                }}
+                disabled={!isSuperAdmin}
+              />
             </div>
             <div className="flex items-center justify-between rounded-lg border p-3">
               <div className="space-y-0.5">
@@ -717,7 +804,14 @@ export function UserManagement({ users, roles, currentUserId, onAddUser, onUpdat
                   Dacă este activat, utilizatorul apare în lista de aprobare.
                 </p>
               </div>
-              <Switch checked={needsApproval} onCheckedChange={setNeedsApproval} />
+              <Switch
+                checked={needsApproval}
+                onCheckedChange={(next) => {
+                  if (!isSuperAdmin) return
+                  setNeedsApproval(next)
+                }}
+                disabled={!isSuperAdmin}
+              />
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>

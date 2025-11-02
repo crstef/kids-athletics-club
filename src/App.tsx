@@ -875,7 +875,7 @@ function AppContent() {
     }
   }
 
-  const handleUpdateUser = async (userId: string, userData: Partial<User>) => {
+  const handleUpdateUser = async (userId: string, userData: Partial<User> & { currentPassword?: string }) => {
     try {
       await apiClient.updateUser(userId, userData)
       await refetchUsers()

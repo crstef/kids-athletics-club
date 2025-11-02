@@ -23,7 +23,7 @@ interface UserPermissionsManagementProps {
   onRevokePermission: (id: string) => void
   onApproveAccount: (requestId: string) => void
   onRejectAccount: (requestId: string, reason?: string) => void
-  onUpdateUser: (userId: string, updates: Partial<User>) => void
+  onUpdateUser: (userId: string, updates: Partial<User> & { currentPassword?: string }) => void
   onDeleteRequest?: (requestId: string) => void
 }
 

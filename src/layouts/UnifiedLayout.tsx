@@ -194,7 +194,7 @@ interface UnifiedLayoutProps {
   
   // Action handlers
   handleAddUser: (userData: Omit<User, 'id' | 'createdAt'>) => Promise<void>
-  handleUpdateUser: (userId: string, userData: Partial<User>) => Promise<void>
+  handleUpdateUser: (userId: string, userData: Partial<User> & { currentPassword?: string }) => Promise<void>
   handleDeleteUser: (userId: string) => Promise<void>
   handleAddRole: (roleData: Omit<Role, 'id' | 'createdAt' | 'createdBy'>) => Promise<void>
   handleUpdateRole: (roleId: string, updates: Partial<Role>) => Promise<void>

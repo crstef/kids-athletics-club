@@ -9,7 +9,7 @@ router.use(authenticate);
 
 router.get('/', getAllUsers);
 router.post('/', requireRole('superadmin'), createUser);
-router.put('/:id', requireRole('superadmin'), updateUser);
+router.put('/:id', updateUser);
 router.delete('/:id', requireRole('superadmin'), deleteUser);
 router.post('/:id/avatar', userAvatarUpload.single('avatar'), uploadUserAvatar);
 
