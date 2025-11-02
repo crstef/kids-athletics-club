@@ -5,10 +5,35 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteEvent = exports.updateEvent = exports.createEvent = exports.getAllEvents = void 0;
 const database_1 = __importDefault(require("../config/database"));
+const parsePositiveInt = (value) => {
+    if (value === undefined || value === null)
+        return null;
+    const parsed = Number.parseInt(String(value), 10);
+    return Number.isNaN(parsed) || parsed <= 0 ? null : parsed;
+};
 const getAllEvents = async (req, res) => {
     const client = await database_1.default.connect();
     try {
-        const result = await client.query('SELECT * FROM events ORDER BY created_at DESC');
+        const page = parsePositiveInt(req.query?.page);
+        const pageSize = parsePositiveInt(req.query?.pageSize) ?? (page ? 10 : null);
+        if (page && pageSize) {
+            const offset = (page - 1) * pageSize;
+            const [dataResult, countResult] = await Promise.all([
+                client.query('SELECT * FROM events ORDER BY LOWER(name) ASC, name ASC LIMIT $1 OFFSET $2', [pageSize, offset]),
+                client.query('SELECT COUNT(*) AS count FROM events')
+            ]);
+            const total = Number.parseInt(countResult.rows[0]?.count ?? '0', 10);
+            const totalPages = total > 0 ? Math.ceil(total / pageSize) : 1;
+            res.json({
+                items: dataResult.rows,
+                total,
+                page,
+                pageSize,
+                totalPages
+            });
+            return;
+        }
+        const result = await client.query('SELECT * FROM events ORDER BY LOWER(name) ASC, name ASC');
         res.json(result.rows);
     }
     catch (_error) {
