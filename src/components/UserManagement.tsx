@@ -91,7 +91,7 @@ export function UserManagement({ users, roles, currentUserId, onAddUser, onUpdat
     setNeedsApproval(false)
     setShowPassword(false)
     setShowCurrentPassword(false)
-                        {isSuperAdmin && !user.isActive && (
+    setAvatarDataUrl(null)
     setAvatarPreview(null)
     setDeleteAvatar(false)
     setSelectedUser(null)
@@ -102,28 +102,24 @@ export function UserManagement({ users, roles, currentUserId, onAddUser, onUpdat
     setAvatarPreview(previewUrl)
     setDeleteAvatar(selectedUser ? !previewUrl : false)
   }
-                        {(isSuperAdmin || user.id === currentUserId) && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="gap-1"
-                            onClick={() => handleOpenEdit(user)}
-                          >
-                            <PencilSimple size={14} />
-                            Editează
-                          </Button>
-                        )}
-                        {isSuperAdmin && user.id !== currentUserId && (
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            className="gap-1"
-                            onClick={() => handleOpenDelete(user)}
-                          >
-                            <Trash size={14} />
-                            Șterge
-                          </Button>
-                        )}
+
+  const handleOpenAdd = () => {
+    resetForm()
+    setAddDialogOpen(true)
+  }
+
+  const handleOpenEdit = (user: User) => {
+    if (!isSuperAdmin && user.id !== currentUserId) {
+      toast.error('Nu ai permisiunea de a edita acest utilizator')
+      return
+    }
+
+    setSelectedUser(user)
+    setEmail(user.email)
+    setPassword('')
+    setCurrentPassword('')
+    setFirstName(user.firstName)
+    setLastName(user.lastName)
     setRole(user.role)
     setSpecialization((user as any).specialization || '')
     setIsActive(user.isActive)
@@ -438,7 +434,7 @@ export function UserManagement({ users, roles, currentUserId, onAddUser, onUpdat
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        {!user.isActive && (
+                        {isSuperAdmin && !user.isActive && (
                           <Button
                             variant="default"
                             size="sm"
@@ -449,26 +445,28 @@ export function UserManagement({ users, roles, currentUserId, onAddUser, onUpdat
                             Activează
                           </Button>
                         )}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleOpenEdit(user)}
-                          disabled={user.role === 'superadmin' && user.id !== currentUserId}
-                          className="gap-1"
-                        >
-                          <PencilSimple size={16} />
-                          <span className="sr-only">Editează</span>
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleOpenDelete(user)}
-                          disabled={user.id === currentUserId || user.role === 'superadmin'}
-                          className="gap-1"
-                        >
-                          <Trash size={16} />
-                          <span className="sr-only">Șterge</span>
-                        </Button>
+                        {(isSuperAdmin || user.id === currentUserId) && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1"
+                            onClick={() => handleOpenEdit(user)}
+                          >
+                            <PencilSimple size={14} />
+                            Editează
+                          </Button>
+                        )}
+                        {isSuperAdmin && user.id !== currentUserId && (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            className="gap-1"
+                            onClick={() => handleOpenDelete(user)}
+                          >
+                            <Trash size={14} />
+                            Șterge
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
