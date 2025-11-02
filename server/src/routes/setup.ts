@@ -905,6 +905,154 @@ export const populateRoleDashboards = async (req: Request, res: Response) => {
 };
 
 /**
+ * Seed core components and widget permissions without resetting data
+ * POST /api/setup/seed-components
+ */
+export const seedComponentWidgets = async (_req: Request, res: Response) => {
+  const client = await pool.connect();
+
+  try {
+    const componentsData: Array<[string, string, string, string, string, number]> = [
+      ['dashboard', 'Dashboard', 'Main dashboard view', 'tab', 'LayoutDashboard', 0],
+      ['athletes', 'Atleți', 'Athletes management tab', 'tab', 'Users', 1],
+      ['athletes-create', 'Adăugare Atlet', 'Create new athlete', 'action', 'Plus', 1],
+      ['athletes-edit', 'Editare Atlet', 'Edit athlete information', 'action', 'Edit', 2],
+      ['athletes-delete', 'Ștergere Atlet', 'Delete athlete', 'action', 'Trash2', 3],
+      ['results', 'Rezultate', 'Results and performance tab', 'tab', 'TrendingUp', 2],
+      ['results-create', 'Înregistrare Rezultat', 'Record new result', 'action', 'Plus', 1],
+      ['results-edit', 'Editare Rezultat', 'Edit result', 'action', 'Edit', 2],
+      ['results-delete', 'Ștergere Rezultat', 'Delete result', 'action', 'Trash2', 3],
+      ['messages', 'Mesaje', 'Messaging tab', 'tab', 'MessageSquare', 3],
+      ['messages-send', 'Trimitere Mesaj', 'Send message', 'action', 'Send', 1],
+      ['events', 'Probe', 'Event types management tab', 'tab', 'Calendar', 4],
+      ['events-create', 'Creare Probă', 'Create event type', 'action', 'Plus', 1],
+      ['access-requests', 'Cereri de Acces', 'Access requests tab', 'tab', 'Lock', 6],
+      ['access-requests-approve', 'Aprobare Cereri', 'Approve/reject requests', 'action', 'CheckCircle', 1],
+      ['categories', 'Categorii', 'Age categories tab', 'tab', 'Grid', 7],
+      ['categories-manage', 'Gestionare Categorii', 'Manage age categories', 'action', 'Settings', 1],
+      ['users', 'Utilizatori', 'User management tab', 'tab', 'Users', 10],
+      ['users-create', 'Creare Utilizator', 'Create user', 'action', 'Plus', 1],
+      ['users-edit', 'Editare Utilizator', 'Edit user', 'action', 'Edit', 2],
+      ['users-delete', 'Ștergere Utilizator', 'Delete user', 'action', 'Trash2', 3],
+      ['roles', 'Roluri', 'Roles management tab', 'tab', 'Shield', 11],
+      ['roles-manage', 'Gestionare Roluri', 'Manage roles', 'action', 'Settings', 1],
+      ['permissions', 'Permisiuni', 'Permissions management tab', 'tab', 'Lock', 12],
+      ['permissions-manage', 'Gestionare Permisiuni', 'Manage permissions', 'action', 'Settings', 1],
+      ['widget-stats-users', 'Widget Utilizatori', 'Statistici utilizatori', 'widget', 'Users', 100],
+      ['widget-stats-athletes', 'Widget Atleți', 'Statistici atleți', 'widget', 'Users', 101],
+      ['widget-stats-events', 'Widget Evenimente', 'Statistici evenimente', 'widget', 'Calendar', 102],
+      ['widget-stats-permissions', 'Widget Permisiuni', 'Statistici permisiuni', 'widget', 'Shield', 103],
+      ['widget-recent-users', 'Utilizatori Recenți', 'Lista utilizatorilor înregistrați recent', 'widget', 'UserPlus', 104],
+      ['widget-recent-results', 'Rezultate Recente', 'Ultimele rezultate înregistrate', 'widget', 'TrendingUp', 105],
+      ['widget-recent-events', 'Evenimente Recente', 'Evenimente recente', 'widget', 'Calendar', 106],
+      ['widget-pending-requests', 'Cereri în Așteptare', 'Cereri de acces în așteptare', 'widget', 'Clock', 107],
+      ['widget-performance-chart', 'Grafic Performanță', 'Grafic de performanță', 'widget', 'BarChart', 108],
+      ['widget-performance-evolution', 'Evoluția Performanței', 'Evoluția performanței în timp', 'widget', 'TrendingUp', 109],
+      ['widget-personal-best', 'Recorduri Personale', 'Recordurile personale ale atletului', 'widget', 'Award', 110],
+      ['widget-age-distribution', 'Distribuția Vârstelor', 'Distribuția vârstelor atleților', 'widget', 'PieChart', 111]
+    ];
+
+    let insertedComponents = 0;
+    for (const component of componentsData) {
+      const result = await client.query(
+        `INSERT INTO components (name, display_name, description, component_type, icon, order_index, is_system)
+         VALUES ($1, $2, $3, $4, $5, $6, true)
+         ON CONFLICT (name) DO NOTHING`,
+        component
+      );
+
+      insertedComponents += result.rowCount ?? 0;
+    }
+
+    const superadminAssignments = await client.query(`
+      INSERT INTO component_permissions (role_id, component_id, can_view, can_create, can_edit, can_delete, can_export, created_at, updated_at)
+      SELECT r.id, c.id, true, true, true, true, true, NOW(), NOW()
+      FROM roles r, components c
+      WHERE r.name = 'superadmin'
+      ON CONFLICT (role_id, component_id) DO NOTHING
+    `);
+
+    const coachAssignments = await client.query(`
+      INSERT INTO component_permissions (role_id, component_id, can_view, can_create, can_edit, can_delete, can_export, created_at, updated_at)
+      SELECT r.id, c.id, true, true, true, false, false, NOW(), NOW()
+      FROM roles r, components c
+      WHERE r.name = 'coach'
+        AND c.name IN (
+          'dashboard', 'athletes', 'athletes-create', 'athletes-edit',
+          'results', 'results-create', 'results-edit', 'messages', 'messages-send',
+          'events', 'events-create', 'access-requests', 'access-requests-approve',
+          'widget-stats-athletes', 'widget-recent-results', 'widget-performance-chart',
+          'widget-performance-evolution', 'widget-age-distribution'
+        )
+      ON CONFLICT (role_id, component_id) DO NOTHING
+    `);
+
+    const parentAssignments = await client.query(`
+      INSERT INTO component_permissions (role_id, component_id, can_view, can_create, can_edit, can_delete, can_export, created_at, updated_at)
+      SELECT r.id, c.id, true, false, false, false, false, NOW(), NOW()
+      FROM roles r, components c
+      WHERE r.name = 'parent'
+        AND c.name IN (
+          'dashboard', 'athletes', 'results', 'messages', 'events',
+          'widget-recent-results', 'widget-personal-best', 'widget-performance-evolution'
+        )
+      ON CONFLICT (role_id, component_id) DO NOTHING
+    `);
+
+    const parentMessageAssignments = await client.query(`
+      INSERT INTO component_permissions (role_id, component_id, can_view, can_create, can_edit, can_delete, can_export, created_at, updated_at)
+      SELECT r.id, c.id, true, true, false, false, false, NOW(), NOW()
+      FROM roles r, components c
+      WHERE r.name = 'parent'
+        AND c.name = 'messages-send'
+      ON CONFLICT (role_id, component_id) DO NOTHING
+    `);
+
+    const athleteAssignments = await client.query(`
+      INSERT INTO component_permissions (role_id, component_id, can_view, can_create, can_edit, can_delete, can_export, created_at, updated_at)
+      SELECT r.id, c.id, true, false, false, false, false, NOW(), NOW()
+      FROM roles r, components c
+      WHERE r.name = 'athlete'
+        AND c.name IN (
+          'dashboard', 'results', 'messages', 'events',
+          'widget-personal-best', 'widget-performance-evolution', 'widget-performance-chart'
+        )
+      ON CONFLICT (role_id, component_id) DO NOTHING
+    `);
+
+    const athleteMessageAssignments = await client.query(`
+      INSERT INTO component_permissions (role_id, component_id, can_view, can_create, can_edit, can_delete, can_export, created_at, updated_at)
+      SELECT r.id, c.id, true, true, false, false, false, NOW(), NOW()
+      FROM roles r, components c
+      WHERE r.name = 'athlete'
+        AND c.name = 'messages-send'
+      ON CONFLICT (role_id, component_id) DO NOTHING
+    `);
+
+    res.status(200).json({
+      success: true,
+      message: 'Components and widget permissions synchronized',
+      summary: {
+        insertedComponents,
+        superadminAssignments: superadminAssignments.rowCount ?? 0,
+        coachAssignments: coachAssignments.rowCount ?? 0,
+        parentAssignments: (parentAssignments.rowCount ?? 0) + (parentMessageAssignments.rowCount ?? 0),
+        athleteAssignments: (athleteAssignments.rowCount ?? 0) + (athleteMessageAssignments.rowCount ?? 0)
+      }
+    });
+  } catch (error) {
+    console.error('Seed component widgets error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to seed components',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  } finally {
+    client.release();
+  }
+};
+
+/**
  * Complete setup - creates all tables and populates dashboards
  * Should be called after git pull to ensure all tables exist
  * GET /api/setup/complete

@@ -18,7 +18,7 @@ import eventsRoutes from './routes/events';
 import userPermissionsRoutes from './routes/userPermissions';
 import dashboardsRoutes from './routes/dashboards';
 import componentsRoutes from './routes/components';
-import { createAdminUser, initializeData, addSampleData, fixAdminRole, addGenderColumn, fixUserRoles, addModernDashboards, addCategoryToPermissions, populateRoleDashboards, completeSetup, resetDatabase, fixRoleDashboardsSchema, createUserWidgetsTable } from './routes/setup';
+import { createAdminUser, initializeData, addSampleData, fixAdminRole, addGenderColumn, fixUserRoles, addModernDashboards, addCategoryToPermissions, populateRoleDashboards, seedComponentWidgets, completeSetup, resetDatabase, fixRoleDashboardsSchema, createUserWidgetsTable } from './routes/setup';
 
 dotenv.config();
 
@@ -117,6 +117,7 @@ app.get('/api/setup/fix-user-roles', fixUserRoles);
 app.post('/api/setup/add-modern-dashboards', addModernDashboards);
 app.get('/api/setup/add-category-to-permissions', addCategoryToPermissions);
 app.post('/api/setup/populate-role-dashboards', populateRoleDashboards);
+app.post('/api/setup/seed-components', seedComponentWidgets);
 app.get('/api/setup/complete', completeSetup);
 app.get('/api/setup/reset-database', resetDatabase);
 app.get('/api/setup/fix-role-dashboards-schema', fixRoleDashboardsSchema);

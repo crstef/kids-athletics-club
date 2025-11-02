@@ -63,7 +63,14 @@ After deployment, run this command to populate widget components:
 curl "http://localhost:3001/api/setup/initialize-data?reset_permissions=true"
 ```
 
-### 4. Test Widget Management
+### 4. Seed Components If Widgets Are Missing
+If the role editor still shows "Nu există widget-uri dedicate" for every dashboard, manually seed the component catalog and default widget permissions:
+```bash
+curl -X POST "http://localhost:3001/api/setup/seed-components"
+```
+Re-run this endpoint whenever a fresh environment is missing the widget component records.
+
+### 5. Test Widget Management
 1. Login as Super Admin
 2. Go to "Roluri" (Roles) tab
 3. Edit any role
