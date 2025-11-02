@@ -2,10 +2,43 @@ import { Response } from 'express';
 import pool from '../config/database';
 import { AuthRequest } from '../middleware/auth';
 
+const parsePositiveInt = (value: unknown): number | null => {
+  if (value === undefined || value === null) return null;
+  const parsed = Number.parseInt(String(value), 10);
+  return Number.isNaN(parsed) || parsed <= 0 ? null : parsed;
+};
+
 export const getAllEvents = async (req: AuthRequest, res: Response) => {
   const client = await pool.connect();
   try {
-    const result = await client.query('SELECT * FROM events ORDER BY created_at DESC');
+    const page = parsePositiveInt((req.query as any)?.page);
+    const pageSize = parsePositiveInt((req.query as any)?.pageSize) ?? (page ? 10 : null);
+
+    if (page && pageSize) {
+      const offset = (page - 1) * pageSize;
+
+      const [dataResult, countResult] = await Promise.all([
+        client.query(
+          'SELECT * FROM events ORDER BY LOWER(name) ASC, name ASC LIMIT $1 OFFSET $2',
+          [pageSize, offset]
+        ),
+        client.query('SELECT COUNT(*) AS count FROM events')
+      ]);
+
+      const total = Number.parseInt(countResult.rows[0]?.count ?? '0', 10);
+      const totalPages = total > 0 ? Math.ceil(total / pageSize) : 1;
+
+      res.json({
+        items: dataResult.rows,
+        total,
+        page,
+        pageSize,
+        totalPages
+      });
+      return;
+    }
+
+    const result = await client.query('SELECT * FROM events ORDER BY LOWER(name) ASC, name ASC');
     res.json(result.rows);
   } catch (_error) {
     res.status(500).json({ error: 'Internal server error' });

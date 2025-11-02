@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,6 +11,7 @@ import { EventTypeCustom } from '../lib/types'
 import { useAuth } from '@/lib/auth-context'
 import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
+import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination'
 
 interface ProbeManagementProps {
   probes: EventTypeCustom[]
@@ -19,6 +20,8 @@ interface ProbeManagementProps {
   onUpdateProbe: (probeId: string, updates: Partial<EventTypeCustom>) => Promise<void>
   onDeleteProbe: (probeId: string) => Promise<void>
 }
+
+const ITEMS_PER_PAGE = 10
 
 export function ProbeManagement({
   probes,
@@ -36,11 +39,57 @@ export function ProbeManagement({
   const [newProbeDescription, setNewProbeDescription] = useState('')
   const [newProbeUnit, setNewProbeUnit] = useState<string>('')
   const [newProbeCategory, setNewProbeCategory] = useState<string>('')
+  const [page, setPage] = useState(1)
 
   const { hasPermission } = useAuth()
   const canCreate = hasPermission('events.create')
   const canEdit = hasPermission('events.edit')
   const canDelete = hasPermission('events.delete')
+
+  const sortedProbes = useMemo(() => {
+    return [...probes].sort((a, b) => {
+      const nameA = a.name?.toLocaleLowerCase?.('ro-RO') ?? a.name ?? ''
+      const nameB = b.name?.toLocaleLowerCase?.('ro-RO') ?? b.name ?? ''
+      return nameA.localeCompare(nameB, 'ro-RO')
+    })
+  }, [probes])
+
+  const totalPages = Math.max(1, Math.ceil(sortedProbes.length / ITEMS_PER_PAGE))
+  const startIndex = (page - 1) * ITEMS_PER_PAGE
+  const paginatedProbes = sortedProbes.slice(startIndex, startIndex + ITEMS_PER_PAGE)
+  const visibleStart = sortedProbes.length === 0 ? 0 : startIndex + 1
+  const visibleEnd = Math.min(startIndex + ITEMS_PER_PAGE, sortedProbes.length)
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages)
+    }
+  }, [page, totalPages])
+
+  const paginationItems = useMemo(() => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, index) => index + 1)
+    }
+
+    const items: Array<number | 'ellipsis'> = [1]
+    const start = Math.max(2, page - 1)
+    const end = Math.min(totalPages - 1, page + 1)
+
+    if (start > 2) {
+      items.push('ellipsis')
+    }
+
+    for (let current = start; current <= end; current += 1) {
+      items.push(current)
+    }
+
+    if (end < totalPages - 1) {
+      items.push('ellipsis')
+    }
+
+    items.push(totalPages)
+    return items
+  }, [page, totalPages])
 
 
   const resetFormState = () => {
@@ -115,9 +164,9 @@ export function ProbeManagement({
   const openEditDialog = (probe: EventTypeCustom) => {
     setSelectedProbe(probe)
     setNewProbeName(probe.name)
-  setNewProbeDescription(probe.description || '')
-  setNewProbeUnit(probe.unit || '')
-  setNewProbeCategory(probe.category || '')
+    setNewProbeDescription(probe.description || '')
+    setNewProbeUnit(probe.unit || '')
+    setNewProbeCategory(probe.category || '')
     setEditDialogOpen(true)
   }
 
@@ -222,7 +271,7 @@ export function ProbeManagement({
         )}
       </div>
 
-      {probes.length === 0 ? (
+  {sortedProbes.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Target size={64} weight="duotone" className="text-muted-foreground mb-4" />
@@ -243,7 +292,7 @@ export function ProbeManagement({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {probes.map((probe) => (
+            {paginatedProbes.map((probe) => (
               <TableRow key={probe.id}>
                 <TableCell>{probe.name}</TableCell>
                 <TableCell>{probe.category?.trim() ? probe.category : '—'}</TableCell>
@@ -269,6 +318,62 @@ export function ProbeManagement({
             ))}
           </TableBody>
         </Table>
+      )}
+
+      {sortedProbes.length > 0 && (
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-muted-foreground">
+            Afișezi {visibleStart}-{visibleEnd} din {sortedProbes.length} probe
+          </p>
+          {totalPages > 1 && (
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    href="#"
+                    className={page === 1 ? 'pointer-events-none opacity-50' : undefined}
+                    onClick={(event) => {
+                      event.preventDefault()
+                      if (page > 1) {
+                        setPage(page - 1)
+                      }
+                    }}
+                  />
+                </PaginationItem>
+                {paginationItems.map((item, index) => (
+                  <PaginationItem key={typeof item === 'number' ? `page-${item}` : `ellipsis-${index}`}>
+                    {item === 'ellipsis' ? (
+                      <PaginationEllipsis />
+                    ) : (
+                      <PaginationLink
+                        href="#"
+                        isActive={page === item}
+                        onClick={(event) => {
+                          event.preventDefault()
+                          setPage(item)
+                        }}
+                      >
+                        {item}
+                      </PaginationLink>
+                    )}
+                  </PaginationItem>
+                ))}
+                <PaginationItem>
+                  <PaginationNext
+                    href="#"
+                    className={page === totalPages ? 'pointer-events-none opacity-50' : undefined}
+                    onClick={(event) => {
+                      event.preventDefault()
+                      if (page < totalPages) {
+                        setPage(page + 1)
+                      }
+                    }}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          )}
+        </div>
       )}
 
       <Dialog
