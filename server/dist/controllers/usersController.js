@@ -180,60 +180,107 @@ const updateUser = async (req, res) => {
     const client = await database_1.default.connect();
     try {
         const { id } = req.params;
-        const { email, password, firstName, lastName, role, roleId, isActive, needsApproval, athleteId, avatar } = req.body;
-        const user = await client.query('SELECT id FROM users WHERE id = $1', [id]);
-        if (user.rows.length === 0) {
+        const requester = req.user;
+        if (!requester) {
+            return res.status(401).json({ error: 'Authentication required' });
+        }
+        const isSuperadmin = requester.role === 'superadmin';
+        const isSelf = requester.userId === id;
+        if (!isSuperadmin && !isSelf) {
+            return res.status(403).json({ error: 'Nu ai permisiunea necesară' });
+        }
+        const { email, password, currentPassword, firstName, lastName, role, roleId, isActive, needsApproval, athleteId, avatar } = req.body;
+        if (!isSuperadmin) {
+            const forbiddenFields = [
+                ['role', role],
+                ['roleId', roleId],
+                ['isActive', isActive],
+                ['needsApproval', needsApproval],
+                ['athleteId', athleteId]
+            ];
+            const attemptedRestrictedUpdate = forbiddenFields.some(([, value]) => typeof value !== 'undefined');
+            if (attemptedRestrictedUpdate) {
+                return res.status(403).json({ error: 'Nu ai permisiunea de a modifica aceste câmpuri' });
+            }
+        }
+        const userResult = await client.query('SELECT id, email, password FROM users WHERE id = $1', [id]);
+        if (userResult.rows.length === 0) {
             return res.status(404).json({ error: 'User not found' });
         }
+        const existingUser = userResult.rows[0];
         const updates = [];
         const values = [];
         let paramCount = 1;
-        if (email !== undefined) {
+        if (typeof email === 'string') {
+            const trimmedEmail = email.trim().toLowerCase();
+            if (trimmedEmail.length === 0) {
+                return res.status(400).json({ error: 'Emailul nu poate fi gol' });
+            }
+            if (trimmedEmail !== existingUser.email.toLowerCase()) {
+                const emailExists = await client.query('SELECT id FROM users WHERE LOWER(email) = $1 AND id <> $2', [trimmedEmail, id]);
+                if (emailExists.rows.length > 0) {
+                    return res.status(400).json({ error: 'Emailul există deja' });
+                }
+            }
             updates.push(`email = $${paramCount++}`);
-            values.push(email.toLowerCase());
+            values.push(trimmedEmail);
         }
-        if (password !== undefined && password.length >= 6) {
+        if (typeof firstName === 'string') {
+            updates.push(`first_name = $${paramCount++}`);
+            values.push(firstName.trim());
+        }
+        if (typeof lastName === 'string') {
+            updates.push(`last_name = $${paramCount++}`);
+            values.push(lastName.trim());
+        }
+        if (typeof password === 'string' && password.length > 0) {
+            if (password.length < 6) {
+                return res.status(400).json({ error: 'Parola trebuie să aibă cel puțin 6 caractere' });
+            }
+            if (!isSuperadmin) {
+                if (typeof currentPassword !== 'string' || currentPassword.length === 0) {
+                    return res.status(400).json({ error: 'Parola curentă este necesară' });
+                }
+                const hashedCurrent = hashPassword(currentPassword);
+                if (hashedCurrent !== existingUser.password) {
+                    return res.status(403).json({ error: 'Parola curentă este incorectă' });
+                }
+            }
             updates.push(`password = $${paramCount++}`);
             values.push(hashPassword(password));
         }
-        if (firstName !== undefined) {
-            updates.push(`first_name = $${paramCount++}`);
-            values.push(firstName);
+        if (isSuperadmin) {
+            if (typeof role === 'string') {
+                updates.push(`role = $${paramCount++}`);
+                values.push(role);
+            }
+            if (typeof roleId !== 'undefined') {
+                updates.push(`role_id = $${paramCount++}`);
+                values.push(roleId || null);
+            }
+            if (typeof isActive === 'boolean') {
+                updates.push(`is_active = $${paramCount++}`);
+                values.push(isActive);
+            }
+            if (typeof needsApproval === 'boolean') {
+                updates.push(`needs_approval = $${paramCount++}`);
+                values.push(needsApproval);
+            }
+            if (typeof athleteId !== 'undefined') {
+                updates.push(`athlete_id = $${paramCount++}`);
+                values.push(athleteId || null);
+            }
         }
-        if (lastName !== undefined) {
-            updates.push(`last_name = $${paramCount++}`);
-            values.push(lastName);
-        }
-        if (role !== undefined) {
-            updates.push(`role = $${paramCount++}`);
-            values.push(role);
-        }
-        if (roleId !== undefined) {
-            updates.push(`role_id = $${paramCount++}`);
-            values.push(roleId);
-        }
-        if (isActive !== undefined) {
-            updates.push(`is_active = $${paramCount++}`);
-            values.push(isActive);
-        }
-        if (needsApproval !== undefined) {
-            updates.push(`needs_approval = $${paramCount++}`);
-            values.push(needsApproval);
-        }
-        if (athleteId !== undefined) {
-            updates.push(`athlete_id = $${paramCount++}`);
-            values.push(athleteId);
-        }
-        if (avatar !== undefined) {
+        if (typeof avatar !== 'undefined') {
             updates.push(`avatar = $${paramCount++}`);
             values.push(avatar === '' ? null : avatar);
         }
         if (updates.length === 0) {
-            return res.status(400).json({ error: 'No fields to update' });
+            return res.status(400).json({ error: 'Nu există câmpuri de actualizat' });
         }
         values.push(id);
         const result = await client.query(`UPDATE users SET ${updates.join(', ')} WHERE id = $${paramCount}
-   RETURNING id, email, first_name, last_name, role, role_id, is_active, needs_approval, athlete_id, avatar, created_at`, values);
+       RETURNING id, email, first_name, last_name, role, role_id, is_active, needs_approval, athlete_id, avatar, created_at`, values);
         const updatedUser = result.rows[0];
         res.json({
             id: updatedUser.id,
