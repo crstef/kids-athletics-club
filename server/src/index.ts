@@ -84,6 +84,12 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Serve uploaded files statically
 app.use('/uploads', express.static(uploadsDir));
 
+// Serve the compiled frontend assets
+app.use(express.static(distDir, {
+  maxAge: _IS_PRODUCTION ? '1y' : 0,
+  index: false
+}));
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/public', publicRoutes);
