@@ -224,7 +224,8 @@ const initializeData = async (req, res) => {
       ('U12', 10, 11, 'Categorie sub 12 ani', NOW(), NOW()),
       ('U14', 12, 13, 'Categorie sub 14 ani', NOW(), NOW()),
       ('U16', 14, 15, 'Categorie sub 16 ani', NOW(), NOW()),
-      ('U18', 16, 17, 'Categorie sub 18 ani', NOW(), NOW())
+  ('U18', 16, 17, 'Categorie sub 18 ani', NOW(), NOW()),
+  ('O18', 18, 60, 'Categorie de vârstă peste 18 ani', NOW(), NOW())
       ON CONFLICT (name) DO NOTHING
     `);
         results.ageCategories = 7;

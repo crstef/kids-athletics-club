@@ -80,7 +80,11 @@ const determineCategory = (age) => {
         return 'U14';
     if (age < 16)
         return 'U16';
-    return 'U18';
+    if (age < 18)
+        return 'U18';
+    if (age <= 60)
+        return 'O18';
+    return null;
 };
 const register = async (req, res) => {
     const client = await database_1.default.connect();
@@ -146,10 +150,10 @@ const register = async (req, res) => {
             }
             const derivedAge = calculateAge(profileDob);
             const derivedCategory = determineCategory(derivedAge);
-            if (derivedAge === null || derivedAge < 4 || derivedAge > 18 || !derivedCategory) {
+            if (derivedAge === null || derivedAge < 4 || derivedAge > 60 || !derivedCategory) {
                 await client.query('ROLLBACK');
                 transactionStarted = false;
-                return res.status(400).json({ error: 'Athlete age must be between 4 and 18 years' });
+                return res.status(400).json({ error: 'Athlete age must be between 4 and 60 years' });
             }
             const trimmedNotes = typeof approvalNotes === 'string' && approvalNotes.trim().length > 0 ? approvalNotes.trim() : null;
             const metadata = {
@@ -363,6 +367,8 @@ const login = async (req, res) => {
                 'events.view',
                 'messages.view', 'messages.create',
                 'access_requests.view', 'access_requests.edit',
+                'approval_requests.view.own', 'approval_requests.approve.own',
+                'requests.view.own'
             ],
             parent: [
                 'athletes.view', 'athletes.view.own', 'athletes.avatar.view',
@@ -375,8 +381,8 @@ const login = async (req, res) => {
             ],
         };
         const baseline = baselineByRole[user.role] || [];
-        if (permissions.length === 0 && baseline.length > 0) {
-            permissions = [...new Set(baseline)];
+        if (baseline.length > 0) {
+            permissions = [...new Set([...permissions, ...baseline])];
         }
         // Generate JWT
         const token = (0, jwt_1.generateToken)({
@@ -495,6 +501,8 @@ const getCurrentUser = async (req, res) => {
                 'events.view',
                 'messages.view', 'messages.create',
                 'access_requests.view', 'access_requests.edit',
+                'approval_requests.view.own', 'approval_requests.approve.own',
+                'requests.view.own'
             ],
             parent: [
                 'athletes.view', 'athletes.view.own', 'athletes.avatar.view',
@@ -507,8 +515,8 @@ const getCurrentUser = async (req, res) => {
             ],
         };
         const baseline2 = baselineByRole2[user.role] || [];
-        if (permissions.length === 0 && baseline2.length > 0) {
-            permissions = [...new Set(baseline2)];
+        if (baseline2.length > 0) {
+            permissions = [...new Set([...permissions, ...baseline2])];
         }
         // Get dashboards assigned to this role (same as login)
         let dashboards = [];

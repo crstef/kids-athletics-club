@@ -34,7 +34,48 @@ const determineCategory = (age) => {
         return 'U14';
     if (age < 16)
         return 'U16';
-    return 'U18';
+    if (age < 18)
+        return 'U18';
+    if (age <= 60)
+        return 'O18';
+    return null;
+};
+const DATE_DMY_REGEX = /^\s*(\d{1,2})[./-](\d{1,2})[./-](\d{4})\s*$/;
+const normalizeDateOfBirth = (input) => {
+    if (!input)
+        return null;
+    const trimmed = input.trim();
+    if (!trimmed)
+        return null;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+        return trimmed;
+    }
+    const legacyMatch = trimmed.match(DATE_DMY_REGEX);
+    if (legacyMatch) {
+        const day = legacyMatch[1].padStart(2, '0');
+        const month = legacyMatch[2].padStart(2, '0');
+        const year = legacyMatch[3];
+        return `${year}-${month}-${day}`;
+    }
+    const parsed = new Date(trimmed);
+    if (!Number.isNaN(parsed.getTime())) {
+        return parsed.toISOString().slice(0, 10);
+    }
+    return null;
+};
+const normalizeGender = (input) => {
+    if (!input)
+        return null;
+    const normalized = input.trim().toUpperCase();
+    if (!normalized)
+        return null;
+    if (['M', 'MALE', 'MASCULIN', 'B', 'BOY'].includes(normalized)) {
+        return 'M';
+    }
+    if (['F', 'FEMALE', 'FEMININ', 'G', 'GIRL'].includes(normalized)) {
+        return 'F';
+    }
+    return null;
 };
 const parseApprovalMetadata = (raw) => {
     if (!raw) {
@@ -47,14 +88,21 @@ const parseApprovalMetadata = (raw) => {
         const parsed = JSON.parse(raw);
         if (parsed && typeof parsed === 'object') {
             const message = typeof parsed.message === 'string' ? parsed.message : null;
-            const profile = parsed.profile && typeof parsed.profile === 'object'
-                ? parsed.profile
-                : null;
-            if (profile?.dateOfBirth) {
-                const derivedAge = calculateAge(profile.dateOfBirth);
-                const derivedCategory = determineCategory(derivedAge);
-                profile.age = derivedAge ?? undefined;
-                profile.category = derivedCategory ?? undefined;
+            let profile = null;
+            if (parsed.profile && typeof parsed.profile === 'object') {
+                const rawProfile = parsed.profile;
+                const normalizedDob = normalizeDateOfBirth(typeof rawProfile.dateOfBirth === 'string' ? rawProfile.dateOfBirth : null);
+                const normalizedGender = normalizeGender(typeof rawProfile.gender === 'string' ? rawProfile.gender : null);
+                profile = {
+                    dateOfBirth: normalizedDob ?? (typeof rawProfile.dateOfBirth === 'string' ? rawProfile.dateOfBirth : null),
+                    gender: normalizedGender ?? (typeof rawProfile.gender === 'string' ? rawProfile.gender : null)
+                };
+                if (profile.dateOfBirth) {
+                    const derivedAge = calculateAge(profile.dateOfBirth);
+                    const derivedCategory = determineCategory(derivedAge);
+                    profile.age = derivedAge ?? undefined;
+                    profile.category = derivedCategory ?? undefined;
+                }
             }
             return { message, profile };
         }
@@ -211,13 +259,15 @@ const approveRequest = async (req, res) => {
                 }
                 const userRow = userResult.rows[0];
                 const profile = approvalMetadata.profile;
-                if (!profile?.dateOfBirth || !profile.gender) {
+                const normalizedDob = normalizeDateOfBirth(profile?.dateOfBirth ?? null);
+                const normalizedGender = normalizeGender(profile?.gender ?? null);
+                if (!normalizedDob || !normalizedGender) {
                     await client.query('ROLLBACK');
                     return res.status(400).json({ error: 'Missing athlete profile data for approval' });
                 }
-                const derivedAge = calculateAge(profile.dateOfBirth);
+                const derivedAge = calculateAge(normalizedDob);
                 const derivedCategory = determineCategory(derivedAge);
-                if (derivedAge === null || derivedAge < 4 || derivedAge > 18 || !derivedCategory) {
+                if (derivedAge === null || derivedAge < 4 || derivedAge > 60 || !derivedCategory) {
                     await client.query('ROLLBACK');
                     return res.status(400).json({ error: 'Invalid athlete age or category' });
                 }
@@ -228,8 +278,8 @@ const approveRequest = async (req, res) => {
                     userRow.last_name,
                     derivedAge,
                     derivedCategory,
-                    profile.gender,
-                    profile.dateOfBirth,
+                    normalizedGender,
+                    normalizedDob,
                     effectiveCoachId
                 ]);
                 const createdAthleteId = athleteInsert.rows[0]?.id;
