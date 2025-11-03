@@ -406,7 +406,6 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
     currentUser.role === 'superadmin' ||
     hasWildcardPermission ||
     rawPermissions.some((perm) =>
-      perm === 'approval_requests.view' ||
       perm === 'approval_requests.approve' ||
       perm === 'approval_requests.view.all' ||
       perm === 'approval_requests.approve.all'
