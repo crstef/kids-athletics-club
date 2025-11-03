@@ -402,15 +402,17 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
   const rawPermissions = useMemo(() => currentUser.permissions ?? [], [currentUser.permissions])
   const hasWildcardPermission = rawPermissions.includes('*')
 
+  const isSuperAdmin = currentUser.role === 'superadmin'
+
   const hasGlobalApprovalPermission = useMemo(() => (
-    currentUser.role === 'superadmin' ||
+    isSuperAdmin ||
     hasWildcardPermission ||
     rawPermissions.some((perm) =>
       perm === 'approval_requests.approve' ||
       perm === 'approval_requests.view.all' ||
       perm === 'approval_requests.approve.all'
     )
-  ), [currentUser.role, hasWildcardPermission, rawPermissions])
+  ), [isSuperAdmin, hasWildcardPermission, rawPermissions])
 
   const hasScopedApprovalPermission = useMemo(() => (
     !hasGlobalApprovalPermission &&
@@ -429,9 +431,9 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
     )
   ), [rawPermissions])
 
-  const showAdminApprovalRequests = hasGlobalApprovalPermission
-  const showCoachApprovalRequests = !hasGlobalApprovalPermission && hasScopedApprovalPermission
-  const showAccessRequests = !hasGlobalApprovalPermission && hasAccessRequestPermission
+  const showAdminApprovalRequests = isSuperAdmin
+  const showCoachApprovalRequests = !isSuperAdmin && hasScopedApprovalPermission
+  const showAccessRequests = !isSuperAdmin && hasAccessRequestPermission
 
   const messagingUsers = useMemo(() => {
     const map = new Map<string, User>()

@@ -131,7 +131,7 @@ function AppContent() {
   const canViewAccessRequests = currentUser ? hasPermission('access_requests.view') : false
   const canViewOwnRequests = currentUser ? hasPermission('requests.view.own') : false
   const canViewAllRequests = currentUser ? hasPermission('requests.view.all') : false
-  const showApprovalRequests = Boolean(isSuperAdminUser)
+  const showApprovalRequests = currentUser ? currentUser.role === 'superadmin' : false
   const showAccessRequests = !isSuperAdminUser && (canViewAccessRequests || canViewOwnRequests)
 
   // Compute visible tabs from components API (fallback to permission-based if needed)
@@ -729,9 +729,29 @@ function AppContent() {
   }
 
   const handleUpdateRole = async (roleId: string, updates: Partial<Role>) => {
+    const roleBeingUpdated = (roles || []).find(r => r.id === roleId)
     try {
       await apiClient.updateRole(roleId, updates)
       await refetchRoles()
+      await refetchPermissions()
+      await refetchUserPermissions()
+
+      const affectsCurrentUser = (
+        currentUser?.roleId && currentUser.roleId === roleId
+      ) || (
+        roleBeingUpdated?.name && currentUser?.role === roleBeingUpdated.name
+      )
+
+      if (affectsCurrentUser) {
+        try {
+          const refreshedUser = await apiClient.getCurrentUser() as User
+          setCurrentUser(refreshedUser)
+          await fetchComponents()
+        } catch (refreshError) {
+          console.warn('Failed to refresh current user after role update:', refreshError)
+        }
+      }
+
       toast.success('Rol actualizat cu succes!')
     } catch (error: any) {
       toast.error(error.message || 'Eroare la actualizarea rolului')
