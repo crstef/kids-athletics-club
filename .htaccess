@@ -1,6 +1,6 @@
 # Passenger Configuration for Node.js
-PassengerAppRoot "/home/jmwclpii/domains/kidsathletic.hardweb.ro/public_html"
-PassengerNodejs "/home/jmwclpii/nodevenv/domains/kidsathletic.hardweb.ro/public_html/20/bin/node"
+PassengerAppRoot "/home/jmwclpii/domains/atletismsibiu.ro/public_html"
+PassengerNodejs "/home/jmwclpii/nodevenv/domains/atletismsibiu.ro/public_html/20/bin/node"
 PassengerAppType node
 PassengerStartupFile app.cjs
 PassengerAppEnv production
