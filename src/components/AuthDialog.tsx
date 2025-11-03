@@ -130,7 +130,7 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
       resetForms()
     } catch (error: any) {
       if (error.message?.includes('pending approval')) {
-        toast.error('Contul tău așteaptă aprobată de la administrator')
+        toast.error('Contul tău așteaptă aprobare de la administrator')
       } else if (error.message?.includes('inactive')) {
         toast.error('Contul tău este dezactivat. Contactează administratorul.')
       } else {
@@ -217,11 +217,11 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
       
       if (signupRole !== 'superadmin') {
         if (signupRole === 'parent') {
-          toast.info('Cererea ta a fost trimisă la antrenor pentru aprobată')
+          toast.info('Cererea ta a fost trimisă la antrenor pentru aprobare')
         } else if (signupRole === 'athlete') {
           toast.info('Cererea ta a fost trimisă la antrenor pentru aprobare')
         } else {
-          toast.info('Contul tău așteaptă aprobată de la administrator')
+          toast.info('Contul tău așteaptă aprobare de la administrator')
         }
       }
       
@@ -333,8 +333,11 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
             </form>
           </TabsContent>
 
-          <TabsContent value="signup">
-            <form onSubmit={handleSignup} className="space-y-4">
+          <TabsContent
+            value="signup"
+            className="max-h-[calc(100vh-12rem)] overflow-y-auto pr-1"
+          >
+            <form onSubmit={handleSignup} className="space-y-3">
               <div className="space-y-2">
                 <Label htmlFor="signup-role">Tip Cont *</Label>
                 <Select
@@ -367,13 +370,13 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
 
               {signupRole === 'parent' && (
                 <>
-                  <div className="bg-accent/10 border border-accent/20 rounded-lg p-4 space-y-2">
-                    <div className="font-semibold text-sm text-foreground">ℹ️ Informații Părinte:</div>
-                    <div className="text-sm text-foreground space-y-1">
-                      <p>• Selectează antrenorul copilului tău din listă</p>
-                      <p>• Apoi selectează copilul din lista antrenorului</p>
-                      <p>• Cererea va fi trimisă la antrenor pentru aprobată</p>
-                    </div>
+                  <div className="bg-accent/10 border border-accent/20 rounded-lg p-4">
+                    <p className="text-sm font-semibold text-foreground">Sfaturi pentru părinți</p>
+                    <ul className="mt-2 list-disc space-y-1 pl-4 text-sm text-muted-foreground">
+                      <li>Selectează antrenorul copilului.</li>
+                      <li>Alege copilul din lista acelui antrenor.</li>
+                      <li>Antrenorul confirmă cererea.</li>
+                    </ul>
                   </div>
                   
                   <div className="space-y-2">
@@ -433,13 +436,12 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
 
               {signupRole === 'athlete' && (
                 <>
-                  <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 space-y-2">
-                    <div className="font-semibold text-sm text-foreground">ℹ️ Informații Atlet:</div>
-                    <div className="text-sm text-foreground space-y-1">
-                      <p>• Contul necesită aprobare din partea antrenorului selectat</p>
-                      <p>• După aprobare vei fi adăugat automat în lista de atleți</p>
-                      <p>• Completează datele corect pentru a calcula categoria potrivită</p>
-                    </div>
+                  <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
+                    <p className="text-sm font-semibold text-foreground">Sfaturi pentru atleți</p>
+                    <ul className="mt-2 list-disc space-y-1 pl-4 text-sm text-muted-foreground">
+                      <li>Alege antrenorul cu care te pregătești.</li>
+                      <li>Cererea este in aprobare la antrenorul selectat.</li>
+                    </ul>
                   </div>
 
                   <div className="space-y-2">
@@ -509,16 +511,16 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
               )}
 
               {signupRole === 'coach' && (
-                <div className="bg-secondary/10 border border-secondary/20 rounded-lg p-4 space-y-2">
-                  <div className="font-semibold text-sm text-foreground">ℹ️ Informații Antrenor:</div>
-                  <div className="text-sm text-foreground space-y-1">
-                    <p>• Contul necesită aprobată de la administrator</p>
-                    <p>• După aprobată vei putea gestiona atleți</p>
-                  </div>
+                <div className="bg-secondary/10 border border-secondary/20 rounded-lg p-4">
+                  <p className="text-sm font-semibold text-foreground">Sfaturi pentru antrenori</p>
+                  <ul className="mt-2 list-disc space-y-1 pl-4 text-sm text-muted-foreground">
+                    <li>Contul devine activ după aprobarea administratorului.</li>
+                    <li>După aprobare poți gestiona atleți și grupele lor.</li>
+                  </ul>
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="signup-firstName">Prenume *</Label>
                   <Input
@@ -619,12 +621,12 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
 
               {signupRole === 'parent' && (
                 <div className="space-y-2">
-                  <Label htmlFor="signup-notes">Notițe Aprobată (opțional)</Label>
+                  <Label htmlFor="signup-notes">Notițe pentru antrenor (opțional)</Label>
                   <Input
                     id="signup-notes"
                     value={approvalNotes}
                     onChange={(e) => setApprovalNotes(e.target.value)}
-                    placeholder="ex: Informații suplimentare..."
+                    placeholder="ex: Copilul vine la antrenament de la ora 17:00"
                   />
                 </div>
               )}
