@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Clock, Check, X } from '@phosphor-icons/react'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 import type { User, Athlete, AccountApprovalRequest } from '@/lib/types'
 
 interface CoachApprovalRequestsProps {
@@ -31,6 +32,7 @@ export function CoachApprovalRequests({
   const [rejectionReason, setRejectionReason] = useState('')
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false)
   const [selectedRequestId, setSelectedRequestId] = useState<string>('')
+  const isCoachMode = mode === 'coach'
 
   const pendingRequests = useMemo(() => {
     return approvalRequests.filter((request) => {
@@ -144,22 +146,22 @@ export function CoachApprovalRequests({
 
   return (
     <>
-      <Card className="border-accent shadow-lg">
-        <CardHeader className="bg-linear-to-r from-accent/10 to-accent/5">
-          <CardTitle className="flex items-center gap-2">
-            <Clock size={24} weight="fill" className="text-accent" />
-            Cereri de Aprobare
-            <Badge variant="default" className="ml-2 animate-pulse">
+      <Card className={cn('shadow-sm', isCoachMode ? 'border border-border bg-card/95' : 'border-accent shadow-lg')}>
+        <CardHeader className={cn(isCoachMode ? 'bg-transparent pb-4' : 'bg-linear-to-r from-accent/10 to-accent/5')}>
+          <CardTitle className={cn('flex items-center gap-2', isCoachMode ? 'text-lg' : '')}>
+            <Clock size={22} weight="fill" className={cn(isCoachMode ? 'text-primary' : 'text-accent')} />
+            {mode === 'admin' ? 'Cereri de Aprobare' : 'Cereri în așteptare'}
+            <Badge variant={isCoachMode ? 'secondary' : 'default'} className="ml-2">
               {pendingRequests.length} {pendingRequests.length === 1 ? 'cerere' : 'cereri'}
             </Badge>
           </CardTitle>
-          <CardDescription>
+          <CardDescription className={isCoachMode ? 'text-sm text-muted-foreground/90' : undefined}>
             {mode === 'admin'
               ? 'Cereri de aprobare trimise de utilizatori în așteptarea procesării'
               : 'Solicitări de la părinți sau atleți care necesită aprobarea ta'}
           </CardDescription>
         </CardHeader>
-        <CardContent className="pt-6">
+        <CardContent className="pt-4">
           <div className="space-y-4">
             {pendingRequests.map((request) => {
               const user = users.find(u => u.id === request.userId)
@@ -167,26 +169,38 @@ export function CoachApprovalRequests({
               const athleteName = getAthleteName(request.athleteId, request.childName)
               const coachName = getCoachName(request.coachId)
               const profile = request.athleteProfile
-              
-              if (!user) return null
+
+              const applicantName = user
+                ? `${user.firstName} ${user.lastName}`
+                : athleteName ?? 'Cont nou înregistrat'
+
+              const applicantEmail = user?.email ?? 'email în curs de confirmare'
 
               return (
-                <div key={request.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-5 border-2 border-accent/20 rounded-xl gap-4 bg-linear-to-br from-card to-accent/5 hover:shadow-md transition-all">
+                <div
+                  key={request.id}
+                  className={cn(
+                    'flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl p-5 transition-colors',
+                    isCoachMode
+                      ? 'border border-border bg-background/60 hover:border-accent/60'
+                      : 'border-2 border-accent/20 bg-linear-to-br from-card to-accent/5 hover:shadow-md'
+                  )}
+                >
                   <div className="space-y-2 flex-1">
-                    <div className="font-semibold text-lg">
-                      {user.firstName} {user.lastName}
+                    <div className="font-semibold text-lg leading-tight">
+                      {applicantName}
                     </div>
                     <div className="text-sm text-muted-foreground flex items-center gap-1.5">
-                      📧 {user.email}
+                      📧 {applicantEmail}
                     </div>
                     {athleteName && !isAthleteRequest && (
-                      <div className="text-sm font-medium bg-primary/10 px-3 py-1.5 rounded-full inline-block mt-2">
+                      <div className="text-sm font-medium bg-primary/10 px-3 py-1.5 rounded-full inline-block mt-1">
                         👤 Solicită acces pentru: <strong>{athleteName}</strong>
                       </div>
                     )}
                     {isAthleteRequest && (
-                      <div className="text-sm font-medium bg-primary/10 px-3 py-1.5 rounded-full inline-block mt-2">
-                        🏃 Atlet nou: <strong>{athleteName ?? `${user.firstName} ${user.lastName}`}</strong>
+                      <div className="text-sm font-medium bg-primary/10 px-3 py-1.5 rounded-full inline-block mt-1">
+                        🏃 Atlet nou: <strong>{athleteName ?? applicantName}</strong>
                       </div>
                     )}
                     {mode === 'admin' && coachName && (
@@ -195,7 +209,7 @@ export function CoachApprovalRequests({
                       </div>
                     )}
                     {profile && (
-                      <div className="text-sm bg-muted p-3 rounded-lg border-l-4 border-accent mt-2">
+                      <div className="text-sm bg-muted/60 p-3 rounded-lg border border-dashed border-accent/40 mt-2">
                         <strong className="text-accent">Detalii atlet:</strong>
                         <div className="mt-2 space-y-1 text-muted-foreground">
                           {profile.dateOfBirth && <p>📅 Data nașterii: {new Date(profile.dateOfBirth).toLocaleDateString('ro-RO')}</p>}
@@ -206,7 +220,7 @@ export function CoachApprovalRequests({
                       </div>
                     )}
                     {request.approvalNotes && (
-                      <div className="text-sm bg-muted p-3 rounded-lg border-l-4 border-accent mt-2">
+                      <div className="text-sm bg-muted/60 p-3 rounded-lg border border-dashed border-accent/40 mt-2">
                         <strong className="text-accent">Mesaj de la utilizator:</strong>
                         <p className="mt-1 text-muted-foreground">{request.approvalNotes}</p>
                       </div>
@@ -216,8 +230,8 @@ export function CoachApprovalRequests({
                     </div>
                   </div>
                   <div className="flex gap-2 sm:flex-col lg:flex-row shrink-0">
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="sm"
                       onClick={() => handleOpenReject(request.id)}
                       className="gap-2"
@@ -225,8 +239,8 @@ export function CoachApprovalRequests({
                       <X size={16} />
                       Respinge
                     </Button>
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
                       onClick={() => handleApprove(request.id)}
                       className="gap-2 bg-accent hover:bg-accent/90"
                     >

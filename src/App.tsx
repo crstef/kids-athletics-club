@@ -133,6 +133,12 @@ function AppContent() {
   const canViewAllRequests = currentUser ? hasPermission('requests.view.all') : false
   const showApprovalRequests = currentUser ? currentUser.role === 'superadmin' : false
   const showAccessRequests = !isSuperAdminUser && (canViewAccessRequests || canViewOwnRequests)
+  const canSeeCoachApprovalRequests = !isSuperAdminUser && (
+    currentUser?.role === 'coach' ||
+    hasPermission('approval_requests.view') ||
+    hasPermission('approval_requests.view.own') ||
+    hasPermission('requests.view.own')
+  )
 
   // Compute visible tabs from components API (fallback to permission-based if needed)
   const visibleTabs = useMemo(() => {
@@ -1068,6 +1074,14 @@ function AppContent() {
       pending += (approvalRequests || []).filter(r => r.status === 'pending').length
     }
 
+    if (canSeeCoachApprovalRequests) {
+      pending += (approvalRequests || []).filter((r) => {
+        if (r.status !== 'pending') return false
+        if (isSuperAdminUser) return true
+        return !r.coachId || r.coachId === currentUser.id
+      }).length
+    }
+
     if (showAccessRequests) {
       if (canViewAllRequests) {
         pending += (accessRequests || []).filter(r => r.status === 'pending').length
@@ -1079,7 +1093,7 @@ function AppContent() {
     }
 
     return pending
-  }, [accessRequests, approvalRequests, currentUser, showApprovalRequests, showAccessRequests, canViewAllRequests, canViewOwnRequests])
+  }, [accessRequests, approvalRequests, currentUser, showApprovalRequests, showAccessRequests, canViewAllRequests, canViewOwnRequests, canSeeCoachApprovalRequests, isSuperAdminUser])
 
   const currentAthlete = useMemo(() => {
     if (!currentUser) return null
