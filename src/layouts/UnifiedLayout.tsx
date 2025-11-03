@@ -1086,14 +1086,22 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
               ) : (
                 <div className="space-y-6">
                   {showCoachApprovalRequests && (
-                    <CoachApprovalRequests
-                      coachId={currentUser.id}
-                      users={users}
-                      athletes={athletes}
-                      approvalRequests={approvalRequests}
-                      onApproveAccount={handleApproveAccount}
-                      onRejectAccount={handleRejectAccount}
-                    />
+                    <section className="space-y-4">
+                      <header className="space-y-1">
+                        <h2 className="text-lg font-semibold">Cereri de aprobare cont</h2>
+                        <p className="text-sm text-muted-foreground">
+                          Gestionarea cererilor noi de cont trimise de părinții și atleții tăi.
+                        </p>
+                      </header>
+                      <CoachApprovalRequests
+                        coachId={currentUser.id}
+                        users={users}
+                        athletes={athletes}
+                        approvalRequests={approvalRequests}
+                        onApproveAccount={handleApproveAccount}
+                        onRejectAccount={handleRejectAccount}
+                      />
+                    </section>
                   )}
                   {showAccessRequests && (
                     <CoachAccessRequests
