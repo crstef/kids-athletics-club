@@ -103,7 +103,8 @@ export const PERMISSION_ALIASES: Record<string, string> = {
   'probes.create': 'events.create',
   'probes.edit': 'events.edit',
   'probes.delete': 'events.delete',
-  'events.manage': 'events.view'
+  'events.manage': 'events.view',
+  'age_categories.manage': 'age_categories.view'
 }
 
 const REVERSE_PERMISSION_ALIASES = Object.entries(PERMISSION_ALIASES).reduce<Record<string, string[]>>((acc, [alias, target]) => {
@@ -124,6 +125,7 @@ const PERMISSION_EQUIVALENTS: Record<string, string[]> = {
   'events.delete': ['probes.delete', 'events.manage'],
   'probes.delete': ['events.delete', 'events.manage'],
   'events.manage': ['events.view', 'events.create', 'events.edit', 'events.delete'],
+  'age_categories.view': ['age_categories.manage'],
   'dashboard.view': [
     'dashboard.view.superadmin',
     'dashboard.view.coach',
