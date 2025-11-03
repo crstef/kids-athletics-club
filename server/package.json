@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nodemon src/index.ts",
     "build": "tsc && npm run postbuild",
-  "postbuild": "cd .. && git add server/dist/ && git diff --cached --quiet -- server/dist || git commit --only --no-verify -m \"chore: update compiled server files\" -- server/dist",
+    "postbuild": "cd .. && git add server/dist/ && git diff --cached --quiet -- server/dist || git commit --only --no-verify -m \"chore: update compiled server files\" -- server/dist",
     "start": "node dist/index.js",
     "db:init": "psql -U $DB_USER -d $DB_NAME -f ../schema.sql",
     "db:backup": "bash ./scripts/backup-db.sh",
@@ -22,7 +22,6 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
-    "express-rate-limit": "^7.3.1",
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.2",
     "pg": "^8.16.3"

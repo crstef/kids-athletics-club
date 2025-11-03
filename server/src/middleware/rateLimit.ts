@@ -1,16 +1,9 @@
-import rateLimit from 'express-rate-limit'
-import type { Request } from 'express'
+import type { Request, Response, NextFunction } from 'express'
 
-const FIFTEEN_MINUTES_MS = 15 * 60 * 1000
-
-export const registerRateLimiter = rateLimit({
-  windowMs: FIFTEEN_MINUTES_MS,
-  max: 5,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Too many registration attempts. Please try again later.' },
-  keyGenerator: (req: Request) => {
-    const userAgent = typeof req.headers['user-agent'] === 'string' ? req.headers['user-agent'] : 'unknown'
-    return `${req.ip ?? 'unknown'}:${userAgent}`
-  }
-})
+/**
+ * Placeholder middleware so development rate limiting can be reintroduced without touching consumers.
+ * Currently it just passes through.
+ */
+export const registerRateLimiter = (_req: Request, _res: Response, next: NextFunction) => {
+  next()
+}
