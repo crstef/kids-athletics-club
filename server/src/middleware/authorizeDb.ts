@@ -2,6 +2,33 @@ import { Response, NextFunction } from 'express'
 import { AuthRequest } from './auth'
 import pool from '../config/database'
 
+const PERMISSION_ALIASES: Record<string, string> = {
+  'approval_requests.view.own': 'approval_requests.view',
+  'approval_requests.approve': 'approval_requests.view',
+  'approval_requests.approve.own': 'approval_requests.view',
+  'requests.view.all': 'approval_requests.view',
+  'requests.view.own': 'approval_requests.view',
+  'probes.view': 'events.view',
+  'probes.manage': 'events.view',
+  'probes.create': 'events.create',
+  'probes.edit': 'events.edit',
+  'probes.delete': 'events.delete',
+  'events.manage': 'events.view',
+  'age_categories.manage': 'age_categories.view',
+  'age-categories.view': 'age_categories.view',
+  'age-categories.manage': 'age_categories.view',
+  'categories.view': 'age_categories.view',
+  'categories.manage': 'age_categories.view'
+}
+
+const REVERSE_PERMISSION_ALIASES = Object.entries(PERMISSION_ALIASES).reduce<Record<string, string[]>>((acc, [alias, target]) => {
+  if (!acc[target]) {
+    acc[target] = []
+  }
+  acc[target].push(alias)
+  return acc
+}, {})
+
 const PERMISSION_EQUIVALENTS: Record<string, string[]> = {
   'events.view': ['probes.view'],
   'probes.view': ['events.view'],
@@ -45,6 +72,18 @@ const expandPermissions = (permissions: string[]): string[] => {
 
     if (!isAll) {
       stack.push(`${basePermission}${ALL_SUFFIX}`)
+    }
+
+    const directAlias = PERMISSION_ALIASES[permission]
+    if (directAlias) {
+      stack.push(directAlias)
+    }
+
+    const reverseAliases = REVERSE_PERMISSION_ALIASES[permission]
+    if (reverseAliases) {
+      for (const reverseAlias of reverseAliases) {
+        stack.push(reverseAlias)
+      }
     }
 
     const equivalents = PERMISSION_EQUIVALENTS[permission]
