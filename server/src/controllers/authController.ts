@@ -449,8 +449,8 @@ export const login = async (req: Request, res: Response) => {
       ],
     };
     const baseline = baselineByRole[user.role] || [];
-    if (permissions.length === 0 && baseline.length > 0) {
-      permissions = [...new Set(baseline)];
+    if (baseline.length > 0) {
+      permissions = [...new Set([...permissions, ...baseline])];
     }
 
     // Generate JWT
@@ -603,8 +603,8 @@ export const getCurrentUser = async (req: Request, res: Response) => {
       ],
     };
     const baseline2 = baselineByRole2[user.role] || [];
-    if (permissions.length === 0 && baseline2.length > 0) {
-      permissions = [...new Set(baseline2)];
+    if (baseline2.length > 0) {
+      permissions = [...new Set([...permissions, ...baseline2])];
     }
 
     // Get dashboards assigned to this role (same as login)
