@@ -5,14 +5,14 @@ import { AuthRequest } from '../middleware/auth';
 interface ApprovalMetadata {
   message: string | null;
   profile?: {
-    dateOfBirth: string;
-    gender: 'M' | 'F';
+    dateOfBirth?: string | null;
+    gender?: string | null;
     age?: number;
     category?: string;
   } | null;
 }
 
-const calculateAge = (dateOfBirth: string): number | null => {
+const calculateAge = (dateOfBirth: string | null | undefined): number | null => {
   if (!dateOfBirth) return null;
   const birthDate = new Date(dateOfBirth);
   if (Number.isNaN(birthDate.getTime())) return null;
@@ -41,6 +41,49 @@ const determineCategory = (age: number | null): string | null => {
   return null;
 };
 
+const DATE_DMY_REGEX = /^\s*(\d{1,2})[./-](\d{1,2})[./-](\d{4})\s*$/;
+
+const normalizeDateOfBirth = (input: string | null | undefined): string | null => {
+  if (!input) return null;
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return trimmed;
+  }
+
+  const legacyMatch = trimmed.match(DATE_DMY_REGEX);
+  if (legacyMatch) {
+    const day = legacyMatch[1].padStart(2, '0');
+    const month = legacyMatch[2].padStart(2, '0');
+    const year = legacyMatch[3];
+    return `${year}-${month}-${day}`;
+  }
+
+  const parsed = new Date(trimmed);
+  if (!Number.isNaN(parsed.getTime())) {
+    return parsed.toISOString().slice(0, 10);
+  }
+
+  return null;
+};
+
+const normalizeGender = (input: string | null | undefined): 'M' | 'F' | null => {
+  if (!input) return null;
+  const normalized = input.trim().toUpperCase();
+  if (!normalized) return null;
+
+  if (['M', 'MALE', 'MASCULIN', 'B', 'BOY'].includes(normalized)) {
+    return 'M';
+  }
+
+  if (['F', 'FEMALE', 'FEMININ', 'G', 'GIRL'].includes(normalized)) {
+    return 'F';
+  }
+
+  return null;
+};
+
 const parseApprovalMetadata = (raw: any): ApprovalMetadata => {
   if (!raw) {
     return { message: null, profile: null };
@@ -54,15 +97,24 @@ const parseApprovalMetadata = (raw: any): ApprovalMetadata => {
     const parsed = JSON.parse(raw);
     if (parsed && typeof parsed === 'object') {
       const message = typeof parsed.message === 'string' ? parsed.message : null;
-      const profile = parsed.profile && typeof parsed.profile === 'object'
-        ? parsed.profile as ApprovalMetadata['profile']
-        : null;
+      let profile: ApprovalMetadata['profile'] = null;
 
-      if (profile?.dateOfBirth) {
-        const derivedAge = calculateAge(profile.dateOfBirth);
-        const derivedCategory = determineCategory(derivedAge);
-        profile.age = derivedAge ?? undefined;
-        profile.category = derivedCategory ?? undefined;
+      if (parsed.profile && typeof parsed.profile === 'object') {
+        const rawProfile = parsed.profile as Record<string, unknown>;
+        const normalizedDob = normalizeDateOfBirth(typeof rawProfile.dateOfBirth === 'string' ? rawProfile.dateOfBirth : null);
+        const normalizedGender = normalizeGender(typeof rawProfile.gender === 'string' ? rawProfile.gender : null);
+
+        profile = {
+          dateOfBirth: normalizedDob ?? (typeof rawProfile.dateOfBirth === 'string' ? rawProfile.dateOfBirth : null),
+          gender: normalizedGender ?? (typeof rawProfile.gender === 'string' ? rawProfile.gender : null)
+        };
+
+        if (profile.dateOfBirth) {
+          const derivedAge = calculateAge(profile.dateOfBirth);
+          const derivedCategory = determineCategory(derivedAge);
+          profile.age = derivedAge ?? undefined;
+          profile.category = derivedCategory ?? undefined;
+        }
       }
 
       return { message, profile };
@@ -250,13 +302,15 @@ export const approveRequest = async (req: AuthRequest, res: Response) => {
 
         const userRow = userResult.rows[0];
         const profile = approvalMetadata.profile;
+        const normalizedDob = normalizeDateOfBirth(profile?.dateOfBirth ?? null);
+        const normalizedGender = normalizeGender(profile?.gender ?? null);
 
-        if (!profile?.dateOfBirth || !profile.gender) {
+        if (!normalizedDob || !normalizedGender) {
           await client.query('ROLLBACK');
           return res.status(400).json({ error: 'Missing athlete profile data for approval' });
         }
 
-        const derivedAge = calculateAge(profile.dateOfBirth);
+        const derivedAge = calculateAge(normalizedDob);
         const derivedCategory = determineCategory(derivedAge);
 
         if (derivedAge === null || derivedAge < 4 || derivedAge > 60 || !derivedCategory) {
@@ -273,8 +327,8 @@ export const approveRequest = async (req: AuthRequest, res: Response) => {
             userRow.last_name,
             derivedAge,
             derivedCategory,
-            profile.gender,
-            profile.dateOfBirth,
+            normalizedGender,
+            normalizedDob,
             effectiveCoachId
           ]
         );
