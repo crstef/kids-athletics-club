@@ -49,10 +49,24 @@ export function useComponents() {
 
         const mergedByName = new Map<string, NormalizedComponent>()
 
+        const normalizeName = (rawName: string): { name: string; displayName?: string } => {
+          const trimmed = rawName?.trim().toLowerCase()
+
+          switch (trimmed) {
+            case 'probes':
+              return { name: 'events', displayName: 'Probe' }
+            case 'age-categories':
+            case 'age_categories':
+              return { name: 'categories', displayName: 'Categorii' }
+            default:
+              return { name: rawName, displayName: undefined }
+          }
+        }
+
         for (const component of response.components as Component[]) {
           const originalName = component.name
-          const canonicalName = originalName === 'probes' ? 'events' : originalName
-          const canonicalDisplayName = canonicalName === 'events' ? 'Probe' : component.displayName
+          const { name: canonicalName, displayName: normalizedDisplayName } = normalizeName(originalName)
+          const canonicalDisplayName = normalizedDisplayName ?? component.displayName
 
           const transformed: NormalizedComponent = {
             ...component,
@@ -75,7 +89,13 @@ export function useComponents() {
             continue
           }
 
-          const shouldPreferCurrent = existing.originalName === 'probes' && originalName !== 'probes'
+          const shouldPreferCurrent = (
+            existing.originalName === 'probes' && originalName !== 'probes'
+          ) || (
+            existing.originalName === 'age-categories' && originalName !== 'age-categories'
+          ) || (
+            existing.originalName === 'age_categories' && originalName !== 'age_categories'
+          )
           const base = shouldPreferCurrent ? transformed : existing
           const other = shouldPreferCurrent ? existing : transformed
 

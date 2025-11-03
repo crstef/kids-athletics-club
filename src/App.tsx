@@ -12,7 +12,7 @@ import { hashPassword } from './lib/auth';
 import { DEFAULT_PERMISSIONS, DEFAULT_ROLES } from './lib/defaults'
 import type { Athlete, Result, AgeCategory, User, AccessRequest, Message, EventTypeCustom, Permission, UserPermission, Role, AgeCategoryCustom } from '@/lib/types'
 import { getDashboardComponent, FALLBACK_DASHBOARD } from '@/lib/dashboardRegistry';
-import { generateTabsFromPermissions, hasPermissionFromList } from '@/lib/permission-tab-mapping'
+import { generateTabsFromPermissions, getPermissionForTab, hasPermissionFromList } from '@/lib/permission-tab-mapping'
 
 // TAB_CONFIGS is now generated dynamically from user permissions via generateTabsFromPermissions()
 
@@ -52,6 +52,35 @@ const coerceTabLabel = (label: unknown, fallback: string): string => {
   }
 
   return fallback
+}
+
+const normalizeTabId = (rawId: string): string => {
+  const trimmed = rawId?.trim().toLowerCase()
+  if (!trimmed) return rawId
+
+  if (trimmed === 'probes') return 'events'
+  if (trimmed === 'age-categories' || trimmed === 'age_categories') return 'categories'
+
+  return trimmed
+}
+
+const derivePermissionForTab = (tabId: string): string => {
+  const canonicalId = normalizeTabId(tabId)
+  const permissionFromConfig = getPermissionForTab(canonicalId)
+  if (permissionFromConfig) {
+    return permissionFromConfig
+  }
+
+  const normalizedKey = (() => {
+    switch (canonicalId) {
+      case 'categories':
+        return 'age_categories'
+      default:
+        return canonicalId.replace(/-/g, '_')
+    }
+  })()
+
+  return `${normalizedKey}.view`
 }
 
 interface VisibleTabDescriptor {
@@ -122,10 +151,10 @@ function AppContent() {
       const apiTabEntries: VisibleTabDescriptor[] = apiTabs
         .filter(tab => tab.permissions?.canView !== false)
         .map(tab => ({
-          id: tab.name,
+          id: normalizeTabId(tab.name),
           label: coerceTabLabel(tab.displayName, tab.name),
           icon: tab.icon || 'LayoutDashboard',
-          permission: `${tab.name}.view`
+          permission: derivePermissionForTab(tab.name)
         }))
 
       const tabById = new Map<string, VisibleTabDescriptor>(apiTabEntries.map(tab => [tab.id, tab]))
