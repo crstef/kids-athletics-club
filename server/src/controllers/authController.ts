@@ -435,6 +435,8 @@ export const login = async (req: Request, res: Response) => {
         'events.view',
         'messages.view', 'messages.create',
         'access_requests.view', 'access_requests.edit',
+        'approval_requests.view.own', 'approval_requests.approve.own',
+        'requests.view.own'
       ],
       parent: [
         'athletes.view', 'athletes.view.own', 'athletes.avatar.view',
@@ -587,6 +589,8 @@ export const getCurrentUser = async (req: Request, res: Response) => {
         'events.view',
         'messages.view', 'messages.create',
         'access_requests.view', 'access_requests.edit',
+        'approval_requests.view.own', 'approval_requests.approve.own',
+        'requests.view.own'
       ],
       parent: [
         'athletes.view', 'athletes.view.own', 'athletes.avatar.view',
