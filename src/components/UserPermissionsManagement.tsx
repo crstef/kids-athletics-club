@@ -21,10 +21,10 @@ interface UserPermissionsManagementProps {
   currentUserId: string
   onGrantPermission: (perm: Omit<UserPermission, 'id' | 'grantedAt'>) => void
   onRevokePermission: (id: string) => void
-  onApproveAccount: (requestId: string) => void
-  onRejectAccount: (requestId: string, reason?: string) => void
+  onApproveAccount: (requestId: string) => Promise<void>
+  onRejectAccount: (requestId: string, reason?: string) => Promise<void>
   onUpdateUser: (userId: string, updates: Partial<User> & { currentPassword?: string }) => void
-  onDeleteRequest?: (requestId: string) => void
+  onDeleteRequest?: (requestId: string) => Promise<void>
 }
 
 export function UserPermissionsManagement({
@@ -83,7 +83,7 @@ export function UserPermissionsManagement({
     setApprovalDialogOpen(true)
   }
 
-  const handleConfirmApproval = () => {
+  const handleConfirmApproval = async () => {
     if (!selectedRequestForApproval) return
     
     const request = approvalRequests.find(r => r.id === selectedRequestForApproval)
@@ -101,7 +101,7 @@ export function UserPermissionsManagement({
       return
     }
 
-    onApproveAccount(selectedRequestForApproval)
+    await onApproveAccount(selectedRequestForApproval)
     setApprovalDialogOpen(false)
     setSelectedRequestForApproval(null)
   }
@@ -128,7 +128,7 @@ export function UserPermissionsManagement({
     setRejectionReason('')
   }
 
-  const handleReject = () => {
+  const handleReject = async () => {
     if (!selectedRequestForRejection) return
 
     const request = approvalRequests.find(r => r.id === selectedRequestForRejection)
@@ -146,7 +146,7 @@ export function UserPermissionsManagement({
       return
     }
     
-    onRejectAccount(selectedRequestForRejection, rejectionReason || undefined)
+    await onRejectAccount(selectedRequestForRejection, rejectionReason || undefined)
     setRejectionDialogOpen(false)
     setSelectedRequestForRejection(null)
     setRejectionReason('')
@@ -191,9 +191,9 @@ export function UserPermissionsManagement({
     setViewRequestDialogOpen(true)
   }
 
-  const handleDeleteRequest = (requestId: string) => {
+  const handleDeleteRequest = async (requestId: string) => {
     if (confirm('Sigur vrei să ștergi această cerere din istoric?')) {
-      onDeleteRequest?.(requestId)
+      await onDeleteRequest?.(requestId)
     }
   }
 

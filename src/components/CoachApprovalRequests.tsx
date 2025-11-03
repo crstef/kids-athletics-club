@@ -16,8 +16,8 @@ interface CoachApprovalRequestsProps {
   users: User[]
   athletes: Athlete[]
   approvalRequests: AccountApprovalRequest[]
-  onApproveAccount: (requestId: string) => void
-  onRejectAccount: (requestId: string, reason?: string) => void
+  onApproveAccount: (requestId: string) => Promise<void>
+  onRejectAccount: (requestId: string, reason?: string) => Promise<void>
 }
 
 export function CoachApprovalRequests({
@@ -63,7 +63,7 @@ export function CoachApprovalRequests({
     return `${coach.firstName} ${coach.lastName}`
   }
 
-  const handleApprove = (requestId: string) => {
+  const handleApprove = async (requestId: string) => {
     const request = approvalRequests.find(r => r.id === requestId)
     if (!request) {
       toast.error('Cererea nu a fost găsită')
@@ -75,7 +75,7 @@ export function CoachApprovalRequests({
       return
     }
 
-    onApproveAccount(requestId)
+    await onApproveAccount(requestId)
   }
 
   const handleOpenReject = (requestId: string) => {
@@ -94,7 +94,7 @@ export function CoachApprovalRequests({
     setRejectDialogOpen(true)
   }
 
-  const handleReject = () => {
+  const handleReject = async () => {
     if (!selectedRequestId) return
 
     const request = approvalRequests.find(r => r.id === selectedRequestId)
@@ -114,7 +114,7 @@ export function CoachApprovalRequests({
       return
     }
 
-    onRejectAccount(selectedRequestId, rejectionReason)
+    await onRejectAccount(selectedRequestId, rejectionReason)
     setRejectDialogOpen(false)
     setRejectionReason('')
     setSelectedRequestId('')

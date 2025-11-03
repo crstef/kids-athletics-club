@@ -10,7 +10,7 @@ import { useComponents } from '@/hooks/use-components'
 import { useInactivityLogout } from '@/hooks/use-inactivity-logout'
 import { hashPassword } from './lib/auth';
 import { DEFAULT_PERMISSIONS, DEFAULT_ROLES } from './lib/defaults'
-import type { Athlete, Result, AgeCategory, User, AccessRequest, Message, EventTypeCustom, Permission, UserPermission, Role, AgeCategoryCustom } from '@/lib/types'
+import type { Athlete, Result, AgeCategory, User, AccessRequest, Message, EventTypeCustom, Permission, UserPermission, Role, AgeCategoryCustom, AccountApprovalRequest } from '@/lib/types'
 import { getDashboardComponent, FALLBACK_DASHBOARD } from '@/lib/dashboardRegistry';
 import { generateTabsFromPermissions, getPermissionForTab, hasPermissionFromList } from '@/lib/permission-tab-mapping'
 
@@ -105,7 +105,7 @@ function AppContent() {
   const [athletes, _setAthletes, _athletesLoading, _athletesError, refetchAthletes] = useAthletes()
   const [results, _setResults, _resultsLoading, _resultsError, refetchResults] = useResults()
   const [users, setUsers, _usersLoading, _usersError, refetchUsers] = useUsers()
-  const [accessRequests, setAccessRequests, _accessRequestsLoading, _accessRequestsError, refetchAccessRequests] = useAccessRequests()
+  const [accessRequests, _setAccessRequests, _accessRequestsLoading, _accessRequestsError, refetchAccessRequests] = useAccessRequests()
   const [messages, _setMessages, _messagesLoading, _messagesError, refetchMessages] = useMessages()
   const [probes, _setProbes, _probesLoading, _probesError, refetchProbes] = useEvents()
   const [permissions, setPermissions, _permissionsLoading, _permissionsError, refetchPermissions] = usePermissions()
@@ -817,104 +817,177 @@ function AppContent() {
     }
   }
 
-  const handleApproveAccount = (requestId: string) => {
+  const handleApproveAccount = async (requestId: string) => {
+    const request = (approvalRequests || []).find(r => r.id === requestId)
+
+    if (!request) {
+      toast.error('Cererea nu a fost găsită')
+      return
+    }
+
+    if (request.status !== 'pending') {
+      toast.error('Această cerere a fost deja procesată')
+      return
+    }
+
     setApprovalRequests((currentRequests) => {
-      const request = (currentRequests || []).find(r => r.id === requestId)
-      if (!request || request.status !== 'pending') {
-        return currentRequests || []
+      if (!Array.isArray(currentRequests)) {
+        return currentRequests
       }
 
-      return (currentRequests || []).map(r =>
+      return currentRequests.map((r: AccountApprovalRequest) =>
         r.id === requestId
           ? {
               ...r,
               status: 'approved' as const,
               responseDate: new Date().toISOString(),
-              approvedBy: currentUser?.id
+              approvedBy: currentUser?.id ?? r.approvedBy
             }
           : r
       )
     })
 
     setUsers((currentUsers) => {
-      const request = (approvalRequests || []).find(r => r.id === requestId)
-      if (!request) return currentUsers || []
-      
-      const user = (currentUsers || []).find(u => u.id === request.userId)
-      if (!user || (user.isActive && !user.needsApproval)) {
-        return currentUsers || []
+      if (!Array.isArray(currentUsers)) {
+        return currentUsers
       }
 
-      return (currentUsers || []).map(u =>
-        u.id === request.userId
-          ? {
-              ...u,
-              isActive: true,
-              needsApproval: false,
-              approvedBy: currentUser?.id,
-              approvedAt: new Date().toISOString()
-            }
-          : u
-      )
+      return currentUsers.map((user) => {
+        if (user.id !== request.userId) {
+          return user
+        }
+
+        if (user.isActive && !user.needsApproval) {
+          return user
+        }
+
+        return {
+          ...user,
+          isActive: true,
+          needsApproval: false,
+          approvedBy: currentUser?.id ?? user.approvedBy,
+          approvedAt: new Date().toISOString()
+        }
+      })
     })
 
-    const request = (approvalRequests || []).find(r => r.id === requestId)
-    if (request && request.requestedRole === 'parent' && request.athleteId && request.coachId) {
-      setAccessRequests((currentAccess) => {
-        const existingAccess = (currentAccess || []).find(
-          ar => ar.parentId === request.userId && 
-                ar.athleteId === request.athleteId && 
-                ar.coachId === request.coachId
-        )
+    const isAthleteRequest = request.requestedRole === 'athlete'
+    const isParentRequest = request.requestedRole === 'parent'
+    const targetUser = (users || []).find(u => u.id === request.userId)
 
-        if (!existingAccess) {
-          const newAccessRequest: AccessRequest = {
-            id: `access-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            parentId: request.userId,
-            athleteId: request.athleteId!,
-            coachId: request.coachId!,
-            status: 'approved',
-            requestDate: new Date().toISOString(),
-            responseDate: new Date().toISOString()
-          }
-          return [...(currentAccess || []), newAccessRequest]
-        }
-        
-        return currentAccess || []
-      })
-    }
+    try {
+      await apiClient.approveRequest(requestId)
 
-    const user = (users || []).find(u => u.id === request?.userId)
-    if (user) {
-      toast.success(`Contul lui ${user.firstName} ${user.lastName} a fost aprobat!`)
+      const followUps: Promise<void>[] = [
+        refetchApprovalRequests(),
+        refetchUsers()
+      ]
+
+      if (isAthleteRequest) {
+        followUps.push(refetchAthletes())
+      }
+
+      if (isParentRequest) {
+        followUps.push(refetchAccessRequests())
+      }
+
+      await Promise.allSettled(followUps)
+
+      if (targetUser) {
+        toast.success(`Contul lui ${targetUser.firstName} ${targetUser.lastName} a fost aprobat!`)
+      } else {
+        toast.success('Cererea a fost aprobată!')
+      }
+    } catch (error: any) {
+      console.error('Error approving account:', error)
+      const message = error?.message || 'Eroare la aprobarea cererii'
+      toast.error(message)
+
+      const rollbackTasks: Promise<void>[] = [
+        refetchApprovalRequests(),
+        refetchUsers()
+      ]
+
+      if (isAthleteRequest) {
+        rollbackTasks.push(refetchAthletes())
+      }
+
+      if (isParentRequest) {
+        rollbackTasks.push(refetchAccessRequests())
+      }
+
+      await Promise.allSettled(rollbackTasks)
     }
   }
 
-  const handleRejectAccount = (requestId: string, reason?: string) => {
+  const handleRejectAccount = async (requestId: string, reason?: string) => {
+    const request = (approvalRequests || []).find(r => r.id === requestId)
+
+    if (!request) {
+      toast.error('Cererea nu a fost găsită')
+      return
+    }
+
+    if (request.status !== 'pending') {
+      toast.error('Această cerere a fost deja procesată')
+      return
+    }
+
     setApprovalRequests((currentRequests) => {
-      const request = (currentRequests || []).find(r => r.id === requestId)
-      if (!request || request.status !== 'pending') {
-        return currentRequests || []
+      if (!Array.isArray(currentRequests)) {
+        return currentRequests
       }
 
-      return (currentRequests || []).map(r =>
+      return currentRequests.map((r: AccountApprovalRequest) =>
         r.id === requestId
           ? {
               ...r,
               status: 'rejected' as const,
               responseDate: new Date().toISOString(),
-              approvedBy: currentUser?.id,
+              approvedBy: currentUser?.id ?? r.approvedBy,
               rejectionReason: reason
             }
           : r
       )
     })
 
-    toast.success('Cerere respinsă')
+    try {
+      await apiClient.rejectRequest(requestId, reason)
+      await Promise.allSettled([
+        refetchApprovalRequests(),
+        refetchUsers(),
+        refetchAccessRequests()
+      ])
+      toast.success('Cerere respinsă')
+    } catch (error: any) {
+      console.error('Error rejecting account:', error)
+      toast.error(error?.message || 'Eroare la respingerea cererii')
+      await Promise.allSettled([
+        refetchApprovalRequests(),
+        refetchUsers(),
+        refetchAccessRequests()
+      ])
+    }
   }
 
-  const handleDeleteApprovalRequest = (requestId: string) => {
-    setApprovalRequests((current) => (current || []).filter(r => r.id !== requestId))
+  const handleDeleteApprovalRequest = async (requestId: string) => {
+    setApprovalRequests((current) => {
+      if (!Array.isArray(current)) {
+        return current
+      }
+
+      return current.filter((r: AccountApprovalRequest) => r.id !== requestId)
+    })
+
+    try {
+      await apiClient.deleteApprovalRequest(requestId)
+      await refetchApprovalRequests()
+      toast.success('Cererea a fost ștearsă din istoric')
+    } catch (error: any) {
+      console.error('Error deleting approval request:', error)
+      toast.error(error?.message || 'Eroare la ștergerea cererii')
+      await refetchApprovalRequests()
+    }
   }
 
   

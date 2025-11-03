@@ -223,9 +223,9 @@ interface UnifiedLayoutProps {
   handleUpdateAccessRequest: (id: string, status: 'approved' | 'rejected') => Promise<void>
   handleSendMessage: (messageData: Omit<Message, 'id' | 'timestamp'>) => Promise<void>
   handleMarkAsRead: (messageIds: string[]) => Promise<void>
-  handleApproveAccount: (requestId: string) => void
-  handleRejectAccount: (requestId: string, reason?: string) => void
-  handleDeleteApprovalRequest: (requestId: string) => void
+  handleApproveAccount: (requestId: string) => Promise<void>
+  handleRejectAccount: (requestId: string, reason?: string) => Promise<void>
+  handleDeleteApprovalRequest: (requestId: string) => Promise<void>
   
   // Athlete search/filter
   searchQuery: string
