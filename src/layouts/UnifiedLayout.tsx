@@ -432,7 +432,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
   ), [rawPermissions])
 
   const showAdminApprovalRequests = isSuperAdmin
-  const showCoachApprovalRequests = !isSuperAdmin && hasScopedApprovalPermission
+  const showCoachApprovalRequests = !isSuperAdmin && (hasScopedApprovalPermission || currentUser.role === 'coach')
   const showAccessRequests = !isSuperAdmin && hasAccessRequestPermission
 
   const messagingUsers = useMemo(() => {
