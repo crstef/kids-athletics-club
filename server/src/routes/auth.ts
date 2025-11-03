@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { register, login, logout, getCurrentUser } from '../controllers/authController';
 import { authenticate } from '../middleware/auth';
+import { registerRateLimiter } from '../middleware/rateLimit';
 import pool from '../config/database';
 
 const router = Router();
@@ -39,7 +40,7 @@ router.get('/debug/test-user', async (req, res) => {
   }
 });
 
-router.post('/register', register);
+router.post('/register', registerRateLimiter, register);
 router.post('/login', login);
 router.post('/logout', authenticate, logout);
 router.get('/me', authenticate, getCurrentUser);
