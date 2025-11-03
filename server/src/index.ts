@@ -60,7 +60,9 @@ const corsOptions = {
       'http://localhost:3000',
       'http://localhost:5173',
       'http://localhost:3001',
-      'https://kidsathletic.hardweb.ro'
+      'https://kidsathletic.hardweb.ro',
+      'https://atletismsibiu.ro',
+      'https://www.atletismsibiu.ro'
     ];
     
     if (allowedOrigins.includes(origin)) {
