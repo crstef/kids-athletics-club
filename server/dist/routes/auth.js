@@ -6,7 +6,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const authController_1 = require("../controllers/authController");
 const auth_1 = require("../middleware/auth");
-const rateLimit_1 = require("../middleware/rateLimit");
 const database_1 = __importDefault(require("../config/database"));
 const router = (0, express_1.Router)();
 // Debug endpoint to test basic database functionality
@@ -39,7 +38,7 @@ router.get('/debug/test-user', async (req, res) => {
         client.release();
     }
 });
-router.post('/register', rateLimit_1.registerRateLimiter, authController_1.register);
+router.post('/register', authController_1.register);
 router.post('/login', authController_1.login);
 router.post('/logout', auth_1.authenticate, authController_1.logout);
 router.get('/me', auth_1.authenticate, authController_1.getCurrentUser);
