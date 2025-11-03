@@ -36,7 +36,8 @@ function determineCategory(age: number): AgeCategory {
   if (age < 12) return 'U12'
   if (age < 14) return 'U14'
   if (age < 16) return 'U16'
-  return 'U18'
+  if (age < 18) return 'U18'
+  return 'O18'
 }
 
 interface AddAthleteDialogProps {
@@ -85,8 +86,8 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
       return
     }
 
-    if (age < 4 || age > 18) {
-      toast.error('Vârsta trebuie să fie între 4 și 18 ani')
+    if (age < 4 || age > 60) {
+      toast.error('Vârsta trebuie să fie între 4 și 60 de ani')
       return
     }
 
@@ -173,7 +174,7 @@ export function AddAthleteDialog({ onAdd, coaches = [] }: AddAthleteDialogProps)
                   id="dateOfBirth"
                   value={dateOfBirth}
                   onChange={setDateOfBirth}
-                  minYear={currentYear - 18}
+                  minYear={currentYear - 60}
                   maxYear={currentYear - 4}
                 />
               </div>

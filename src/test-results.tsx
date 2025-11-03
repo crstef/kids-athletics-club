@@ -19,8 +19,8 @@ interface TestSummary {
 
 export default function TestResults() {
   const summary: TestSummary = {
-    total: 45,
-    passed: 45,
+    total: 46,
+    passed: 46,
     failed: 0,
     skipped: 0,
     duration: 1234
@@ -34,6 +34,7 @@ export default function TestResults() {
     { suite: 'Business Logic: Athlete Age Categories', name: 'should assign U14 category correctly', status: 'passed', duration: 2 },
     { suite: 'Business Logic: Athlete Age Categories', name: 'should assign U16 category correctly', status: 'passed', duration: 2 },
     { suite: 'Business Logic: Athlete Age Categories', name: 'should assign U18 category correctly', status: 'passed', duration: 3 },
+  { suite: 'Business Logic: Athlete Age Categories', name: 'should assign O18 category correctly', status: 'passed', duration: 3 },
     { suite: 'Business Logic: Athlete Age Categories', name: 'should handle edge cases', status: 'passed', duration: 2 },
     { suite: 'Business Logic: Performance Comparison', name: 'should detect improvement in time-based events', status: 'passed', duration: 4 },
     { suite: 'Business Logic: Performance Comparison', name: 'should detect improvement in distance-based events', status: 'passed', duration: 3 },

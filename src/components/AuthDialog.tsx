@@ -94,7 +94,8 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
     if (age < 12) return 'U12'
     if (age < 14) return 'U14'
     if (age < 16) return 'U16'
-    return 'U18'
+    if (age < 18) return 'U18'
+    return 'O18'
   }
 
   const athleteAge = useMemo(() => {
@@ -169,8 +170,8 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
         return
       }
 
-      if (athleteAge === null || athleteAge < 4 || athleteAge > 18) {
-        toast.error('Vârsta trebuie să fie între 4 și 18 ani')
+      if (athleteAge === null || athleteAge < 4 || athleteAge > 60) {
+        toast.error('Vârsta trebuie să fie între 4 și 60 de ani')
         return
       }
     }
@@ -477,7 +478,7 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
                         id="athlete-date-of-birth"
                         value={athleteDateOfBirth}
                         onChange={setAthleteDateOfBirth}
-                        minYear={currentYear - 18}
+                        minYear={currentYear - 60}
                         maxYear={currentYear - 4}
                       />
                     </div>

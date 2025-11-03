@@ -71,7 +71,8 @@ export function EditAthleteDialog({ athlete, parents, coaches, onEdit, onUploadA
     if (calculatedAge < 12) return 'U12'
     if (calculatedAge < 14) return 'U14'
     if (calculatedAge < 16) return 'U16'
-    return 'U18'
+    if (calculatedAge < 18) return 'U18'
+    return 'O18'
   }, [calculatedAge])
   const avatarSrc = deleteAvatar ? null : (avatarPreview || resolveMediaUrl(athlete.avatar))
 
@@ -195,7 +196,7 @@ export function EditAthleteDialog({ athlete, parents, coaches, onEdit, onUploadA
                   id="edit-dateOfBirth"
                   value={dateOfBirth}
                   onChange={setDateOfBirth}
-                  minYear={currentYear - 18}
+                  minYear={currentYear - 60}
                   maxYear={currentYear - 4}
                 />
               </div>

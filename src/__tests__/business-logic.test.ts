@@ -9,6 +9,7 @@ describe('Business Logic: Athlete Age Categories', () => {
     if (age >= 12 && age <= 13) return 'U14'
     if (age >= 14 && age <= 15) return 'U16'
     if (age >= 16 && age <= 17) return 'U18'
+    if (age >= 18 && age <= 60) return 'O18'
     return 'Unknown'
   }
   it('should assign U6 category correctly', () => {
@@ -46,9 +47,15 @@ describe('Business Logic: Athlete Age Categories', () => {
     expect(calculateAgeCategory(17)).toBe('U18')
   })
 
+  it('should assign O18 category correctly', () => {
+    expect(calculateAgeCategory(18)).toBe('O18')
+    expect(calculateAgeCategory(45)).toBe('O18')
+    expect(calculateAgeCategory(60)).toBe('O18')
+  })
+
   it('should handle edge cases', () => {
     expect(calculateAgeCategory(3)).toBe('Unknown')
-    expect(calculateAgeCategory(18)).toBe('Unknown')
+    expect(calculateAgeCategory(61)).toBe('Unknown')
     expect(calculateAgeCategory(-1)).toBe('Unknown')
   })
 })

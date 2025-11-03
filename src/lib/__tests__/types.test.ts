@@ -10,6 +10,8 @@ describe('Type validations', () => {
         lastName: 'Popescu',
         age: 14,
         category: 'U16',
+        gender: 'M',
+        dateOfBirth: '2011-05-10',
         dateJoined: new Date().toISOString(),
         coachId: 'coach-1'
       }
@@ -21,7 +23,7 @@ describe('Type validations', () => {
     })
 
     it('should validate age categories', () => {
-  const categories: AgeCategory[] = ['U6', 'U8', 'U10', 'U12', 'U14', 'U16', 'U18']
+  const categories: AgeCategory[] = ['U6', 'U8', 'U10', 'U12', 'U14', 'U16', 'U18', 'O18']
       
       categories.forEach(category => {
         const athlete: Athlete = {
@@ -30,6 +32,8 @@ describe('Type validations', () => {
           lastName: 'Athlete',
           age: 10,
           category,
+          gender: 'F',
+          dateOfBirth: '2015-01-01',
           dateJoined: new Date().toISOString()
         }
         expect(athlete.category).toBe(category)

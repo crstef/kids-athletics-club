@@ -36,7 +36,9 @@ const determineCategory = (age: number | null): string | null => {
   if (age < 12) return 'U12';
   if (age < 14) return 'U14';
   if (age < 16) return 'U16';
-  return 'U18';
+  if (age < 18) return 'U18';
+  if (age <= 60) return 'O18';
+  return null;
 };
 
 const parseApprovalMetadata = (raw: any): ApprovalMetadata => {
@@ -257,7 +259,7 @@ export const approveRequest = async (req: AuthRequest, res: Response) => {
         const derivedAge = calculateAge(profile.dateOfBirth);
         const derivedCategory = determineCategory(derivedAge);
 
-        if (derivedAge === null || derivedAge < 4 || derivedAge > 18 || !derivedCategory) {
+        if (derivedAge === null || derivedAge < 4 || derivedAge > 60 || !derivedCategory) {
           await client.query('ROLLBACK');
           return res.status(400).json({ error: 'Invalid athlete age or category' });
         }

@@ -451,6 +451,16 @@ function AppContent() {
             isActive: true,
             createdAt: new Date().toISOString(),
             createdBy: 'system'
+          },
+          {
+            id: `cat-${Date.now()}-6`,
+            name: 'O18',
+            ageFrom: 18,
+            ageTo: 60,
+            description: 'Categoria peste 18 ani',
+            isActive: true,
+            createdAt: new Date().toISOString(),
+            createdBy: 'system'
           }
         ]
         setAgeCategories(defaultAgeCategories)

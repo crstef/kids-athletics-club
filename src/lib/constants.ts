@@ -7,7 +7,7 @@ export const EVENT_CATEGORIES = {
   throwing: ['Shot Put', 'Javelin', 'Discus']
 } as const
 
-export const AGE_CATEGORIES = ['U6', 'U8', 'U10', 'U12', 'U14', 'U16', 'U18'] as const
+export const AGE_CATEGORIES = ['U6', 'U8', 'U10', 'U12', 'U14', 'U16', 'U18', 'O18'] as const
 
 export const AVATAR_COLORS = [
   'bg-blue-500',
