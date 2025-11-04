@@ -149,7 +149,7 @@ export function PerformanceChartWidget({ athletes, results, canCompare = true }:
 
   useEffect(() => {
     if (!canCompare) {
-      setComparisonAthleteIds([])
+      setComparisonAthleteIds(prev => (prev.length === 0 ? prev : []))
       return
     }
 
