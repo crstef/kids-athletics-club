@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { apiClient } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 
+const EMPTY_ARRAY: any[] = [];
+
 interface UseApiOptions {
   autoFetch?: boolean;
   onError?: (error: Error) => void;
@@ -27,10 +29,6 @@ export function useApi<T>(
   const [loading, setLoading] = useState<boolean>(autoFetch);
   const [error, setError] = useState<Error | null>(null);
   const [hasFetched, setHasFetched] = useState<boolean>(false);
-
-  useEffect(() => {
-    initialValueRef.current = initialValue;
-  }, [initialValue]);
 
   const requiredPermissionsSerialized = useMemo(() => {
     if (!requiredPermissions) return null;
@@ -68,10 +66,10 @@ export function useApi<T>(
   const fetchData = useCallback(async () => {
     if (requiredPermissionList && !hasRequiredPermission) {
       if (skipIfUnauthorized) {
-        setLoading(false);
-        setError(null);
-        setHasFetched(false);
-        setDataState(initialValueRef.current);
+        setLoading(prev => (prev ? false : prev));
+        setError(prev => (prev ? null : prev));
+        setHasFetched(prev => (prev ? false : prev));
+        setDataState(prev => (Object.is(prev, initialValueRef.current) ? prev : initialValueRef.current));
         return;
       }
     }
@@ -140,10 +138,10 @@ export function useApi<T>(
 
   useEffect(() => {
     if (!authLoading && currentUser && requiredPermissionList && !hasRequiredPermission) {
-      setDataState(initialValueRef.current);
-      setHasFetched(false);
-      setLoading(false);
-      setError(null);
+      setDataState(prev => (Object.is(prev, initialValueRef.current) ? prev : initialValueRef.current));
+      setHasFetched(prev => (prev ? false : prev));
+      setLoading(prev => (prev ? false : prev));
+      setError(prev => (prev ? null : prev));
     }
   }, [authLoading, currentUser, hasRequiredPermission, requiredPermissionList]);
 
@@ -217,7 +215,7 @@ export function usePublicCoaches(options: UseApiOptions = {}) {
 export function useUsers(options: UseApiOptions = {}) {
   return useApi<any[]>(
     'users',
-    [],
+    EMPTY_ARRAY,
     {
       autoFetch: true,
       requiredPermissions: ['users.view', 'users.view.all'],
@@ -229,7 +227,7 @@ export function useUsers(options: UseApiOptions = {}) {
 export function useAthletes(options: UseApiOptions = {}) {
   return useApi<any[]>(
     'athletes',
-    [],
+    EMPTY_ARRAY,
     {
       autoFetch: true,
       requiredPermissions: ['athletes.view', 'athletes.view.own'],
@@ -241,7 +239,7 @@ export function useAthletes(options: UseApiOptions = {}) {
 export function useResults(options: UseApiOptions = {}) {
   return useApi<any[]>(
     'results',
-    [],
+    EMPTY_ARRAY,
     {
       autoFetch: true,
       requiredPermissions: ['results.view', 'results.view.own'],
@@ -253,7 +251,7 @@ export function useResults(options: UseApiOptions = {}) {
 export function useEvents(options: UseApiOptions = {}) {
   return useApi<any[]>(
     'events',
-    [],
+    EMPTY_ARRAY,
     {
       autoFetch: true,
       requiredPermissions: ['events.view'],
@@ -265,7 +263,7 @@ export function useEvents(options: UseApiOptions = {}) {
 export function useAccessRequests(options: UseApiOptions = {}) {
   return useApi<any[]>(
     'access-requests',
-    [],
+    EMPTY_ARRAY,
     {
       autoFetch: true,
       requiredPermissions: ['access_requests.view', 'requests.view.all', 'requests.view.own'],
@@ -277,7 +275,7 @@ export function useAccessRequests(options: UseApiOptions = {}) {
 export function useMessages(options: UseApiOptions = {}) {
   return useApi<any[]>(
     'messages',
-    [],
+    EMPTY_ARRAY,
     {
       autoFetch: true,
       requiredPermissions: ['messages.view'],
@@ -289,7 +287,7 @@ export function useMessages(options: UseApiOptions = {}) {
 export function usePermissions(options: UseApiOptions = {}) {
   return useApi<any[]>(
     'permissions',
-    [],
+    EMPTY_ARRAY,
     {
       autoFetch: true,
       requiredPermissions: ['permissions.view'],
@@ -301,7 +299,7 @@ export function usePermissions(options: UseApiOptions = {}) {
 export function useRoles(options: UseApiOptions = {}) {
   return useApi<any[]>(
     'roles',
-    [],
+    EMPTY_ARRAY,
     {
       autoFetch: true,
       requiredPermissions: ['roles.view'],
@@ -313,7 +311,7 @@ export function useRoles(options: UseApiOptions = {}) {
 export function useApprovalRequests(options: UseApiOptions = {}) {
   return useApi<any[]>(
     'approval-requests',
-    [],
+    EMPTY_ARRAY,
     {
       autoFetch: true,
       requiredPermissions: ['approval_requests.view', 'requests.view.all', 'approval_requests.view.own', 'requests.view.own'],
@@ -325,7 +323,7 @@ export function useApprovalRequests(options: UseApiOptions = {}) {
 export function useAgeCategories(options: UseApiOptions = {}) {
   return useApi<any[]>(
     'age-categories',
-    [],
+    EMPTY_ARRAY,
     {
       autoFetch: true,
       requiredPermissions: ['age_categories.view'],
@@ -337,7 +335,7 @@ export function useAgeCategories(options: UseApiOptions = {}) {
 export function useUserPermissions(options: UseApiOptions = {}) {
   return useApi<any[]>(
     'user-permissions',
-    [],
+    EMPTY_ARRAY,
     {
       autoFetch: true,
       requiredPermissions: ['user_permissions.view'],
