@@ -63,7 +63,7 @@ export function UserPermissionsManagement({
       const dateA = a.responseDate ? new Date(a.responseDate).getTime() : 0
       const dateB = b.responseDate ? new Date(b.responseDate).getTime() : 0
       return dateB - dateA
-    }).slice(0, 10),
+    }).slice(0, 15),
     [approvalRequests]
   )
 
