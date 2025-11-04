@@ -420,6 +420,16 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
     return safeDisplayTabs[0]?.id ?? 'dashboard'
   }, [activeTab, safeDisplayTabs, visibleTabIds])
 
+  useEffect(() => {
+    if (!visibleTabIds.has(activeTab)) {
+      console.group('[TAB DEBUG] invalid activeTab detected')
+      console.log('activeTab:', activeTab)
+      console.log('safeDisplayTabs:', safeDisplayTabs.map(tab => tab.id))
+      console.trace()
+      console.groupEnd()
+    }
+  }, [activeTab, safeDisplayTabs, visibleTabIds])
+
   const rawPermissions = useMemo(() => currentUser.permissions ?? [], [currentUser.permissions])
   const hasWildcardPermission = rawPermissions.includes('*')
 
