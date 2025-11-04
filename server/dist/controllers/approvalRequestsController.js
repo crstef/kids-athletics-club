@@ -261,6 +261,10 @@ const approveRequest = async (req, res) => {
                 const profile = approvalMetadata.profile;
                 const normalizedDob = normalizeDateOfBirth(profile?.dateOfBirth ?? null);
                 const normalizedGender = normalizeGender(profile?.gender ?? null);
+                if (!effectiveCoachId) {
+                    await client.query('ROLLBACK');
+                    return res.status(400).json({ error: 'Cererea nu este asociată unui antrenor valid' });
+                }
                 if (!normalizedDob || !normalizedGender) {
                     await client.query('ROLLBACK');
                     return res.status(400).json({ error: 'Missing athlete profile data for approval' });
@@ -309,11 +313,12 @@ const approveRequest = async (req, res) => {
         await client.query('COMMIT');
         res.json({ message: 'Request approved successfully' });
     }
-    catch (_error) {
+    catch (error) {
         await client.query('ROLLBACK');
         // Surface the underlying issue for easier debugging in development
-        console.error('approveRequest error', _error);
-        res.status(500).json({ error: 'Internal server error' });
+        console.error('approveRequest error', error);
+        const message = error instanceof Error ? error.message : 'Internal server error';
+        res.status(500).json({ error: message });
     }
     finally {
         client.release();
