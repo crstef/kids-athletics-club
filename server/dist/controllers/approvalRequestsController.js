@@ -279,20 +279,69 @@ const approveRequest = async (req, res) => {
                     await client.query('ROLLBACK');
                     return res.status(400).json({ error: 'Invalid athlete age or category' });
                 }
-                const athleteInsert = await client.query(`INSERT INTO athletes (first_name, last_name, age, category, gender, date_of_birth, date_joined, coach_id)
-           VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, $7)
-           RETURNING id`, [
-                    userRow.first_name,
-                    userRow.last_name,
-                    derivedAge,
-                    derivedCategory,
-                    normalizedGender,
-                    normalizedDob,
-                    effectiveCoachId
+                const normalizedFirstName = (userRow.first_name || '').trim();
+                const normalizedLastName = (userRow.last_name || '').trim();
+                const existingAthleteResult = await client.query(`SELECT id, first_name, last_name, date_of_birth::text AS date_of_birth, gender, age, category, coach_id
+           FROM athletes
+           WHERE coach_id = $1
+             AND LOWER(TRIM(first_name)) = LOWER(TRIM($2))
+             AND LOWER(TRIM(last_name)) = LOWER(TRIM($3))
+             AND date_of_birth = $4
+           ORDER BY created_at DESC
+           LIMIT 1`, [
+                    effectiveCoachId,
+                    normalizedFirstName,
+                    normalizedLastName,
+                    normalizedDob
                 ]);
-                const createdAthleteId = athleteInsert.rows[0]?.id;
-                await client.query('UPDATE users SET athlete_id = $1, is_active = true, needs_approval = false, approved_by = $2, approved_at = CURRENT_TIMESTAMP WHERE id = $3', [createdAthleteId, approverId, request.user_id]);
-                await client.query('UPDATE approval_requests SET athlete_id = $1 WHERE id = $2', [createdAthleteId, request.id]);
+                let linkedAthleteId = null;
+                if (existingAthleteResult.rows.length > 0) {
+                    const existingAthlete = existingAthleteResult.rows[0];
+                    linkedAthleteId = existingAthlete.id;
+                    const updateClauses = [];
+                    const updateValues = [];
+                    let paramIndex = 1;
+                    const existingGender = existingAthlete.gender ? existingAthlete.gender.toUpperCase() : null;
+                    if (!existingGender || existingGender !== normalizedGender) {
+                        updateClauses.push(`gender = $${paramIndex++}`);
+                        updateValues.push(normalizedGender);
+                    }
+                    const existingAge = existingAthlete.age != null ? Number(existingAthlete.age) : null;
+                    if (existingAge === null || Number.isNaN(existingAge) || existingAge !== derivedAge) {
+                        updateClauses.push(`age = $${paramIndex++}`);
+                        updateValues.push(derivedAge);
+                    }
+                    if (!existingAthlete.category || existingAthlete.category !== derivedCategory) {
+                        updateClauses.push(`category = $${paramIndex++}`);
+                        updateValues.push(derivedCategory);
+                    }
+                    if (updateClauses.length > 0) {
+                        const whereParamIndex = paramIndex;
+                        updateValues.push(linkedAthleteId);
+                        const setClauses = [...updateClauses, 'updated_at = CURRENT_TIMESTAMP'];
+                        await client.query(`UPDATE athletes SET ${setClauses.join(', ')} WHERE id = $${whereParamIndex}`, updateValues);
+                    }
+                }
+                else {
+                    const athleteInsert = await client.query(`INSERT INTO athletes (first_name, last_name, age, category, gender, date_of_birth, date_joined, coach_id)
+             VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, $7)
+             RETURNING id`, [
+                        normalizedFirstName,
+                        normalizedLastName,
+                        derivedAge,
+                        derivedCategory,
+                        normalizedGender,
+                        normalizedDob,
+                        effectiveCoachId
+                    ]);
+                    linkedAthleteId = athleteInsert.rows[0]?.id ?? null;
+                }
+                if (!linkedAthleteId) {
+                    await client.query('ROLLBACK');
+                    return res.status(500).json({ error: 'Failed to link athlete profile' });
+                }
+                await client.query('UPDATE users SET athlete_id = $1, is_active = true, needs_approval = false, approved_by = $2, approved_at = CURRENT_TIMESTAMP WHERE id = $3', [linkedAthleteId, approverId, request.user_id]);
+                await client.query('UPDATE approval_requests SET athlete_id = $1 WHERE id = $2', [linkedAthleteId, request.id]);
                 break;
             }
             case 'coach': {

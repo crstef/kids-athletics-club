@@ -106,7 +106,8 @@ const getAllAthletes = async (req, res) => {
     }
     catch (error) {
         console.error('Get athletes error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        const message = error instanceof Error ? error.message : 'Internal server error';
+        res.status(500).json({ error: message });
     }
     finally {
         client.release();
@@ -153,7 +154,8 @@ const createAthlete = async (req, res) => {
     }
     catch (error) {
         console.error('Create athlete error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        const message = error instanceof Error ? error.message : 'Internal server error';
+        res.status(500).json({ error: message });
     }
     finally {
         client.release();
@@ -230,7 +232,8 @@ const updateAthlete = async (req, res) => {
     }
     catch (error) {
         console.error('Update athlete error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        const message = error instanceof Error ? error.message : 'Internal server error';
+        res.status(500).json({ error: message });
     }
     finally {
         client.release();
@@ -250,7 +253,8 @@ const deleteAthlete = async (req, res) => {
     }
     catch (error) {
         console.error('Delete athlete error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        const message = error instanceof Error ? error.message : 'Internal server error';
+        res.status(500).json({ error: message });
     }
     finally {
         client.release();
@@ -286,7 +290,8 @@ const uploadAthleteAvatar = async (req, res) => {
     }
     catch (error) {
         console.error('Upload avatar error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        const message = error instanceof Error ? error.message : 'Internal server error';
+        res.status(500).json({ error: message });
     }
     finally {
         client.release();
