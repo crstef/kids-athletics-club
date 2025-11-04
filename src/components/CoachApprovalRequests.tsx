@@ -174,7 +174,7 @@ export function CoachApprovalRequests({
                 ? `${user.firstName} ${user.lastName}`
                 : athleteName ?? 'Cont nou înregistrat'
 
-              const applicantEmail = user?.email ?? 'email în curs de confirmare'
+              const applicantEmail = user?.email ?? 'Cerere în curs de confirmare'
 
               return (
                 <div
@@ -191,7 +191,7 @@ export function CoachApprovalRequests({
                       {applicantName}
                     </div>
                     <div className="text-sm text-muted-foreground flex items-center gap-1.5">
-                      📧 {applicantEmail}
+                      � {applicantEmail}
                     </div>
                     {athleteName && !isAthleteRequest && (
                       <div className="text-sm font-medium bg-primary/10 px-3 py-1.5 rounded-full inline-block mt-1">
