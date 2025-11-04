@@ -695,14 +695,13 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
         }
 
         let initialWidgets = normalizedSaved
-        if (initialWidgets.length === 0) {
-          const allowedDefaults = DEFAULT_WIDGET_IDS.filter(id => allowedSet.size === 0 || allowedSet.has(id))
+
+        if (initialWidgets.length === 0 && allowedSet.size > 0) {
+          const allowedDefaults = DEFAULT_WIDGET_IDS.filter(id => allowedSet.has(id))
           initialWidgets = allowedDefaults.length > 0 ? allowedDefaults : Array.from(allowedSet)
         }
 
-        if (initialWidgets.length === 0) {
-          initialWidgets = DEFAULT_WIDGET_IDS
-        }
+        // Intentionally avoid falling back to DEFAULT_WIDGET_IDS when the role has no widget assignments.
 
         const allowedArray = Array.from(allowedSet)
         console.log('[debug] loadWidgets allowedWidgetIds', allowedArray)
