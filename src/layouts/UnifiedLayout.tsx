@@ -267,7 +267,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
     currentUser,
     logout,
     visibleTabs,
-    pendingRequestsCount,
+  pendingRequestsCount,
     unreadMessagesCount,
     activeTab,
     setActiveTab,
@@ -382,7 +382,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
   const displayTabs = useMemo(() => {
     const transformed = !isParentUser
       ? visibleTabs
-      : visibleTabs.map((tab) =>
+        : visibleTabs.map((tab) =>
           tab.id === 'athletes'
             ? { ...tab, label: 'Atlet' }
             : tab
@@ -397,8 +397,28 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
     })
   }, [visibleTabs, isParentUser])
 
-  const visibleTabIds = useMemo(() => new Set(displayTabs.map(tab => tab.id)), [displayTabs])
+  const fallbackTab = useMemo(() => ({
+    id: 'dashboard',
+    label: 'Dashboard',
+    permission: 'dashboard.view'
+  }), [])
+
+  const safeDisplayTabs = useMemo(() => {
+    if (displayTabs.length === 0) {
+      return [fallbackTab]
+    }
+    return displayTabs
+  }, [displayTabs, fallbackTab])
+
+  const visibleTabIds = useMemo(() => new Set(safeDisplayTabs.map(tab => tab.id)), [safeDisplayTabs])
   const isTabVisible = (tabId: string) => visibleTabIds.has(tabId)
+
+  const resolvedActiveTab = useMemo(() => {
+    if (visibleTabIds.has(activeTab)) {
+      return activeTab
+    }
+    return safeDisplayTabs[0]?.id ?? 'dashboard'
+  }, [activeTab, safeDisplayTabs, visibleTabIds])
 
   const rawPermissions = useMemo(() => currentUser.permissions ?? [], [currentUser.permissions])
   const hasWildcardPermission = rawPermissions.includes('*')
@@ -887,9 +907,9 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
 
       {/* Main content */}
       <main className="flex-1 container mx-auto px-4 py-6">
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Tabs value={resolvedActiveTab} onValueChange={setActiveTab}>
           <TabsList className="w-full justify-start overflow-x-auto">
-            {displayTabs.map((tab) => {
+            {safeDisplayTabs.map((tab) => {
               console.log('[debug] render tab', tab)
               const labelContent = resolveTabLabel(tab.label, tab.id)
               if (
