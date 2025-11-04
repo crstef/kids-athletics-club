@@ -207,28 +207,29 @@ export function PerformanceChartWidget({ athletes, results, canCompare = true }:
     if (!selectedAthleteId || !selectedEvent) return []
     return safeResults
       .filter(r => r.athleteId === selectedAthleteId && r.eventType === selectedEvent)
-      .map(r => ({ date: r.date, value: r.value, notes: r.notes, unit: r.unit }))
+      .map<PerformanceData>(r => ({
+        date: r.date,
+        value: r.value,
+        unit: r.unit ?? undefined,
+        notes: r.notes ?? undefined
+      }))
   }, [safeResults, selectedAthleteId, selectedEvent])
 
-  const comparisonSeries = useMemo(() => {
+  const comparisonSeries = useMemo<Array<{ label: string; data: PerformanceData[] }>>(() => {
     if (!canCompare || !selectedEvent) return []
 
-    return comparisonSelectionDetails
-      .map(({ id, label }) => {
-        const data = safeResults
-          .filter(r => r.athleteId === id && r.eventType === selectedEvent)
-          .map(r => ({ date: r.date, value: r.value, notes: r.notes, unit: r.unit }))
+    return comparisonSelectionDetails.flatMap(({ id, label }) => {
+      const data = safeResults
+        .filter(r => r.athleteId === id && r.eventType === selectedEvent)
+        .map<PerformanceData>(r => ({
+          date: r.date,
+          value: r.value,
+          unit: r.unit ?? undefined,
+          notes: r.notes ?? undefined
+        }))
 
-        if (data.length === 0) {
-          return null
-        }
-
-        return {
-          label,
-          data
-        }
-      })
-      .filter((series): series is { label: string; data: PerformanceData[] } => Boolean(series))
+      return data.length === 0 ? [] : [{ label, data }]
+    })
   }, [canCompare, comparisonSelectionDetails, safeResults, selectedEvent])
 
   const selectedUnit = useMemo(() => {
