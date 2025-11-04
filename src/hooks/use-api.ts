@@ -1,10 +1,12 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { apiClient } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 
 interface UseApiOptions {
   autoFetch?: boolean;
   onError?: (error: Error) => void;
+  requiredPermissions?: string | string[];
+  skipIfUnauthorized?: boolean;
 }
 
 export function useApi<T>(
@@ -12,14 +14,54 @@ export function useApi<T>(
   initialValue: T,
   options: UseApiOptions = {}
 ): [T, (valueOrFn: T | ((current: T) => T)) => void, boolean, Error | null, () => Promise<void>] {
-  const { autoFetch = false, onError } = options;
-  const { currentUser, loading: authLoading } = useAuth();
-  const [data, setDataState] = useState<T>(initialValue);
+  const {
+    autoFetch = false,
+    onError,
+    requiredPermissions,
+    skipIfUnauthorized = true
+  } = options;
+
+  const { currentUser, loading: authLoading, hasPermission } = useAuth();
+  const initialValueRef = useRef(initialValue);
+  const [data, setDataState] = useState<T>(initialValueRef.current);
   const [loading, setLoading] = useState<boolean>(autoFetch);
   const [error, setError] = useState<Error | null>(null);
   const [hasFetched, setHasFetched] = useState<boolean>(false);
 
+  useEffect(() => {
+    initialValueRef.current = initialValue;
+  }, [initialValue]);
+
+  const requiredPermissionList = useMemo(() => {
+    if (!requiredPermissions) return null;
+    return Array.isArray(requiredPermissions)
+      ? requiredPermissions
+      : [requiredPermissions];
+  }, [requiredPermissions]);
+
+  const hasRequiredPermission = useMemo(() => {
+    if (!requiredPermissionList || requiredPermissionList.length === 0) {
+      return true;
+    }
+
+    if (!currentUser) {
+      return false;
+    }
+
+    return requiredPermissionList.some((permission) => hasPermission(permission));
+  }, [requiredPermissionList, currentUser, hasPermission]);
+
   const fetchData = useCallback(async () => {
+    if (requiredPermissionList && !hasRequiredPermission) {
+      if (skipIfUnauthorized) {
+        setLoading(false);
+        setError(null);
+        setHasFetched(false);
+        setDataState(initialValueRef.current);
+        return;
+      }
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -73,13 +115,22 @@ export function useApi<T>(
     } finally {
       setLoading(false);
     }
-  }, [key, onError]);
+  }, [key, onError, hasRequiredPermission, requiredPermissionList, skipIfUnauthorized, initialValue]);
 
   useEffect(() => {
-    if (autoFetch && !authLoading && currentUser && !hasFetched) {
+    if (autoFetch && !authLoading && currentUser && !hasFetched && hasRequiredPermission) {
       fetchData();
     }
-  }, [autoFetch, authLoading, currentUser, hasFetched, fetchData]);
+  }, [autoFetch, authLoading, currentUser, hasFetched, hasRequiredPermission, fetchData]);
+
+  useEffect(() => {
+    if (!authLoading && currentUser && requiredPermissionList && !hasRequiredPermission) {
+      setDataState(initialValueRef.current);
+      setHasFetched(false);
+      setLoading(false);
+      setError(null);
+    }
+  }, [authLoading, currentUser, hasRequiredPermission, requiredPermissionList]);
 
   const setData = useCallback((valueOrFn: T | ((current: T) => T)) => {
     setDataState(prevData => {
@@ -92,10 +143,20 @@ export function useApi<T>(
   }, []);
 
   const forceRefetch = useCallback(async () => {
+    if (requiredPermissionList && !hasRequiredPermission) {
+      if (skipIfUnauthorized) {
+        setHasFetched(false);
+        setLoading(false);
+        setError(null);
+        setDataState(initialValueRef.current);
+        return Promise.resolve();
+      }
+    }
+
     setHasFetched(false);
     await new Promise(resolve => setTimeout(resolve, 0));
     return fetchData();
-  }, [fetchData]);
+  }, [fetchData, hasRequiredPermission, requiredPermissionList, skipIfUnauthorized]);
 
   return [data, setData, loading, error, forceRefetch];
 }
@@ -139,45 +200,133 @@ export function usePublicCoaches(options: UseApiOptions = {}) {
 }
 
 export function useUsers(options: UseApiOptions = {}) {
-  return useApi<any[]>('users', [], { autoFetch: true, ...options });
+  return useApi<any[]>(
+    'users',
+    [],
+    {
+      autoFetch: true,
+      requiredPermissions: ['users.view', 'users.view.all'],
+      ...options
+    }
+  );
 }
 
 export function useAthletes(options: UseApiOptions = {}) {
-  return useApi<any[]>('athletes', [], { autoFetch: true, ...options });
+  return useApi<any[]>(
+    'athletes',
+    [],
+    {
+      autoFetch: true,
+      requiredPermissions: ['athletes.view', 'athletes.view.own'],
+      ...options
+    }
+  );
 }
 
-export function useResults() {
-  return useApi<any[]>('results', [], { autoFetch: true });
+export function useResults(options: UseApiOptions = {}) {
+  return useApi<any[]>(
+    'results',
+    [],
+    {
+      autoFetch: true,
+      requiredPermissions: ['results.view', 'results.view.own'],
+      ...options
+    }
+  );
 }
 
 export function useEvents(options: UseApiOptions = {}) {
-  return useApi<any[]>('events', [], { autoFetch: true, ...options });
+  return useApi<any[]>(
+    'events',
+    [],
+    {
+      autoFetch: true,
+      requiredPermissions: ['events.view'],
+      ...options
+    }
+  );
 }
 
-export function useAccessRequests() {
-  return useApi<any[]>('access-requests', [], { autoFetch: true });
+export function useAccessRequests(options: UseApiOptions = {}) {
+  return useApi<any[]>(
+    'access-requests',
+    [],
+    {
+      autoFetch: true,
+      requiredPermissions: ['access_requests.view', 'requests.view.all', 'requests.view.own'],
+      ...options
+    }
+  );
 }
 
-export function useMessages() {
-  return useApi<any[]>('messages', [], { autoFetch: true });
+export function useMessages(options: UseApiOptions = {}) {
+  return useApi<any[]>(
+    'messages',
+    [],
+    {
+      autoFetch: true,
+      requiredPermissions: ['messages.view'],
+      ...options
+    }
+  );
 }
 
-export function usePermissions() {
-  return useApi<any[]>('permissions', [], { autoFetch: true });
+export function usePermissions(options: UseApiOptions = {}) {
+  return useApi<any[]>(
+    'permissions',
+    [],
+    {
+      autoFetch: true,
+      requiredPermissions: ['permissions.view'],
+      ...options
+    }
+  );
 }
 
-export function useRoles() {
-  return useApi<any[]>('roles', [], { autoFetch: true });
+export function useRoles(options: UseApiOptions = {}) {
+  return useApi<any[]>(
+    'roles',
+    [],
+    {
+      autoFetch: true,
+      requiredPermissions: ['roles.view'],
+      ...options
+    }
+  );
 }
 
-export function useApprovalRequests() {
-  return useApi<any[]>('approval-requests', [], { autoFetch: true });
+export function useApprovalRequests(options: UseApiOptions = {}) {
+  return useApi<any[]>(
+    'approval-requests',
+    [],
+    {
+      autoFetch: true,
+      requiredPermissions: ['approval_requests.view', 'requests.view.all', 'approval_requests.view.own', 'requests.view.own'],
+      ...options
+    }
+  );
 }
 
-export function useAgeCategories() {
-  return useApi<any[]>('age-categories', [], { autoFetch: true });
+export function useAgeCategories(options: UseApiOptions = {}) {
+  return useApi<any[]>(
+    'age-categories',
+    [],
+    {
+      autoFetch: true,
+      requiredPermissions: ['age_categories.view'],
+      ...options
+    }
+  );
 }
 
-export function useUserPermissions() {
-  return useApi<any[]>('user-permissions', [], { autoFetch: true });
+export function useUserPermissions(options: UseApiOptions = {}) {
+  return useApi<any[]>(
+    'user-permissions',
+    [],
+    {
+      autoFetch: true,
+      requiredPermissions: ['user_permissions.view'],
+      ...options
+    }
+  );
 }
