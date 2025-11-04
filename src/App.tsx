@@ -97,6 +97,18 @@ const FALLBACK_DASHBOARD_TAB: VisibleTabDescriptor = {
   permission: 'dashboard.view'
 }
 
+const KNOWN_TAB_IDS = new Set([
+  'dashboard',
+  'athletes',
+  'events',
+  'approvals',
+  'messages',
+  'categories',
+  'users',
+  'roles',
+  'permissions'
+])
+
 const sanitizeVisibleTabs = (tabs: VisibleTabDescriptor[]): VisibleTabDescriptor[] => {
   const unique = new Map<string, VisibleTabDescriptor>()
 
@@ -111,14 +123,20 @@ const sanitizeVisibleTabs = (tabs: VisibleTabDescriptor[]): VisibleTabDescriptor
       continue
     }
 
-    const normalizedKey = rawId.toLowerCase()
+    const canonicalId = normalizeTabId(rawId)
+    if (!KNOWN_TAB_IDS.has(canonicalId)) {
+      console.warn('[visibleTabs] Dropping unexpected tab id:', rawId, tab)
+      continue
+    }
+
+    const normalizedKey = canonicalId
     if (unique.has(normalizedKey)) {
       continue
     }
 
     unique.set(normalizedKey, {
       ...tab,
-      id: rawId
+      id: canonicalId
     })
   }
 
