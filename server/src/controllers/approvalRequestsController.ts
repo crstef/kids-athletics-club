@@ -206,6 +206,16 @@ export const approveRequest = async (req: AuthRequest, res: Response) => {
     const authUser = req.user;
     const requestId = req.params.id;
 
+    const lockResult = await client.query(
+      `SELECT * FROM approval_requests WHERE id = $1 FOR UPDATE`,
+      [requestId]
+    );
+
+    if (lockResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Request not found' });
+    }
+
     const requestResult = await client.query(
       `SELECT 
          ar.*,
@@ -227,8 +237,7 @@ export const approveRequest = async (req: AuthRequest, res: Response) => {
          ORDER BY access_requests.request_date DESC
          LIMIT 1
        ) AS fallback ON true
-       WHERE ar.id = $1
-       FOR UPDATE`,
+       WHERE ar.id = $1`,
       [requestId]
     );
 
@@ -405,6 +414,16 @@ export const rejectRequest = async (req: AuthRequest, res: Response) => {
     const requestId = req.params.id;
     const { reason } = req.body;
 
+    const lockResult = await client.query(
+      `SELECT * FROM approval_requests WHERE id = $1 FOR UPDATE`,
+      [requestId]
+    );
+
+    if (lockResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Request not found' });
+    }
+
     const requestResult = await client.query(
       `SELECT 
          ar.*,
@@ -423,8 +442,7 @@ export const rejectRequest = async (req: AuthRequest, res: Response) => {
          ORDER BY access_requests.request_date DESC
          LIMIT 1
        ) AS fallback ON true
-       WHERE ar.id = $1
-       FOR UPDATE`,
+       WHERE ar.id = $1`,
       [requestId]
     );
 
