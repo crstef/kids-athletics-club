@@ -115,7 +115,8 @@ export const getAllAthletes = async (req: AuthRequest, res: Response) => {
     res.json(result.rows.map(mapAthleteRow));
   } catch (error) {
     console.error('Get athletes error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    const message = error instanceof Error ? error.message : 'Internal server error';
+    res.status(500).json({ error: message });
   } finally {
     client.release();
   }
@@ -171,7 +172,8 @@ export const createAthlete = async (req: AuthRequest, res: Response) => {
     res.status(201).json(mapAthleteRow(result.rows[0]));
   } catch (error) {
     console.error('Create athlete error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    const message = error instanceof Error ? error.message : 'Internal server error';
+    res.status(500).json({ error: message });
   } finally {
     client.release();
   }
@@ -247,7 +249,8 @@ export const updateAthlete = async (req: AuthRequest, res: Response) => {
     res.json(mapAthleteRow(result.rows[0]));
   } catch (error) {
     console.error('Update athlete error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    const message = error instanceof Error ? error.message : 'Internal server error';
+    res.status(500).json({ error: message });
   } finally {
     client.release();
   }
@@ -269,7 +272,8 @@ export const deleteAthlete = async (req: AuthRequest, res: Response) => {
     res.json({ message: 'Athlete deleted successfully' });
   } catch (error) {
     console.error('Delete athlete error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    const message = error instanceof Error ? error.message : 'Internal server error';
+    res.status(500).json({ error: message });
   } finally {
     client.release();
   }
@@ -310,7 +314,8 @@ export const uploadAthleteAvatar = async (req: AuthRequest, res: Response) => {
     res.json(mapAthleteRow(result.rows[0]));
   } catch (error) {
     console.error('Upload avatar error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    const message = error instanceof Error ? error.message : 'Internal server error';
+    res.status(500).json({ error: message });
   } finally {
     client.release();
   }
