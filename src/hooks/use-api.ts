@@ -32,12 +32,26 @@ export function useApi<T>(
     initialValueRef.current = initialValue;
   }, [initialValue]);
 
-  const requiredPermissionList = useMemo(() => {
+  const requiredPermissionsSerialized = useMemo(() => {
     if (!requiredPermissions) return null;
-    return Array.isArray(requiredPermissions)
+    const normalized = Array.isArray(requiredPermissions)
       ? requiredPermissions
       : [requiredPermissions];
+    try {
+      return JSON.stringify(normalized);
+    } catch {
+      return null;
+    }
   }, [requiredPermissions]);
+
+  const requiredPermissionList = useMemo(() => {
+    if (!requiredPermissionsSerialized) return null;
+    try {
+      return JSON.parse(requiredPermissionsSerialized) as string[];
+    } catch {
+      return null;
+    }
+  }, [requiredPermissionsSerialized]);
 
   const hasRequiredPermission = useMemo(() => {
     if (!requiredPermissionList || requiredPermissionList.length === 0) {
@@ -103,7 +117,7 @@ export function useApi<T>(
           result = await apiClient.getUserPermissions();
           break;
         default:
-          result = initialValue;
+          result = initialValueRef.current;
       }
 
       setDataState(result);
@@ -116,7 +130,7 @@ export function useApi<T>(
     } finally {
       setLoading(false);
     }
-  }, [key, onError, hasRequiredPermission, requiredPermissionList, skipIfUnauthorized, initialValue]);
+  }, [key, onError, hasRequiredPermission, requiredPermissionList, skipIfUnauthorized]);
 
   useEffect(() => {
     if (autoFetch && !authLoading && currentUser && !hasFetched && hasRequiredPermission) {
