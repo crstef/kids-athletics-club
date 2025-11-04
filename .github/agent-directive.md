@@ -46,6 +46,79 @@
 - API client attaches JWT automatically; avoid bypassing `apiClient` or the shared `useApi` hooks.
 - Auto-commits from backend build can cause unexpected git history; squash or amend as needed before pushing.
 
+## Approval System (SuperAdmin vs Coach)
+
+### Architecture
+- **Backend**: `server/src/controllers/approvalRequestsController.ts` handles approval lifecycle (list, approve, reject, delete)
+- **Frontend**: 
+  - SuperAdmin: `src/components/UserPermissionsManagement.tsx` (global panel with pending/processed tabs)
+  - Coach: `src/components/CoachApprovalRequests.tsx` (pending) + `src/components/CoachApprovalHistory.tsx` (processed)
+- **Database**: `approval_requests` table with columns: `id`, `request_type` (Coach|Parent|Athlete), `applicant_user_id`, `target_athlete_id`, `metadata` (JSONB), `coach_id`, `status` (pending|approved|rejected), `responded_by`, `responded_at`
+
+### SuperAdmin Approval Workflow
+**Scope**: Global access to ALL approval requests regardless of coach assignment
+**Request Types Handled**:
+- `Coach` - New coach registrations (ONLY SuperAdmin can approve these)
+- `Parent` - Parent access requests for athletes
+- `Athlete` - New athlete registrations with profile creation
+
+**UI Location**: Tab "Aprobări" → `UserPermissionsManagement` component
+- **Pending Tab**: Shows all pending requests across system with approve/reject/delete actions
+- **Processed Tab**: Shows last 15 approved/rejected requests (any coach, any type)
+
+**Backend Authorization**: `authorizeDb('approval_requests.manage')` permission
+**Key Behavior**: 
+- Approving `Athlete` type normalizes metadata (date format DD.MM.YYYY→YYYY-MM-DD, gender Masculin/Feminin→M/F) then creates full athlete profile
+- Updates `users.is_active = true` for approved accounts
+- Sets `responded_by = userId`, `responded_at = NOW()`, `status = 'approved'|'rejected'`
+
+### Coach Approval Workflow
+**Scope**: Limited to approval requests where `coach_id = currentUserId`
+**Request Types Handled**:
+- `Parent` - Parent access requests for athletes assigned to this coach
+- `Athlete` - New athlete registrations specifying this coach
+
+**Request Types BLOCKED**:
+- `Coach` - Coaches CANNOT approve other coach registrations (returns empty list)
+
+**UI Location**: Tab "Aprobări" → Two sections:
+1. **Cereri în așteptare** (`CoachApprovalRequests`) - Pending requests filtered by `coach_id`
+2. **Istoric procesate** (`CoachApprovalHistory`) - Last 15 approved/rejected by this coach
+
+**Backend Authorization**: `authorizeDb('approval_requests.review')` permission (less privileged than `.manage`)
+**Key Behavior**:
+- SQL filter: `WHERE coach_id = $1 AND status = 'pending' AND request_type != 'Coach'`
+- Same normalization + athlete creation flow as SuperAdmin for `Athlete` type
+- Badge count reflects pending requests for this coach only
+
+### Data Flow Example (Athlete Approval)
+1. User registers as Athlete via public form → `approval_requests` row created (`status='pending'`, `request_type='Athlete'`, `metadata={name, dateOfBirth, gender, category, ...}`)
+2. Coach/SuperAdmin sees request in "Aprobări" tab
+3. On approve:
+   - `approveRequest()` locks row with `FOR UPDATE`, validates, normalizes metadata
+   - Creates `athletes` record with parsed metadata + `coach_id`
+   - Updates `users.is_active = true` for `applicant_user_id`
+   - Marks request `status='approved'`, `responded_by=userId`, `responded_at=NOW()`
+4. Frontend refetches athletes, users, approval_requests → pending badge clears, athlete appears in lists
+
+### Critical Implementation Details
+- **SQL Locking**: Use separate `SELECT ... FOR UPDATE` query on base table, then lateral join WITHOUT lock (PostgreSQL constraint: FOR UPDATE incompatible with nullable outer join side)
+- **Metadata Normalization**: `normalizeDateOfBirth()` handles Romanian date formats (03.02.2011), `normalizeGender()` maps Masculin→M, Feminin→F
+- **Async Handlers**: Frontend approval handlers in `App.tsx` are async, call `apiClient.approveRequest/rejectRequest`, perform optimistic updates, refetch all affected data (users, athletes, approval_requests, access_requests)
+- **History Limit**: Both SuperAdmin and Coach see last 15 processed requests in history views (`.slice(0, 15)`)
+
+### Permission Strings
+- `approval_requests.manage` - SuperAdmin global management (approve all types including Coach)
+- `approval_requests.review` - Coach limited review (approve Parent/Athlete only, scoped to own athletes)
+
+### Component File Paths
+- SuperAdmin UI: `src/components/UserPermissionsManagement.tsx`
+- Coach pending: `src/components/CoachApprovalRequests.tsx`
+- Coach history: `src/components/CoachApprovalHistory.tsx`
+- Layout orchestration: `src/layouts/UnifiedLayout.tsx` (renders coach sections in fragment)
+- Backend controller: `server/src/controllers/approvalRequestsController.ts`
+- API routes: `server/src/routes/approvalRequests.ts`
+
 ## Current Investigation Threads
 - Coaches/parents reporting empty athlete lists: confirm permissions (`athletes.view` vs `athletes.view.own`) and ensure backend joins populate `coachId`/`parentId` after recent schema refactor.
 - UI regressions around duplicated avatar uploader were resolved—keep form layout single-sourced in `AddAthleteDialog.tsx`.

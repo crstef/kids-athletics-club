@@ -98,7 +98,8 @@ cd server && npm start
 - Adăugare și management atleți proprii
 - Înregistrare rezultate pentru atleții săi
 - Comunicare cu părinții
-- Aprobare/respingere cereri de acces de la părinți
+- **Aprobare/respingere cereri de cont** - antrenorii aprobă înregistrări noi de părinți și atleți (creează automat profilul de atlet la aprobare)
+- Vizualizare istoric ultimele 15 cereri procesate (aprobate/respinse)
 
 ### Părinte (Parent)
 - Vizualizare informații copil/copii
@@ -118,6 +119,34 @@ cd server && npm start
 - **Editare utilizatori** - modifică informațiile utilizatorilor existenți
 - **Ștergere utilizatori** - elimină utilizatori din sistem (cu excepția SuperAdmin)
 - **Filtrare și căutare** - găsește rapid utilizatori după nume, email sau rol
+
+### Aprobare Conturi (SuperAdmin vs Coach)
+
+**SuperAdmin:**
+- Vede **toate** cererile de aprobare din sistem (indiferent de antrenor)
+- Aprobă cereri de tip:
+  - **Coach** - antrenori noi care se înregistrează
+  - **Parent** - părinți care solicită acces pentru copiii lor
+  - **Athlete** - atleți noi (creează automat profilul în baza de date)
+- Vizualizează istoric complet cu ultimele 15 cereri procesate
+- Tab **"Aprobări"** afișează panoul global de administrare cereri
+
+**Coach:**
+- Vede **doar** cererile legate de atleții săi
+- Aprobă cereri de tip:
+  - **Parent** - părinți care solicită acces pentru un atlet din grupa sa
+  - **Athlete** - atleți noi care se înregistrează cu el ca antrenor
+- **NU** poate aproba cereri de tip **Coach** (doar SuperAdmin)
+- Vizualizează istoric propriu cu ultimele 15 cereri procesate
+- Tab **"Aprobări"** afișează:
+  1. **Cereri în așteptare** - cereri noi de la părinți/atleți
+  2. **Istoric procesate** - ultimele 15 cereri aprobate/respinse
+
+**Diferențe Cheie:**
+- SuperAdmin → acces global, aprobă **toți** rolurile (inclusiv Coach)
+- Coach → acces limitat la proprii atleți, **NU** poate aproba Coach
+- Ambele roluri văd notificări badge cu numărul de cereri în așteptare
+- Aprovarea unui **Athlete** creează automat profilul complet (nume, vârstă, categorie, gen, dată naștere) din metadata cererii
 
 ### Management Roluri
 - Schimbă rolul oricărui utilizator (cu excepția SuperAdmin)

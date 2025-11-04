@@ -38,3 +38,12 @@
 
 - **Data Conventions**: IDs are UUID strings; date-only fields are normalized to `YYYY-MM-DD` strings before returning to the client, while timestamps remain ISO strings.
   Keep backend response shapes and frontend models (`src/lib/types.ts`, dashboard registries, permission enums) in lockstep whenever you add or rename properties.
+
+- **Approval System (SuperAdmin vs Coach)**:
+  - **SuperAdmin** has `approval_requests.manage` permission → sees ALL requests (Coach/Parent/Athlete types) in `UserPermissionsManagement` component with global pending/processed tabs (last 15 in history).
+  - **Coach** has `approval_requests.review` permission → sees ONLY requests where `coach_id = currentUserId` AND `request_type != 'Coach'` (Parent/Athlete only) in `CoachApprovalRequests` (pending) + `CoachApprovalHistory` (last 15 processed).
+  - **CRITICAL**: Coaches CANNOT approve other coach registrations—SQL filter explicitly blocks `request_type='Coach'` for non-superadmin users.
+  - **Athlete Approval Flow**: Normalizes Romanian date formats (DD.MM.YYYY → YYYY-MM-DD) and gender labels (Masculin/Feminin → M/F) via `normalizeDateOfBirth`/`normalizeGender` in `approvalRequestsController.ts`, then creates full athlete profile + sets `users.is_active=true`.
+  - **SQL Locking Pattern**: Separate `SELECT ... FOR UPDATE` on base table, then lateral join WITHOUT lock to avoid PostgreSQL "FOR UPDATE cannot be applied to nullable side of outer join" error.
+  - **Badge Counts**: SuperAdmin sees total pending across system; Coach sees count filtered by own `coach_id` (excluding Coach-type requests).
+  - **File Paths**: Backend `server/src/controllers/approvalRequestsController.ts`, routes `server/src/routes/approvalRequests.ts`; Frontend SuperAdmin `src/components/UserPermissionsManagement.tsx`, Coach `src/components/CoachApprovalRequests.tsx` + `src/components/CoachApprovalHistory.tsx`, orchestrated in `src/layouts/UnifiedLayout.tsx`.
