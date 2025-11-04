@@ -154,6 +154,13 @@ function AppContent() {
     }
 
     if (apiTabs && apiTabs.length > 0) {
+      const fallbackDashboard: VisibleTabDescriptor = {
+        id: 'dashboard',
+        label: 'Dashboard',
+        icon: 'LayoutDashboard',
+        permission: 'dashboard.view'
+      }
+
       const apiTabEntries: VisibleTabDescriptor[] = apiTabs
         .filter(tab => tab.permissions?.canView !== false)
         .map(tab => ({
@@ -179,17 +186,29 @@ function AppContent() {
         })
       }
 
-      const orderedByPermissions = permissionTabs
-        .map(tab => tabById.get(tab.id))
-        .filter((tab): tab is VisibleTabDescriptor => Boolean(tab))
+      const orderedByPermissions: VisibleTabDescriptor[] = permissionTabs
+        .map(tab => tabById.get(tab.id) ?? {
+          id: tab.id,
+          label: coerceTabLabel(tab.label, tab.id),
+          icon: tab.icon || 'LayoutDashboard',
+          permission: tab.permission
+        })
 
       const extras = apiTabEntries
         .filter(apiTab => !orderedByPermissions.some(tab => tab.id === apiTab.id))
-        .filter(apiTab => hasPermissionFromList(apiTab.permission, sessionPermissions))
+        .filter(apiTab => apiTab.id === 'dashboard' || hasPermissionFromList(apiTab.permission, sessionPermissions))
 
-      const permittedOrdered = orderedByPermissions.filter(tab => hasPermissionFromList(tab.permission, sessionPermissions))
+      const permittedOrdered = orderedByPermissions.filter(tab => (
+        tab.id === 'dashboard' || hasPermissionFromList(tab.permission, sessionPermissions)
+      ))
 
-      return [...permittedOrdered, ...extras]
+      let combined = [...permittedOrdered, ...extras]
+
+      if (!combined.some(tab => tab.id === 'dashboard')) {
+        combined = [fallbackDashboard, ...combined]
+      }
+
+      return combined
     }
 
     return permissionTabs.map<VisibleTabDescriptor>((tab) => ({
