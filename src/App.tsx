@@ -90,6 +90,46 @@ interface VisibleTabDescriptor {
   permission: string
 }
 
+const FALLBACK_DASHBOARD_TAB: VisibleTabDescriptor = {
+  id: 'dashboard',
+  label: 'Dashboard',
+  icon: 'LayoutDashboard',
+  permission: 'dashboard.view'
+}
+
+const sanitizeVisibleTabs = (tabs: VisibleTabDescriptor[]): VisibleTabDescriptor[] => {
+  const unique = new Map<string, VisibleTabDescriptor>()
+
+  for (const tab of tabs) {
+    if (!tab) {
+      continue
+    }
+
+    const rawId = typeof tab.id === 'string' ? tab.id.trim() : ''
+    if (!rawId) {
+      console.warn('[visibleTabs] Ignoring tab with invalid id:', tab)
+      continue
+    }
+
+    const normalizedKey = rawId.toLowerCase()
+    if (unique.has(normalizedKey)) {
+      continue
+    }
+
+    unique.set(normalizedKey, {
+      ...tab,
+      id: rawId
+    })
+  }
+
+  const sanitized = Array.from(unique.values())
+  if (sanitized.length === 0) {
+    return []
+  }
+
+  return sanitized
+}
+
 function AppContent() {
   const { 
     currentUser, 
@@ -154,13 +194,6 @@ function AppContent() {
     }
 
     if (apiTabs && apiTabs.length > 0) {
-      const fallbackDashboard: VisibleTabDescriptor = {
-        id: 'dashboard',
-        label: 'Dashboard',
-        icon: 'LayoutDashboard',
-        permission: 'dashboard.view'
-      }
-
       const apiTabEntries: VisibleTabDescriptor[] = apiTabs
         .filter(tab => tab.permissions?.canView !== false)
         .map(tab => ({
@@ -204,19 +237,35 @@ function AppContent() {
 
       let combined = [...permittedOrdered, ...extras]
 
-      if (!combined.some(tab => tab.id === 'dashboard')) {
-        combined = [fallbackDashboard, ...combined]
+      const sanitized = sanitizeVisibleTabs(combined)
+      if (sanitized.length === 0) {
+        return [FALLBACK_DASHBOARD_TAB]
       }
 
-      return combined
+      if (!sanitized.some(tab => tab.id === 'dashboard')) {
+        return [FALLBACK_DASHBOARD_TAB, ...sanitized]
+      }
+
+      return sanitized
     }
 
-    return permissionTabs.map<VisibleTabDescriptor>((tab) => ({
+    const permissionBasedTabs = permissionTabs.map<VisibleTabDescriptor>((tab) => ({
       id: tab.id,
       label: coerceTabLabel(tab.label, tab.id),
       icon: tab.icon || 'LayoutDashboard',
       permission: tab.permission
     }))
+
+    const sanitizedPermissionTabs = sanitizeVisibleTabs(permissionBasedTabs)
+    if (sanitizedPermissionTabs.length === 0) {
+      return [FALLBACK_DASHBOARD_TAB]
+    }
+
+    if (!sanitizedPermissionTabs.some(tab => tab.id === 'dashboard')) {
+      return [FALLBACK_DASHBOARD_TAB, ...sanitizedPermissionTabs]
+    }
+
+    return sanitizedPermissionTabs
   }, [currentUser, apiTabs])
 
   useEffect(() => {
