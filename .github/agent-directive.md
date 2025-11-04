@@ -9,7 +9,7 @@
 ## Frontend
 - Entry point: `src/main.tsx` bootstraps `App.tsx` inside `AuthProvider`.
 - Tab navigation and dashboard components derive from permissions (see `PERMISSION_TO_TAB_MAP`).
-- Hooks layer (`src/hooks/use-api.ts`, `use-components.ts`, etc.) centralizes data fetching; use `useApi` keys to keep loading/error behaviour consistent.
+- Hooks layer (`src/hooks/use-api.ts`, `use-components.ts`, etc.) centralizes data fetching; use `useApi` keys to keep loading/error behaviour consistent. Failed auto-fetch attempts now mark the dataset as fetched to prevent infinite retry loops—call the returned `refetch` helper when you actually want to retry after an error.
 - Athlete forms/dialogs live in `src/components/AddAthleteDialog.tsx`, `EditAthleteDialog.tsx`, and rely on permission gates for avatar uploads and visibility.
 - Styling: Tailwind (`tailwind.config.js`) with design tokens in `theme.json`; global styles in `src/index.css` and `src/main.css`.
 

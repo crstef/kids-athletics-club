@@ -7,7 +7,7 @@
   Backend bootstraps from `server/src/index.ts`, wiring modular routers in `server/src/routes/**` plus setup endpoints that seed roles, permissions, and dashboards.
 
 - **API Access**: All HTTP traffic flows through `src/lib/api-client.ts`, which attaches JWT tokens, handles 401s, and supports `FormData` uploads (`uploadAthleteAvatar`).
-  Fetch data via `src/hooks/use-api.ts` key switches (`users`, `athletes`, etc.) so shared loading/error logic and refetch helpers remain consistent.
+  Fetch data via `src/hooks/use-api.ts` key switches (`users`, `athletes`, etc.) so shared loading/error logic and refetch helpers remain consistent; failed auto-fetches now settle `hasFetched` to avoid runaway retries, so trigger the provided `refetch` when you want to try again after an error.
 
 - **Auth & Authorization**: `AuthContext` manages tokens (sessionStorage vs localStorage when remember-me is set) and exposes `hasPermission`; logout clears both stores plus session state.
   On the server, protect routes with `authenticate` and prefer `authorizeDb('perm')` for granular checks, falling back to `requireRole` only when role-wide access is intentional.

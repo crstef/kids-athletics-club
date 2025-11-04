@@ -112,6 +112,7 @@ export function useApi<T>(
       const error = err as Error;
       setError(error);
       if (onError) onError(error);
+      setHasFetched(true);
     } finally {
       setLoading(false);
     }

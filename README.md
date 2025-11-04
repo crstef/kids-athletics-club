@@ -309,6 +309,8 @@ npm run dev
 npm run dev
 ```
 
+> ℹ️  Hook reminder: the shared `useApi` helpers now mark datasets as “fetched” even when a request fails, so the UI won’t hammer the API on repeated 500 responses. Use the hook’s returned `refetch` function (or switch tabs) when you’re ready to retry after resolving the issue.
+
 Aplicația va fi disponibilă la:
 - Frontend: http://localhost:5173
 - Backend API: http://localhost:3001
