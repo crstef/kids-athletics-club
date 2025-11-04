@@ -50,34 +50,105 @@ Contul de SuperAdmin este creat automat la inițializarea bazei de date.
 
 **Aplicația este PRODUCTION READY!** ✅
 
-Pași recomandați pentru deployment (rezumat):
-1) Instalează dependențele la rădăcină și în `server/`
-2) Configurează `.env` în `server/` (conexiune Postgres, JWT_SECRET etc.)
-3) Inițializează baza de date: `./init-db.sh`
-4) Build frontend: `npm run build`
-5) Build backend: `cd server && npm run build`
-6) Rulează backend-ul: `cd server && npm start`
+### 📖 Documentation Complete
 
-### Quick Start Production
+- **[SETUP-QUICK-START.md](./SETUP-QUICK-START.md)** - One-command setup for new subdomains 🚀
+- **[DEPLOYMENT-GUIDE.md](./DEPLOYMENT-GUIDE.md)** - Comprehensive deployment guide with:
+  - ✅ Automated deployment scripts with rollback support
+  - ✅ Health checks and verification procedures
+  - ✅ Troubleshooting common issues
+  - ✅ Step-by-step manual deployment instructions
+- **[DEPLOYMENT-COMMANDS.md](./DEPLOYMENT-COMMANDS.md)** - Legacy manual commands (reference)
+
+### Quick Deployment Overview
+
+**For Developers (Local Build & Push):**
 
 ```bash
-# 1. Instalează dependențele
+# Build everything and push to GitHub
+npm run build:all
+git add .
+git commit -m "feat: your changes"
+git push origin main
+```
+
+**For Server Deployment:**
+
+```bash
+# Automated (recommended)
+./scripts/server-deploy.sh
+
+# Manual
+git pull origin main && touch tmp/restart.txt
+```
+
+### Initial Server Setup
+
+First-time production setup:
+
+**Option 1: Automated Setup (Recommended)** 🚀
+
+```bash
+# SSH into your web server
+ssh your-user@subdomain.hardweb.ro
+
+# Navigate to your web directory
+cd /home/youruser/public_html/subdomain
+
+# Clone repository
+git clone https://github.com/crstef/kids-athletics-club.git .
+
+# Run automated setup script
+chmod +x setup-server.sh
+./setup-server.sh
+```
+
+The script will guide you through:
+- Database configuration
+- Environment setup  
+- Dependency installation
+- Database initialization
+- Web server configuration
+- Health checks
+
+**Option 2: Manual Setup**
+
+```bash
+# 1. Install dependencies
 npm install
 cd server && npm install && cd ..
 
-# 2. Configurează baza de date PostgreSQL
-# Vezi DEPLOYMENT.md pentru detalii
+# 2. Configure environment
+cp server/.env.example server/.env.production
+# Edit server/.env.production with your credentials
 
-# 3. Configurează variabilele de mediu
-cp server/.env.example server/.env
-# Editează server/.env cu credențialele tale
-
-# 4. Inițializează baza de date
+# 3. Initialize database
 chmod +x init-db.sh
 ./init-db.sh
 
-# 5. Build frontend și backend
-npm run build
+# 4. Build (on local machine, then push to GitHub)
+npm run build:all
+git push origin main
+
+# 5. On server: pull and start
+git pull origin main
+touch tmp/restart.txt  # Restart Passenger
+```
+
+**📚 For detailed deployment instructions, troubleshooting, and rollback procedures, see [DEPLOYMENT-GUIDE.md](./DEPLOYMENT-GUIDE.md)**
+
+---
+
+# 3. Initialize database
+chmod +x init-db.sh
+./init-db.sh
+
+# 4. Build (on local machine, then push to GitHub)
+npm run build:all
+git push origin main
+
+# 5. On server: pull and start
+git pull origin main
 cd server && npm run build && cd ..
 
 # 6. Start backend
