@@ -220,10 +220,8 @@ export const userHasPermissionForTab = hasPermissionFromList
 export function generateTabsFromPermissions(userPermissions: string[]): TabConfig[] {
   const tabs = new Map<string, TabConfig>()
 
-  // Always include dashboard for logged-in users
-  if (userPermissions.length > 0) {
-    tabs.set('dashboard', PERMISSION_TO_TAB_MAP['dashboard.view'])
-  }
+  // Always include dashboard for logged-in users (even if permissions array is empty)
+  tabs.set('dashboard', PERMISSION_TO_TAB_MAP['dashboard.view'])
 
   // Check if user has wildcard permission (superadmin)
   const hasAllPermissions = userPermissions.includes('*')
