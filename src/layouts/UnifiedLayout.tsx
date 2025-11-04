@@ -382,19 +382,30 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
   const displayTabs = useMemo(() => {
     const transformed = !isParentUser
       ? visibleTabs
-        : visibleTabs.map((tab) =>
+      : visibleTabs.map((tab) =>
           tab.id === 'athletes'
             ? { ...tab, label: 'Atlet' }
             : tab
         )
 
     const seen = new Set<string>()
-    return transformed.filter((tab) => {
-      const key = typeof tab.id === 'string' ? tab.id.toLowerCase() : tab.id
-      if (seen.has(key)) return false
-      seen.add(key)
-      return true
-    })
+
+    return transformed
+      .map((tab) => {
+        if (!tab) return null
+        const rawId = typeof tab.id === 'string' ? tab.id.trim() : ''
+        if (!rawId) {
+          console.warn('[UnifiedLayout] Dropping tab without valid id:', tab)
+          return null
+        }
+        const normalizedId = rawId.toLowerCase()
+        if (seen.has(normalizedId)) {
+          return null
+        }
+        seen.add(normalizedId)
+        return { ...tab, id: rawId }
+      })
+      .filter((tab): tab is typeof transformed[number] => tab !== null)
   }, [visibleTabs, isParentUser])
 
   const fallbackTab = useMemo(() => ({
@@ -407,7 +418,13 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
     if (displayTabs.length === 0) {
       return [fallbackTab]
     }
-    return displayTabs
+
+    const validTabs = displayTabs.filter((tab) => typeof tab.id === 'string' && tab.id.trim().length > 0)
+    if (validTabs.length === 0) {
+      return [fallbackTab]
+    }
+
+    return validTabs.map((tab) => ({ ...tab, id: tab.id.trim() }))
   }, [displayTabs, fallbackTab])
 
   const visibleTabIds = useMemo(() => new Set(safeDisplayTabs.map(tab => tab.id)), [safeDisplayTabs])
@@ -420,15 +437,23 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
     return safeDisplayTabs[0]?.id ?? 'dashboard'
   }, [activeTab, safeDisplayTabs, visibleTabIds])
 
-  useEffect(() => {
-    if (!visibleTabIds.has(activeTab)) {
-      console.group('[TAB DEBUG] invalid activeTab detected')
-      console.log('activeTab:', activeTab)
-      console.log('safeDisplayTabs:', safeDisplayTabs.map(tab => tab.id))
-      console.trace()
-      console.groupEnd()
+  const navigateToTab = useCallback((nextTab: string) => {
+    const normalized = typeof nextTab === 'string' ? nextTab.trim() : ''
+    const fallbackId = safeDisplayTabs[0]?.id ?? 'dashboard'
+
+    if (!normalized) {
+      setActiveTab(fallbackId)
+      return
     }
-  }, [activeTab, safeDisplayTabs, visibleTabIds])
+
+    if (!visibleTabIds.has(normalized)) {
+      console.warn('[UnifiedLayout] Blocked navigation to unavailable tab:', normalized)
+      setActiveTab(fallbackId)
+      return
+    }
+
+    setActiveTab(normalized)
+  }, [setActiveTab, safeDisplayTabs, visibleTabIds])
 
   const rawPermissions = useMemo(() => currentUser.permissions ?? [], [currentUser.permissions])
   const hasWildcardPermission = rawPermissions.includes('*')
@@ -858,7 +883,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
                 const spanClass = WIDGET_SIZE_CLASS_MAP[effectiveSize] ?? WIDGET_SIZE_CLASS_MAP.medium
 
                 // Build props based on widget type
-                const widgetProps = buildWidgetProps(widgetId, props)
+                const widgetProps = buildWidgetProps(widgetId, props, navigateToTab)
 
                 let rendered: React.ReactNode
                 try {
@@ -917,7 +942,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
 
       {/* Main content */}
       <main className="flex-1 container mx-auto px-4 py-6">
-        <Tabs value={resolvedActiveTab} onValueChange={setActiveTab}>
+  <Tabs value={resolvedActiveTab} onValueChange={navigateToTab}>
           <TabsList className="w-full justify-start overflow-x-auto">
             {safeDisplayTabs.map((tab) => {
               console.log('[debug] render tab', tab)
@@ -1383,9 +1408,9 @@ function resolveRoleScopedAthleteData(props: UnifiedLayoutProps): { athletes: At
   return { athletes: scopedAthletes, results: scopedResults }
 }
 
-function buildWidgetProps(widgetId: string, props: UnifiedLayoutProps): any {
+function buildWidgetProps(widgetId: string, props: UnifiedLayoutProps, navigateToTab: (tab: string) => void): any {
   const baseProps = {
-    onNavigateToTab: props.setActiveTab
+    onNavigateToTab: navigateToTab
   }
 
   switch (widgetId) {
