@@ -92,7 +92,7 @@ const getAllAthletes = async (req, res) => {
             params.push(userId);
         }
         else if (userRole === 'athlete' && userColumns?.has('athlete_id')) {
-            query += ' WHERE id = (SELECT COALESCE(athlete_id, \'\') FROM users WHERE id = $1)';
+            query += ' WHERE id = (SELECT athlete_id FROM users WHERE id = $1)';
             params.push(userId);
         }
         if (columns.has('created_at')) {
