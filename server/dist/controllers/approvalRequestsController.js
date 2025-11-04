@@ -189,6 +189,11 @@ const approveRequest = async (req, res) => {
         await client.query('BEGIN');
         const authUser = req.user;
         const requestId = req.params.id;
+        const lockResult = await client.query(`SELECT * FROM approval_requests WHERE id = $1 FOR UPDATE`, [requestId]);
+        if (lockResult.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ error: 'Request not found' });
+        }
         const requestResult = await client.query(`SELECT 
          ar.*,
          COALESCE(ar.coach_id, fallback.coach_id) AS effective_coach_id,
@@ -209,8 +214,7 @@ const approveRequest = async (req, res) => {
          ORDER BY access_requests.request_date DESC
          LIMIT 1
        ) AS fallback ON true
-       WHERE ar.id = $1
-       FOR UPDATE`, [requestId]);
+       WHERE ar.id = $1`, [requestId]);
         if (requestResult.rows.length === 0) {
             await client.query('ROLLBACK');
             return res.status(404).json({ error: 'Request not found' });
@@ -332,6 +336,11 @@ const rejectRequest = async (req, res) => {
         const authUser = req.user;
         const requestId = req.params.id;
         const { reason } = req.body;
+        const lockResult = await client.query(`SELECT * FROM approval_requests WHERE id = $1 FOR UPDATE`, [requestId]);
+        if (lockResult.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ error: 'Request not found' });
+        }
         const requestResult = await client.query(`SELECT 
          ar.*,
          COALESCE(ar.coach_id, fallback.coach_id) AS effective_coach_id,
@@ -349,8 +358,7 @@ const rejectRequest = async (req, res) => {
          ORDER BY access_requests.request_date DESC
          LIMIT 1
        ) AS fallback ON true
-       WHERE ar.id = $1
-       FOR UPDATE`, [requestId]);
+       WHERE ar.id = $1`, [requestId]);
         if (requestResult.rows.length === 0) {
             await client.query('ROLLBACK');
             return res.status(404).json({ error: 'Request not found' });
