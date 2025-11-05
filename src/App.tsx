@@ -160,17 +160,17 @@ function AppContent() {
     getSessionState
   } = useAuth()
   
-  const [athletes, _setAthletes, _athletesLoading, _athletesError, refetchAthletes] = useAthletes()
-  const [results, _setResults, _resultsLoading, _resultsError, refetchResults] = useResults()
-  const [users, setUsers, _usersLoading, _usersError, refetchUsers] = useUsers()
-  const [accessRequests, _setAccessRequests, _accessRequestsLoading, _accessRequestsError, refetchAccessRequests] = useAccessRequests()
-  const [messages, _setMessages, _messagesLoading, _messagesError, refetchMessages] = useMessages({ skipIfUnauthorized: true })
-  const [probes, _setProbes, _probesLoading, _probesError, refetchProbes] = useEvents({ skipIfUnauthorized: true })
-  const [permissions, setPermissions, _permissionsLoading, _permissionsError, refetchPermissions] = usePermissions({ skipIfUnauthorized: true })
-  const [userPermissions, setUserPermissions, _userPermissionsLoading, _userPermissionsError, refetchUserPermissions] = useUserPermissions({ skipIfUnauthorized: true })
-  const [approvalRequests, setApprovalRequests, _approvalRequestsLoading, _approvalRequestsError, refetchApprovalRequests] = useApprovalRequests({ skipIfUnauthorized: true })
-  const [roles, setRoles, _rolesLoading, _rolesError, refetchRoles] = useRoles({ skipIfUnauthorized: true })
-  const [ageCategories, setAgeCategories, _ageCategoriesLoading, _ageCategoriesError, refetchAgeCategories] = useAgeCategories({ skipIfUnauthorized: true })
+  const [athletes, _setAthletes, _athletesLoading, _athletesError, refetchAthletes, _athletesFetched] = useAthletes()
+  const [results, _setResults, _resultsLoading, _resultsError, refetchResults, _resultsFetched] = useResults()
+  const [users, setUsers, _usersLoading, _usersError, refetchUsers, usersFetched] = useUsers()
+  const [accessRequests, _setAccessRequests, _accessRequestsLoading, _accessRequestsError, refetchAccessRequests, accessRequestsFetched] = useAccessRequests()
+  const [messages, _setMessages, _messagesLoading, _messagesError, refetchMessages, messagesFetched] = useMessages({ skipIfUnauthorized: true })
+  const [probes, _setProbes, _probesLoading, _probesError, refetchProbes, probesFetched] = useEvents({ skipIfUnauthorized: true })
+  const [permissions, setPermissions, _permissionsLoading, _permissionsError, refetchPermissions, permissionsFetched] = usePermissions({ skipIfUnauthorized: true })
+  const [userPermissions, setUserPermissions, _userPermissionsLoading, _userPermissionsError, refetchUserPermissions, _userPermissionsFetched] = useUserPermissions({ skipIfUnauthorized: true })
+  const [approvalRequests, setApprovalRequests, _approvalRequestsLoading, _approvalRequestsError, refetchApprovalRequests, approvalRequestsFetched] = useApprovalRequests({ skipIfUnauthorized: true })
+  const [roles, setRoles, _rolesLoading, _rolesError, refetchRoles, rolesFetched] = useRoles({ skipIfUnauthorized: true })
+  const [ageCategories, setAgeCategories, _ageCategoriesLoading, _ageCategoriesError, refetchAgeCategories, ageCategoriesFetched] = useAgeCategories({ skipIfUnauthorized: true })
   const { tabs: apiTabs, fetchComponents } = useComponents()
   const [selectedAthlete, setSelectedAthlete] = useState<Athlete | null>(null)
   const [selectedAthleteTab, setSelectedAthleteTab] = useState<'results' | 'evolution'>('results')
@@ -378,66 +378,103 @@ function AppContent() {
   useEffect(() => {
     if (!currentUser || !activeTab || visibleTabs.length === 0) return
 
-    // Determine what data to fetch based on active tab
-    const loadData = () => {
-      const ensure = (permission: string | string[], action: () => void) => {
-        const permissionList = Array.isArray(permission) ? permission : [permission]
-        const allowed = permissionList.some(perm => hasPermission(perm))
-        if (allowed) {
-          action()
-        }
+    const ensure = (
+      permission: string | string[],
+      alreadyFetched: boolean,
+      isLoading: boolean,
+      action: () => void
+    ) => {
+      if (alreadyFetched || isLoading) {
+        return
       }
 
-      switch (activeTab) {
-        case 'events':
-          ensure('events.view', () => {
-            if (probes.length === 0) refetchProbes()
-          })
-          break
-        case 'messages':
-          ensure('messages.view', () => {
-            if (messages.length === 0) refetchMessages()
-          })
-          break
-        case 'users':
-          ensure(['users.view', 'users.view.all'], () => {
-            if (users.length === 0) refetchUsers()
-          })
-          break
-        case 'roles':
-          ensure('roles.view', () => {
-            if (roles.length === 0) {
-              refetchRoles()
-              refetchUserPermissions()
-            }
-          })
-          break
-        case 'permissions':
-          ensure('permissions.view', () => {
-            if (permissions.length === 0) {
-              refetchPermissions()
-              refetchUserPermissions()
-            }
-          })
-          break
-        case 'categories':
-          ensure('age_categories.view', () => {
-            if (ageCategories.length === 0) refetchAgeCategories()
-          })
-          break
-        case 'approvals':
-          ensure(['access_requests.view', 'requests.view.all', 'requests.view.own'], () => {
-            if (accessRequests.length === 0) refetchAccessRequests()
-          })
-          ensure(['approval_requests.view', 'approval_requests.view.own', 'requests.view.own'], () => {
-            if (approvalRequests.length === 0) refetchApprovalRequests()
-          })
-          break
+      const permissionList = Array.isArray(permission) ? permission : [permission]
+      const allowed = permissionList.some(perm => hasPermission(perm))
+      if (allowed) {
+        action()
       }
     }
 
-    loadData()
-  }, [activeTab, currentUser, visibleTabs.length, probes.length, messages.length, users.length, roles.length, permissions.length, ageCategories.length, accessRequests.length, approvalRequests.length, refetchProbes, refetchMessages, refetchUsers, refetchRoles, refetchPermissions, refetchUserPermissions, refetchAgeCategories, refetchAccessRequests, refetchApprovalRequests, hasPermission])
+    switch (activeTab) {
+      case 'events':
+        ensure('events.view', probesFetched, _probesLoading, () => {
+          void refetchProbes()
+        })
+        break
+      case 'messages':
+        ensure('messages.view', messagesFetched, _messagesLoading, () => {
+          void refetchMessages()
+        })
+        break
+      case 'users':
+        ensure(['users.view', 'users.view.all'], usersFetched, _usersLoading, () => {
+          void refetchUsers()
+        })
+        break
+      case 'roles':
+        ensure('roles.view', rolesFetched, _rolesLoading, () => {
+          void refetchRoles()
+        })
+        break
+      case 'permissions':
+        ensure('permissions.view', permissionsFetched, _permissionsLoading, () => {
+          void refetchPermissions()
+        })
+        break
+      case 'categories':
+        ensure('age_categories.view', ageCategoriesFetched, _ageCategoriesLoading, () => {
+          void refetchAgeCategories()
+        })
+        break
+      case 'approvals':
+        ensure(
+          ['access_requests.view', 'requests.view.all', 'requests.view.own'],
+          accessRequestsFetched,
+          _accessRequestsLoading,
+          () => {
+            void refetchAccessRequests()
+          }
+        )
+        ensure(
+          ['approval_requests.view', 'approval_requests.view.own', 'requests.view.own'],
+          approvalRequestsFetched,
+          _approvalRequestsLoading,
+          () => {
+            void refetchApprovalRequests()
+          }
+        )
+        break
+    }
+  }, [
+    activeTab,
+    currentUser,
+    visibleTabs.length,
+    hasPermission,
+    probesFetched,
+    _probesLoading,
+    refetchProbes,
+    messagesFetched,
+    _messagesLoading,
+    refetchMessages,
+    usersFetched,
+    _usersLoading,
+    refetchUsers,
+    rolesFetched,
+    _rolesLoading,
+    refetchRoles,
+    permissionsFetched,
+    _permissionsLoading,
+    refetchPermissions,
+    ageCategoriesFetched,
+    _ageCategoriesLoading,
+    refetchAgeCategories,
+    accessRequestsFetched,
+    _accessRequestsLoading,
+    refetchAccessRequests,
+    approvalRequestsFetched,
+    _approvalRequestsLoading,
+    refetchApprovalRequests
+  ])
 
   useEffect(() => {
     if (import.meta.env.PROD) {

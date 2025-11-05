@@ -15,7 +15,14 @@ export function useApi<T>(
   key: string,
   initialValue: T,
   options: UseApiOptions = {}
-): [T, (valueOrFn: T | ((current: T) => T)) => void, boolean, Error | null, () => Promise<void>] {
+): [
+  T,
+  (valueOrFn: T | ((current: T) => T)) => void,
+  boolean,
+  Error | null,
+  () => Promise<void>,
+  boolean
+] {
   const {
     autoFetch = false,
     onError,
@@ -171,7 +178,7 @@ export function useApi<T>(
     return fetchData();
   }, [fetchData, hasRequiredPermission, requiredPermissionList, skipIfUnauthorized]);
 
-  return [data, setData, loading, error, forceRefetch];
+  return [data, setData, loading, error, forceRefetch, hasFetched] as const;
 }
 
 export function usePublicCoaches(options: UseApiOptions = {}) {
@@ -209,7 +216,7 @@ export function usePublicCoaches(options: UseApiOptions = {}) {
     await fetchData();
   }, [fetchData]);
 
-  return [data, setData, loading, error, forceRefetch] as const;
+  return [data, setData, loading, error, forceRefetch, hasFetched] as const;
 }
 
 export function useUsers(options: UseApiOptions = {}) {
