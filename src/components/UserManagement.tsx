@@ -12,21 +12,25 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { MagnifyingGlass, Plus, PencilSimple, Trash, Eye, EyeSlash, CheckCircle } from '@phosphor-icons/react'
 import { toast } from 'sonner'
-import type { Role, User, UserRole } from '@/lib/types'
+import type { AdminCreateUserPayload, Athlete, Role, User, UserRole } from '@/lib/types'
+import type { Gender } from '@/lib/types'
 import { resolveMediaUrl } from '@/lib/media'
 import { getAvatarColor, getInitials } from '@/lib/constants'
 import { AvatarUploadControl, type AvatarUploadChangePayload } from './AvatarUploadControl'
+import { DateSelector } from '@/components/DateSelector'
 
 interface UserManagementProps {
   users: User[]
   roles: Role[]
+  athletes: Athlete[]
+  coaches: User[]
   currentUserId: string
-  onAddUser: (userData: Omit<User, 'id' | 'createdAt'> & { avatarDataUrl?: string }) => void
+  onAddUser: (userData: AdminCreateUserPayload & { avatarDataUrl?: string }) => void
   onUpdateUser: (userId: string, userData: Partial<User> & { avatarDataUrl?: string; currentPassword?: string }) => void
   onDeleteUser: (userId: string) => void
 }
 
-export function UserManagement({ users, roles, currentUserId, onAddUser, onUpdateUser, onDeleteUser }: UserManagementProps) {
+export function UserManagement({ users, roles, athletes, coaches, currentUserId, onAddUser, onUpdateUser, onDeleteUser }: UserManagementProps) {
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -46,9 +50,68 @@ export function UserManagement({ users, roles, currentUserId, onAddUser, onUpdat
   const [avatarDataUrl, setAvatarDataUrl] = useState<string | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [deleteAvatar, setDeleteAvatar] = useState(false)
+  const [selectedCoachId, setSelectedCoachId] = useState('')
+  const [selectedAthleteId, setSelectedAthleteId] = useState('')
+  const [athleteDateOfBirth, setAthleteDateOfBirth] = useState('')
+  const [athleteGender, setAthleteGender] = useState<Gender>('M')
+  const [approvalNotes, setApprovalNotes] = useState('')
+  const currentYear = new Date().getFullYear()
 
   const [searchQuery, setSearchQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState<UserRole | 'all'>('all')
+
+  const calculateAge = (dateOfBirth: string): number | null => {
+    if (!dateOfBirth) return null
+    const birthDate = new Date(dateOfBirth)
+    if (Number.isNaN(birthDate.getTime())) return null
+
+    const today = new Date()
+    let age = today.getFullYear() - birthDate.getFullYear()
+    const monthDiff = today.getMonth() - birthDate.getMonth()
+
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--
+    }
+
+    return age
+  }
+
+  const determineCategory = (age: number | null): string | null => {
+    if (age === null || age < 0) return null
+    if (age < 6) return 'U6'
+    if (age < 8) return 'U8'
+    if (age < 10) return 'U10'
+    if (age < 12) return 'U12'
+    if (age < 14) return 'U14'
+    if (age < 16) return 'U16'
+    if (age < 18) return 'U18'
+    if (age <= 60) return 'O18'
+    return null
+  }
+
+  const athleteAge = useMemo(() => {
+    if (!athleteDateOfBirth) return null
+    return calculateAge(athleteDateOfBirth)
+  }, [athleteDateOfBirth])
+
+  const athleteCategory = useMemo(() => {
+    if (athleteAge === null) return null
+    return determineCategory(athleteAge)
+  }, [athleteAge])
+
+  const availableCoaches = useMemo(() => {
+    return coaches
+      .map((coach) => ({
+        id: coach.id,
+        label: `${coach.firstName} ${coach.lastName}`.trim() || coach.email
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label))
+  }, [coaches])
+
+  const athletesByCoach = useMemo(() => {
+    if (!selectedCoachId) return []
+    return athletes.filter((athlete) => athlete.coachId === selectedCoachId)
+  }, [athletes, selectedCoachId])
 
   const currentUser = useMemo(() => users.find((user) => user.id === currentUserId) || null, [users, currentUserId])
   const isSuperAdmin = currentUser?.role === 'superadmin'
@@ -95,6 +158,11 @@ export function UserManagement({ users, roles, currentUserId, onAddUser, onUpdat
     setAvatarPreview(null)
     setDeleteAvatar(false)
     setSelectedUser(null)
+    setSelectedCoachId('')
+    setSelectedAthleteId('')
+    setAthleteDateOfBirth('')
+    setAthleteGender('M')
+    setApprovalNotes('')
   }
 
   const handleAvatarChange = ({ dataUrl, previewUrl }: AvatarUploadChangePayload) => {
@@ -161,7 +229,39 @@ export function UserManagement({ users, roles, currentUserId, onAddUser, onUpdat
       return
     }
 
-    const payload: Omit<User, 'id' | 'createdAt'> & { avatarDataUrl?: string } = {
+    if (role === 'athlete') {
+      if (!selectedCoachId) {
+        toast.error('Selectează antrenorul atletului')
+        return
+      }
+      if (!athleteDateOfBirth) {
+        toast.error('Selectează data nașterii atletului')
+        return
+      }
+      if (athleteAge === null || athleteAge < 4 || athleteAge > 60) {
+        toast.error('Vârsta atletului trebuie să fie între 4 și 60 de ani')
+        return
+      }
+      if (!athleteCategory) {
+        toast.error('Nu am putut determina categoria atletului')
+        return
+      }
+    }
+
+    if (role === 'parent') {
+      if (!selectedCoachId) {
+        toast.error('Selectează antrenorul copilului')
+        return
+      }
+      if (!selectedAthleteId) {
+        toast.error('Selectează copilul din listă')
+        return
+      }
+    }
+
+    const trimmedNotes = approvalNotes.trim() || null
+
+    const payload: AdminCreateUserPayload & { avatarDataUrl?: string } = {
       email: email.trim(),
       password,
       firstName: firstName.trim(),
@@ -169,14 +269,23 @@ export function UserManagement({ users, roles, currentUserId, onAddUser, onUpdat
       role,
       isActive,
       needsApproval,
+      specialization: role === 'coach' && specialization.trim() ? specialization.trim() : undefined,
+      coachId: selectedCoachId ? selectedCoachId : null,
+      linkedAthleteId: role === 'parent' && selectedAthleteId ? selectedAthleteId : null,
+      approvalNotes: trimmedNotes,
+      athleteProfile:
+        role === 'athlete'
+          ? {
+              dateOfBirth: athleteDateOfBirth,
+              gender: athleteGender,
+              age: athleteAge ?? undefined,
+              category: athleteCategory ?? undefined
+            }
+          : undefined
     }
 
     if (avatarDataUrl) {
       payload.avatarDataUrl = avatarDataUrl
-    }
-
-    if (role === 'coach' && specialization.trim()) {
-      ;(payload as any).specialization = specialization.trim()
     }
 
     onAddUser(payload)
@@ -560,7 +669,18 @@ export function UserManagement({ users, roles, currentUserId, onAddUser, onUpdat
             />
             <div className="space-y-2">
               <Label htmlFor="add-role">Rol *</Label>
-              <Select value={role} onValueChange={(value) => setRole(value as UserRole)}>
+              <Select
+                value={role}
+                onValueChange={(value) => {
+                  const nextRole = value as UserRole
+                  setRole(nextRole)
+                  setSelectedCoachId('')
+                  setSelectedAthleteId('')
+                  setAthleteDateOfBirth('')
+                  setAthleteGender('M')
+                  setApprovalNotes('')
+                }}
+              >
                 <SelectTrigger id="add-role">
                   <SelectValue placeholder="Alege rolul" />
                 </SelectTrigger>
@@ -575,6 +695,146 @@ export function UserManagement({ users, roles, currentUserId, onAddUser, onUpdat
                 </SelectContent>
               </Select>
             </div>
+            {role === 'athlete' && (
+              <div className="space-y-3 rounded-lg border border-primary/20 bg-primary/5 p-4">
+                <div className="space-y-2">
+                  <Label htmlFor="add-athlete-coach">Selectează Antrenorul *</Label>
+                  <Select value={selectedCoachId} onValueChange={setSelectedCoachId}>
+                    <SelectTrigger id="add-athlete-coach">
+                      <SelectValue placeholder="Alege antrenorul" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableCoaches.length === 0 ? (
+                        <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                          Nu există antrenori disponibili
+                        </div>
+                      ) : (
+                        availableCoaches.map((coach) => (
+                          <SelectItem key={coach.id} value={coach.id}>
+                            {coach.label}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="add-athlete-dob">Data nașterii *</Label>
+                    <DateSelector
+                      id="add-athlete-dob"
+                      value={athleteDateOfBirth}
+                      onChange={setAthleteDateOfBirth}
+                      minYear={currentYear - 60}
+                      maxYear={currentYear - 4}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="add-athlete-gender">Gen *</Label>
+                    <Select value={athleteGender} onValueChange={(value) => setAthleteGender(value as Gender)}>
+                      <SelectTrigger id="add-athlete-gender">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="M">Băiat</SelectItem>
+                        <SelectItem value="F">Fatǎ</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {athleteAge !== null && (
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-1">
+                      <Label>Vârstă estimată</Label>
+                      <Input value={`${athleteAge} ani`} disabled className="bg-muted" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label>Categorie recomandată</Label>
+                      <Input value={athleteCategory ?? ''} disabled className="bg-muted" />
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="add-athlete-notes">Mesaj pentru antrenor (opțional)</Label>
+                  <Input
+                    id="add-athlete-notes"
+                    value={approvalNotes}
+                    onChange={(event) => setApprovalNotes(event.target.value)}
+                    placeholder="Note interne pentru antrenor"
+                  />
+                </div>
+              </div>
+            )}
+
+            {role === 'parent' && (
+              <div className="space-y-3 rounded-lg border border-accent/30 bg-accent/5 p-4">
+                <div className="space-y-2">
+                  <Label htmlFor="add-parent-coach">Selectează Antrenorul *</Label>
+                  <Select
+                    value={selectedCoachId}
+                    onValueChange={(value) => {
+                      setSelectedCoachId(value)
+                      setSelectedAthleteId('')
+                    }}
+                  >
+                    <SelectTrigger id="add-parent-coach">
+                      <SelectValue placeholder="Alege antrenorul" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableCoaches.length === 0 ? (
+                        <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                          Nu există antrenori disponibili
+                        </div>
+                      ) : (
+                        availableCoaches.map((coach) => (
+                          <SelectItem key={coach.id} value={coach.id}>
+                            {coach.label}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {selectedCoachId && (
+                  <div className="space-y-2">
+                    <Label htmlFor="add-parent-athlete">Selectează Copilul *</Label>
+                    <Select value={selectedAthleteId} onValueChange={setSelectedAthleteId}>
+                      <SelectTrigger id="add-parent-athlete">
+                        <SelectValue placeholder="Alege copilul" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {athletesByCoach.length === 0 ? (
+                          <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                            Acest antrenor nu are atleți înregistrați
+                          </div>
+                        ) : (
+                          athletesByCoach.map((athlete) => (
+                            <SelectItem key={athlete.id} value={athlete.id}>
+                              {`${athlete.firstName} ${athlete.lastName} (${athlete.category})`}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="add-parent-notes">Mesaj pentru antrenor (opțional)</Label>
+                  <Input
+                    id="add-parent-notes"
+                    value={approvalNotes}
+                    onChange={(event) => setApprovalNotes(event.target.value)}
+                    placeholder="ex: Doresc acces la progresul copilului"
+                  />
+                </div>
+              </div>
+            )}
+
             {role === 'coach' && (
               <div className="space-y-2">
                 <Label htmlFor="add-specialization">Specializare</Label>

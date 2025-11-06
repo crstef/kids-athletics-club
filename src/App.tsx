@@ -10,7 +10,7 @@ import { useComponents } from '@/hooks/use-components'
 import { useInactivityLogout } from '@/hooks/use-inactivity-logout'
 import { hashPassword } from './lib/auth';
 import { DEFAULT_PERMISSIONS, DEFAULT_ROLES } from './lib/defaults'
-import type { Athlete, Result, AgeCategory, User, AccessRequest, Message, EventTypeCustom, Permission, UserPermission, Role, AgeCategoryCustom, AccountApprovalRequest } from '@/lib/types'
+import type { Athlete, Result, AgeCategory, User, AccessRequest, Message, EventTypeCustom, Permission, UserPermission, Role, AgeCategoryCustom, AccountApprovalRequest, AdminCreateUserPayload } from '@/lib/types'
 import { getDashboardComponent, FALLBACK_DASHBOARD } from '@/lib/dashboardRegistry';
 import { generateTabsFromPermissions, getPermissionForTab, hasPermissionFromList } from '@/lib/permission-tab-mapping'
 
@@ -1135,25 +1135,46 @@ function AppContent() {
     }
   }
 
-  
 
-  const handleAddUser = async (userData: Omit<User, 'id' | 'createdAt'>) => {
+
+  const handleAddUser = async (userData: AdminCreateUserPayload & { avatarDataUrl?: string }) => {
     try {
-      // Find roleId based on role name
-      const role = (roles || []).find(r => r.name === userData.role)
-      const userDataWithRole = {
-        ...userData,
-        roleId: role?.id || null,
-        // SuperAdmin creates users - no approval needed
-        needsApproval: false,
-        isActive: true
+      const { avatarDataUrl, ...basePayload } = userData
+      const matchedRole = (roles || []).find((r) => r.name === basePayload.role)
+
+      const payload: AdminCreateUserPayload = {
+        ...basePayload,
+        roleId: matchedRole?.id ?? null,
+        isActive: typeof basePayload.isActive === 'boolean' ? basePayload.isActive : true,
+        needsApproval: typeof basePayload.needsApproval === 'boolean' ? basePayload.needsApproval : false
       }
-      
-      await apiClient.createUser(userDataWithRole)
-      await refetchUsers()
+
+      if (payload.role !== 'athlete' && payload.role !== 'parent') {
+        payload.coachId = null
+      }
+
+      if (payload.role !== 'parent') {
+        payload.linkedAthleteId = null
+      }
+
+      if (payload.role !== 'athlete') {
+        payload.athleteProfile = undefined
+      }
+
+      if (avatarDataUrl) {
+        payload.avatarDataUrl = avatarDataUrl
+      }
+
+      await apiClient.createUser(payload)
+      await Promise.allSettled([
+        refetchUsers(),
+        refetchAthletes(),
+        refetchAccessRequests(),
+        refetchApprovalRequests()
+      ])
       toast.success('Utilizator adăugat cu succes!')
     } catch (error: any) {
-      toast.error(error.message || 'Eroare la adăugarea utilizatorului')
+      toast.error(error?.message || 'Eroare la adăugarea utilizatorului')
       console.error('Error creating user:', error)
     }
   }

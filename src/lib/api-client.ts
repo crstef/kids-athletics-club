@@ -1,3 +1,5 @@
+import type { AdminCreateUserPayload } from '@/lib/types'
+
 const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || (typeof window !== 'undefined' && window.location.hostname !== 'localhost' ? '/api' : 'http://localhost:3001/api');
 
 export function getApiBaseUrl(): string {
@@ -122,7 +124,7 @@ class ApiClient {
     return this.request<any[]>('/users');
   }
 
-  async createUser(data: any) {
+  async createUser(data: AdminCreateUserPayload) {
     return this.request('/users', {
       method: 'POST',
       body: JSON.stringify(data),

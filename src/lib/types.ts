@@ -173,6 +173,13 @@ export interface Athlete {
   notes?: string | null
 }
 
+export interface AthleteProfileInput {
+  dateOfBirth: string
+  gender: Gender
+  age?: number
+  category?: string
+}
+
 export interface Result {
   id: string
   athleteId: string
@@ -322,6 +329,23 @@ export interface Role {
   createdBy: string
   updatedAt?: string
   updatedBy?: string
+}
+
+export interface AdminCreateUserPayload {
+  email: string
+  password: string
+  firstName: string
+  lastName: string
+  role: UserRole
+  isActive: boolean
+  needsApproval: boolean
+  roleId?: string | null
+  specialization?: string
+  avatarDataUrl?: string
+  coachId?: string | null
+  linkedAthleteId?: string | null
+  approvalNotes?: string | null
+  athleteProfile?: AthleteProfileInput
 }
 
 export interface RolePermission {

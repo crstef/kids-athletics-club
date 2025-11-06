@@ -45,7 +45,7 @@ import { apiClient } from '@/lib/api-client'
 import { cn } from '@/lib/utils'
 
 // Types
-import { User, Role, Permission, AgeCategoryCustom, EventTypeCustom, Result, Athlete, AthleteUser, AccessRequest, Message, AccountApprovalRequest, UserPermission } from '@/lib/types'
+import { User, Role, Permission, AgeCategoryCustom, EventTypeCustom, Result, Athlete, AthleteUser, AccessRequest, Message, AccountApprovalRequest, UserPermission, AdminCreateUserPayload } from '@/lib/types'
 
 interface DashboardWidget {
   id: string
@@ -194,7 +194,7 @@ interface UnifiedLayoutProps {
   userWidgets?: DashboardWidget[]
   
   // Action handlers
-  handleAddUser: (userData: Omit<User, 'id' | 'createdAt'>) => Promise<void>
+  handleAddUser: (userData: AdminCreateUserPayload & { avatarDataUrl?: string }) => Promise<void>
   handleUpdateUser: (userId: string, userData: Partial<User> & { currentPassword?: string }) => Promise<void>
   handleDeleteUser: (userId: string) => Promise<void>
   handleAddRole: (roleData: Omit<Role, 'id' | 'createdAt' | 'createdBy'>) => Promise<void>
@@ -1218,6 +1218,8 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
               <UserManagement
                 users={users}
                 roles={roles}
+                athletes={athletes}
+                coaches={coaches}
                 currentUserId={currentUser.id}
                 onAddUser={(data) => { void handleAddUser(data) }}
                 onUpdateUser={(id, updates) => { void handleUpdateUser(id, updates) }}
