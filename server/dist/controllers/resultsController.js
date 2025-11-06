@@ -5,15 +5,89 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.updateResult = exports.deleteResult = exports.createResult = exports.getAllResults = void 0;
 const database_1 = __importDefault(require("../config/database"));
+const tableColumnsCache = new Map();
+async function getTableColumns(client, table) {
+    const key = table.toLowerCase();
+    if (tableColumnsCache.has(key)) {
+        return tableColumnsCache.get(key);
+    }
+    try {
+        const result = await client.query(`SELECT column_name
+       FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = $1`, [key]);
+        const columns = new Set(result.rows.map((row) => row.column_name.toLowerCase()));
+        tableColumnsCache.set(key, columns);
+        return columns;
+    }
+    catch (error) {
+        console.warn(`[resultsController] Failed to read columns for ${table}:`, error);
+        const fallback = new Set();
+        tableColumnsCache.set(key, fallback);
+        return fallback;
+    }
+}
 const getAllResults = async (req, res) => {
     const client = await database_1.default.connect();
     const { user } = req;
     try {
         let query = 'SELECT r.*, a.first_name, a.last_name FROM results r JOIN athletes a ON r.athlete_id = a.id';
         const queryParams = [];
-        if (user?.role !== 'superadmin') {
-            query += ' WHERE a.coach_id = $1';
-            queryParams.push(user?.userId);
+        const athleteColumns = await getTableColumns(client, 'athletes');
+        const userColumns = user?.role === 'athlete' ? await getTableColumns(client, 'users') : null;
+        if (user?.role === 'coach') {
+            if (athleteColumns.has('coach_id')) {
+                query += ' WHERE a.coach_id = $1';
+                queryParams.push(user.userId);
+            }
+            else {
+                console.warn('[resultsController] coach_id column missing on athletes table, returning empty results for coach');
+                res.set('Cache-Control', 'no-store');
+                res.json([]);
+                return;
+            }
+        }
+        else if (user?.role === 'parent') {
+            if (athleteColumns.has('parent_id')) {
+                query += ' WHERE a.parent_id = $1';
+                queryParams.push(user.userId);
+            }
+            else {
+                console.warn('[resultsController] parent_id column missing on athletes table, returning empty results for parent');
+                res.set('Cache-Control', 'no-store');
+                res.json([]);
+                return;
+            }
+        }
+        else if (user?.role === 'athlete') {
+            if (userColumns?.has('athlete_id')) {
+                const mapping = await client.query('SELECT athlete_id FROM users WHERE id = $1', [user.userId]);
+                const athleteId = mapping.rows[0]?.athlete_id ?? null;
+                if (!athleteId) {
+                    res.set('Cache-Control', 'no-store');
+                    res.json([]);
+                    return;
+                }
+                query += ' WHERE r.athlete_id = $1';
+                queryParams.push(athleteId);
+            }
+            else {
+                console.warn('[resultsController] users table missing athlete_id column, returning empty results for athlete');
+                res.set('Cache-Control', 'no-store');
+                res.json([]);
+                return;
+            }
+        }
+        else if (user && user.role !== 'superadmin') {
+            if (athleteColumns.has('coach_id')) {
+                query += ' WHERE a.coach_id = $1';
+                queryParams.push(user.userId);
+            }
+            else {
+                console.warn('[resultsController] coach_id column missing for non-superadmin role, returning empty results');
+                res.set('Cache-Control', 'no-store');
+                res.json([]);
+                return;
+            }
         }
         query += ' ORDER BY r.date DESC';
         const result = await client.query(query, queryParams);
