@@ -53,19 +53,32 @@ export function AuthDialog({ open, onClose, onLogin }: AuthDialogProps) {
   // Fetch athletes when coach is selected
   useEffect(() => {
     if (signupRole !== 'parent') {
-      setAthletes([])
+      setAthletes((prev) => (Array.isArray(prev) && prev.length > 0 ? [] : prev))
       return
     }
 
-    if (selectedCoachId) {
-      apiClient.getPublicAthletes(selectedCoachId)
-        .then((data: any) => setAthletes(data))
-        .catch((err) => {
-          console.error('Failed to fetch athletes:', err)
-          setAthletes([])
-        })
-    } else {
-      setAthletes([])
+    if (!selectedCoachId) {
+      setAthletes((prev) => (Array.isArray(prev) && prev.length > 0 ? [] : prev))
+      return
+    }
+
+    let cancelled = false
+
+    apiClient.getPublicAthletes(selectedCoachId)
+      .then((data: any) => {
+        if (!cancelled) {
+          setAthletes(data)
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to fetch athletes:', err)
+        if (!cancelled) {
+          setAthletes((prev) => (Array.isArray(prev) && prev.length > 0 ? [] : prev))
+        }
+      })
+
+    return () => {
+      cancelled = true
     }
   }, [selectedCoachId, setAthletes, signupRole])
   
