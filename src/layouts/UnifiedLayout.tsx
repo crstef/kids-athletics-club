@@ -690,7 +690,9 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
             .filter((id): id is string => Boolean(id))
         }
 
-        if (allowedSet.size > 0) {
+        if (allowedSet.size === 0) {
+          normalizedSaved = []
+        } else {
           normalizedSaved = normalizedSaved.filter(id => allowedSet.has(id))
         }
 

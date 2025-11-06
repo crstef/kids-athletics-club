@@ -13,6 +13,36 @@ export const getMyComponents = async (req: AuthRequest, res: Response) => {
       return res.status(401).json({ error: 'User not authenticated' });
     }
 
+    const userResult = await client.query(
+      `SELECT role, role_id FROM users WHERE id = $1 LIMIT 1`,
+      [req.user.userId]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const roleName: string | null = userResult.rows[0]?.role ?? null;
+    let roleId: string | null = userResult.rows[0]?.role_id ?? null;
+
+    if (!roleId && roleName) {
+      try {
+        const fallbackRole = await client.query(
+          `SELECT id FROM roles WHERE name = $1 LIMIT 1`,
+          [roleName]
+        );
+        roleId = fallbackRole.rows[0]?.id ?? null;
+      } catch (lookupError) {
+        console.warn('[componentsController] Failed to resolve role_id for user', lookupError);
+      }
+    }
+
+    const isSuperadmin = roleName === 'superadmin';
+
+    if (!roleId && !isSuperadmin) {
+      return res.json({ success: true, components: [] });
+    }
+
     const result = await client.query(`
       SELECT DISTINCT
         c.id,
@@ -23,22 +53,19 @@ export const getMyComponents = async (req: AuthRequest, res: Response) => {
         c.icon,
         c.order_index,
         c.is_system,
-        CASE WHEN r.name = 'superadmin' THEN true ELSE COALESCE(cp.can_view, false) END as can_view,
-        COALESCE(cp.can_create, false) as can_create,
-        COALESCE(cp.can_edit, false) as can_edit,
-        COALESCE(cp.can_delete, false) as can_delete,
-        COALESCE(cp.can_export, false) as can_export,
+        CASE WHEN $2::boolean THEN true ELSE COALESCE(cp.can_view, false) END as can_view,
+        CASE WHEN $2::boolean THEN true ELSE COALESCE(cp.can_create, false) END as can_create,
+        CASE WHEN $2::boolean THEN true ELSE COALESCE(cp.can_edit, false) END as can_edit,
+        CASE WHEN $2::boolean THEN true ELSE COALESCE(cp.can_delete, false) END as can_delete,
+        CASE WHEN $2::boolean THEN true ELSE COALESCE(cp.can_export, false) END as can_export,
         c.created_at,
         c.updated_at
-      FROM users u
-      JOIN roles r ON u.role_id = r.id
-      JOIN components c ON true
+      FROM components c
       LEFT JOIN component_permissions cp ON 
-        cp.role_id = r.id AND cp.component_id = c.id
-      WHERE u.id = $1
-        AND (r.name = 'superadmin' OR COALESCE(cp.can_view, false) = true)
+        cp.role_id = $1::uuid AND cp.component_id = c.id
+      WHERE $2::boolean OR COALESCE(cp.can_view, false) = true
       ORDER BY c.order_index ASC, c.display_name ASC
-    `, [req.user.userId]);
+    `, [roleId, isSuperadmin]);
 
     res.json({
       success: true,
