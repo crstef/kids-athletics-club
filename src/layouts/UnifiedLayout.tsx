@@ -57,7 +57,7 @@ interface DashboardWidget {
 
 const DEFAULT_WIDGET_IDS = ['stats-users', 'stats-athletes', 'stats-probes', 'recent-results', 'performance-chart']
 
-const GRAPHIC_WIDGET_IDS = new Set(['performance-chart', 'age-distribution', 'personal-bests'])
+const GRAPHIC_WIDGET_IDS = new Set(['performance-chart', 'performance-evolution', 'age-distribution', 'personal-bests'])
 
 type WidgetSize = 'small' | 'medium' | 'large' | 'xlarge'
 
@@ -113,7 +113,7 @@ const LEGACY_WIDGET_ID_MAP: Record<string, string> = {
   messages: 'recent-users',
   'stats-events': 'stats-probes',
   'recent-events': 'recent-probes',
-  'performance-evolution': 'performance-chart',
+  'performance-evolution': 'performance-evolution',
   'personal-best': 'personal-bests'
 }
 
@@ -1494,6 +1494,14 @@ function buildWidgetProps(widgetId: string, props: UnifiedLayoutProps, navigateT
         athletes: scopedAthletes,
         results: scopedResults,
         canCompare
+      }
+    }
+
+    case 'performance-evolution': {
+      const { athletes: scopedAthletes, results: scopedResults } = resolveRoleScopedAthleteData(props)
+      return {
+        athletes: scopedAthletes,
+        results: scopedResults
       }
     }
     

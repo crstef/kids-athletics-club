@@ -12,6 +12,7 @@ import { StatsPermissionsWidget } from '@/components/widgets/StatsPermissionsWid
 import { RecentUsersWidget } from '@/components/widgets/RecentUsersWidget'
 import { RecentProbesWidget } from '@/components/widgets/RecentProbesWidget'
 import { PerformanceChartWidget } from '@/components/widgets/PerformanceChartWidget'
+import PerformanceEvolutionWidget from '@/components/widgets/PerformanceEvolutionWidget'
 import { RecentResultsWidget } from '@/components/widgets/RecentResultsWidget'
 import { PendingRequestsWidget } from '@/components/widgets/PendingRequestsWidget'
 import AgeDistributionWidget from '@/components/widgets/AgeDistributionWidget'
@@ -88,6 +89,14 @@ export const WIDGET_REGISTRY: Record<string, WidgetConfig> = {
     requiredPermission: 'results.view',
     defaultSize: 'large',
     description: 'Grafic cu evoluția performanțelor'
+  },
+  'performance-evolution': {
+    id: 'performance-evolution',
+    name: 'Evoluție Performanțe',
+    component: PerformanceEvolutionWidget,
+    requiredPermission: 'results.view',
+    defaultSize: 'large',
+    description: 'Evoluția rezultatelor pentru un atlet selectat'
   },
   'recent-results': {
     id: 'recent-results',
