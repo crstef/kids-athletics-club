@@ -37,9 +37,14 @@ export class WidgetErrorBoundary extends Component<WidgetErrorBoundaryProps, Wid
 
   render() {
     if (this.state.hasError) {
+      const message = this.state.error?.message ?? 'Eroare necunoscută'
       return (
-        <div className="rounded-lg border border-destructive/60 bg-destructive/10 p-4 text-sm text-destructive">
-          Nu am putut încărca widget-ul.
+        <div className="rounded-lg border border-destructive/60 bg-destructive/10 p-4 text-sm text-destructive space-y-2">
+          <p className="font-semibold">Nu am putut încărca widget-ul {this.props.widgetId}.</p>
+          <p className="text-xs break-words text-destructive/80">{message}</p>
+          <p className="text-xs text-muted-foreground">
+            Verifică consola pentru mai multe detalii și contactează un administrator dacă problema persistă.
+          </p>
         </div>
       )
     }
