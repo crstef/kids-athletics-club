@@ -137,6 +137,17 @@ const normalizeWidgetId = (raw?: string | null): string | null => {
   return null
 }
 
+const ROLE_WIDGET_DENYLIST: Partial<Record<User['role'], ReadonlySet<string>>> = {
+  parent: new Set(['performance-chart']),
+  athlete: new Set(['performance-chart'])
+}
+
+const isWidgetAllowedForRole = (widgetId: string, role: User['role']): boolean => {
+  const canonicalId = normalizeWidgetId(widgetId) ?? widgetId
+  const denylist = ROLE_WIDGET_DENYLIST[role]
+  return !(denylist && denylist.has(canonicalId))
+}
+
 const resolveTabLabel = (label: unknown, fallback: string): React.ReactNode => {
   if (typeof label === 'string') {
     const trimmed = label.trim()
@@ -362,7 +373,10 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
 
   const allowedWidgetSet = useMemo(() => new Set(allowedWidgetIds), [allowedWidgetIds])
   const safeEnabledWidgets = useMemo(() => {
-    const canonical = enabledWidgets.filter((id): id is string => typeof id === 'string' && id.length > 0)
+    const canonical = enabledWidgets
+      .map(id => normalizeWidgetId(id) ?? id)
+      .filter((id): id is string => typeof id === 'string' && id.length > 0)
+      .filter(id => isWidgetAllowedForRole(id, currentUser.role))
 
     if (allowedWidgetScope === 'denyall') {
       return []
@@ -373,7 +387,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
     }
 
     return canonical
-  }, [enabledWidgets, allowedWidgetScope, allowedWidgetSet])
+  }, [enabledWidgets, allowedWidgetScope, allowedWidgetSet, currentUser.role])
 
   const resolveWidgetSize = useCallback((widgetId: string): WidgetSize => {
     const canonicalId = normalizeWidgetId(widgetId) ?? widgetId
@@ -667,7 +681,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
 
           const nameCandidate = component.name ?? component.componentName ?? component.component_name ?? component.displayName ?? ''
           const widgetId = normalizeWidgetId(nameCandidate)
-          if (widgetId) {
+          if (widgetId && isWidgetAllowedForRole(widgetId, currentUser.role)) {
             allowedSet.add(widgetId)
           }
         }
@@ -680,6 +694,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
             const rawId = widget.widgetName ?? widget.widget_name ?? widget.id
             const canonicalId = normalizeWidgetId(rawId)
             if (!canonicalId) continue
+            if (!isWidgetAllowedForRole(canonicalId, currentUser.role)) continue
             if (allowedSet.size > 0 && !allowedSet.has(canonicalId)) continue
 
             const rawConfig = widget.config ?? {}
@@ -702,6 +717,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
             .filter((w: any) => w && (w.isEnabled ?? w.is_enabled ?? true))
             .map((w: any) => normalizeWidgetId(w.widgetName ?? w.widget_name ?? w.id))
             .filter((id): id is string => Boolean(id))
+            .filter(id => isWidgetAllowedForRole(id, currentUser.role))
         }
 
         if (allowedSet.size === 0) {
@@ -738,6 +754,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
           initialWidgets
             .map(id => normalizeWidgetId(id) ?? id)
             .filter((id): id is string => typeof id === 'string' && id.length > 0)
+            .filter(id => isWidgetAllowedForRole(id, currentUser.role))
         ))
 
         console.log('[debug] loadWidgets canonicalInitial', canonicalInitial)
@@ -757,9 +774,13 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
       } catch (error) {
         console.error('Failed to load widgets:', error)
         setAllowedWidgetScope('unrestricted')
-        setAllowedWidgetIds([...DEFAULT_WIDGET_IDS])
-        setEnabledWidgets([...DEFAULT_WIDGET_IDS])
-        setWidgetSizes(DEFAULT_WIDGET_IDS.reduce<Record<string, WidgetSize>>((acc, widgetId) => {
+        const fallbackIds = DEFAULT_WIDGET_IDS
+          .map(id => normalizeWidgetId(id) ?? id)
+          .filter((id): id is string => typeof id === 'string' && id.length > 0)
+          .filter(id => isWidgetAllowedForRole(id, currentUser.role))
+        setAllowedWidgetIds(fallbackIds)
+        setEnabledWidgets(fallbackIds)
+        setWidgetSizes(fallbackIds.reduce<Record<string, WidgetSize>>((acc, widgetId) => {
           const canonicalId = normalizeWidgetId(widgetId) ?? widgetId
           acc[canonicalId] = enforceWidgetSize(canonicalId)
           return acc
@@ -805,6 +826,10 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
 
   const toggleWidget = (widgetId: string) => {
     const canonicalId = normalizeWidgetId(widgetId) ?? widgetId
+
+    if (!isWidgetAllowedForRole(canonicalId, currentUser.role)) {
+      return
+    }
 
     if (allowedWidgetScope === 'denyall') {
       return
@@ -1314,6 +1339,10 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
               </div>
             ) : (
               Object.values(WIDGET_REGISTRY).map((widget) => {
+                if (!isWidgetAllowedForRole(widget.id, currentUser.role)) {
+                  return null
+                }
+
                 if (!userCanAccessWidget(widget.id, currentUser.permissions || [])) {
                   return null
                 }
