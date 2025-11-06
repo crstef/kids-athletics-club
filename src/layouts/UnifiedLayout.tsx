@@ -40,6 +40,7 @@ import { AthleteDetailsDialog } from '@/components/AthleteDetailsDialog'
 
 // Widget system
 import { WIDGET_REGISTRY, userCanAccessWidget } from '@/lib/widgetRegistry'
+import { WidgetErrorBoundary } from '@/components/widgets/WidgetErrorBoundary'
 import { useAuth } from '@/lib/auth-context'
 import { apiClient } from '@/lib/api-client'
 import { cn } from '@/lib/utils'
@@ -929,7 +930,11 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
 
                 let rendered: React.ReactNode
                 try {
-                  rendered = <WidgetComponent {...widgetProps} />
+                  rendered = (
+                    <WidgetErrorBoundary widgetId={widgetId}>
+                      <WidgetComponent {...widgetProps} />
+                    </WidgetErrorBoundary>
+                  )
                 } catch (err) {
                   console.error('[debug] widget render error', widgetId, err)
                   rendered = (
