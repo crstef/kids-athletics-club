@@ -53,6 +53,8 @@ export function PerformanceChartWidget({ athletes, results, canCompare = true }:
     return set ? Array.from(set) : []
   }, [eventsByAthlete, selectedAthleteId])
   const eventsSignature = useMemo(() => eventsForSelectedAthlete.join('|'), [eventsForSelectedAthlete])
+  const primaryEvent = useMemo(() => eventsForSelectedAthlete[0] ?? null, [eventsSignature])
+  const allowedEventSet = useMemo(() => new Set(eventsForSelectedAthlete), [eventsSignature])
 
   const categoryOptions = useMemo(() => {
     const unique = new Set<string>()
@@ -172,24 +174,22 @@ export function PerformanceChartWidget({ athletes, results, canCompare = true }:
   }, [canCompare, selectedAthleteId, athleteIdSet, selectedCategory, selectedGender, safeAthletes])
 
   useEffect(() => {
-    if (!selectedAthleteId) {
-      if (selectedEvent !== null) {
-        setSelectedEvent(null)
+    setSelectedEvent(prevEvent => {
+      if (!selectedAthleteId) {
+        return prevEvent === null ? prevEvent : null
       }
-      return
-    }
 
-    if (eventsForSelectedAthlete.length === 0) {
-      if (selectedEvent !== null) {
-        setSelectedEvent(null)
+      if (!primaryEvent) {
+        return prevEvent === null ? prevEvent : null
       }
-      return
-    }
 
-    if (!selectedEvent || !eventsForSelectedAthlete.includes(selectedEvent)) {
-      setSelectedEvent(eventsForSelectedAthlete[0])
-    }
-  }, [selectedAthleteId, eventsSignature, eventsForSelectedAthlete, selectedEvent])
+      if (prevEvent && allowedEventSet.has(prevEvent)) {
+        return prevEvent
+      }
+
+      return primaryEvent
+    })
+  }, [selectedAthleteId, primaryEvent, allowedEventSet])
 
   useEffect(() => {
     if (!selectedEvent) return

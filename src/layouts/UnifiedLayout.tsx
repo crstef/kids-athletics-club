@@ -105,6 +105,8 @@ const enforceWidgetSize = (widgetId: string, requestedSize?: WidgetSize): Widget
   return candidate
 }
 
+type AllowedWidgetScope = 'unknown' | 'unrestricted' | 'allowlist' | 'denyall'
+
 const LEGACY_WIDGET_ID_MAP: Record<string, string> = {
   statistics: 'stats-users',
   probes: 'stats-probes',
@@ -355,13 +357,23 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
   const [widgetsLoaded, setWidgetsLoaded] = useState(false)
   const [allowedWidgetIds, setAllowedWidgetIds] = useState<string[]>([])
   const [widgetSizes, setWidgetSizes] = useState<Record<string, WidgetSize>>({})
+  const [allowedWidgetScope, setAllowedWidgetScope] = useState<AllowedWidgetScope>('unknown')
   const isParentUser = currentUser.role === 'parent'
 
   const allowedWidgetSet = useMemo(() => new Set(allowedWidgetIds), [allowedWidgetIds])
-  const safeEnabledWidgets = useMemo(
-    () => enabledWidgets.filter((id): id is string => typeof id === 'string' && id.length > 0),
-    [enabledWidgets]
-  )
+  const safeEnabledWidgets = useMemo(() => {
+    const canonical = enabledWidgets.filter((id): id is string => typeof id === 'string' && id.length > 0)
+
+    if (allowedWidgetScope === 'denyall') {
+      return []
+    }
+
+    if (allowedWidgetScope === 'allowlist') {
+      return canonical.filter(id => allowedWidgetSet.has(id))
+    }
+
+    return canonical
+  }, [enabledWidgets, allowedWidgetScope, allowedWidgetSet])
 
   const resolveWidgetSize = useCallback((widgetId: string): WidgetSize => {
     const canonicalId = normalizeWidgetId(widgetId) ?? widgetId
@@ -638,9 +650,11 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
           : (myComponentsResponse as any)?.components ?? []
 
         const allowedSet = new Set<string>()
+        let sawWidgetComponent = false
         for (const component of rawComponents) {
           const rawType = (component.componentType ?? component.component_type ?? '').toString().toLowerCase()
           if (!rawType.includes('widget')) continue
+          sawWidgetComponent = true
 
           const canView = Boolean(
             component.permissions?.canView ??
@@ -706,6 +720,14 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
         // Intentionally avoid falling back to DEFAULT_WIDGET_IDS when the role has no widget assignments.
 
         const allowedArray = Array.from(allowedSet)
+        const nextScope: AllowedWidgetScope =
+          allowedSet.size > 0
+            ? 'allowlist'
+            : sawWidgetComponent
+              ? 'denyall'
+              : 'unrestricted'
+
+        setAllowedWidgetScope(nextScope)
         console.log('[debug] loadWidgets allowedWidgetIds', allowedArray)
         setAllowedWidgetIds(allowedArray)
         const canonicalInitial = Array.from(new Set(
@@ -730,6 +752,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
         setEnabledWidgets(canonicalInitial)
       } catch (error) {
         console.error('Failed to load widgets:', error)
+        setAllowedWidgetScope('unrestricted')
         setAllowedWidgetIds([...DEFAULT_WIDGET_IDS])
         setEnabledWidgets([...DEFAULT_WIDGET_IDS])
         setWidgetSizes(DEFAULT_WIDGET_IDS.reduce<Record<string, WidgetSize>>((acc, widgetId) => {
@@ -755,7 +778,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
         const canonicalIds = safeEnabledWidgets
           .map(id => normalizeWidgetId(id))
           .filter((id): id is string => Boolean(id))
-          .filter(id => allowedSetLocal.size === 0 || allowedSetLocal.has(id))
+          .filter(id => allowedWidgetScope !== 'allowlist' || allowedSetLocal.has(id))
 
         await apiClient.saveUserWidgets(
           canonicalIds.map((widgetName, index) => {
@@ -774,12 +797,16 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
     }
 
     saveWidgets()
-  }, [safeEnabledWidgets, widgetsLoaded, allowedWidgetIds, widgetSizes])
+  }, [safeEnabledWidgets, widgetsLoaded, allowedWidgetIds, widgetSizes, allowedWidgetScope])
 
   const toggleWidget = (widgetId: string) => {
     const canonicalId = normalizeWidgetId(widgetId) ?? widgetId
 
-    if (allowedWidgetSet.size > 0 && !allowedWidgetSet.has(canonicalId)) {
+    if (allowedWidgetScope === 'denyall') {
+      return
+    }
+
+    if (allowedWidgetScope === 'allowlist' && !allowedWidgetSet.has(canonicalId)) {
       return
     }
 
@@ -793,7 +820,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
           : [canonicalId, ...prev]
     ))
 
-    if (allowedWidgetSet.size === 0 || allowedWidgetSet.has(canonicalId)) {
+    if (allowedWidgetScope !== 'allowlist' || allowedWidgetSet.has(canonicalId)) {
       setWidgetSizes(prev => {
         const nextSize = enforceWidgetSize(canonicalId, prev[canonicalId])
         if (prev[canonicalId] === nextSize) {
@@ -813,12 +840,16 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
         <div className="space-y-6">
           <div className="text-center py-12">
             <p className="text-muted-foreground mb-4">
-              Nu aveți widget-uri configurate pe dashboard
+              {allowedWidgetScope === 'denyall'
+                ? 'Rolul tău nu are widget-uri active pe dashboard.'
+                : 'Nu aveți widget-uri configurate pe dashboard'}
             </p>
-            <Button onClick={() => setCustomizeOpen(true)}>
-              <Gear size={16} className="mr-2" />
-              Personalizează Dashboard
-            </Button>
+            {allowedWidgetScope !== 'denyall' && (
+              <Button onClick={() => setCustomizeOpen(true)}>
+                <Gear size={16} className="mr-2" />
+                Personalizează Dashboard
+              </Button>
+            )}
           </div>
         </div>
       )
@@ -855,10 +886,12 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
                 Dashboard
               </h2>
             </div>
-            <Button variant="outline" onClick={() => setCustomizeOpen(true)}>
-              <Gear size={16} className="mr-2" />
-              Personalizează
-            </Button>
+            {allowedWidgetScope !== 'denyall' && (
+              <Button variant="outline" onClick={() => setCustomizeOpen(true)}>
+                <Gear size={16} className="mr-2" />
+                Personalizează
+              </Button>
+            )}
           </div>
         </div>
 
@@ -875,7 +908,11 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
                   return null
                 }
 
-                if (allowedWidgetSet.size > 0 && !allowedWidgetSet.has(widgetId)) {
+                if (allowedWidgetScope === 'denyall') {
+                  return null
+                }
+
+                if (allowedWidgetScope === 'allowlist' && !allowedWidgetSet.has(widgetId)) {
                   return null
                 }
 
@@ -1267,70 +1304,77 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            {Object.values(WIDGET_REGISTRY).map((widget) => {
-              // Only show widgets user has permission for
-              if (!userCanAccessWidget(widget.id, currentUser.permissions || [])) {
-                return null
-              }
-              if (allowedWidgetSet.size > 0 && !allowedWidgetSet.has(widget.id)) {
-                return null
-              }
-              
-              const isActive = safeEnabledWidgets.includes(widget.id)
-              const currentSize = resolveWidgetSize(widget.id)
+            {allowedWidgetScope === 'denyall' ? (
+              <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+                Rolul curent nu are widget-uri disponibile. Contactează un administrator pentru a activa cel puțin un widget.
+              </div>
+            ) : (
+              Object.values(WIDGET_REGISTRY).map((widget) => {
+                if (!userCanAccessWidget(widget.id, currentUser.permissions || [])) {
+                  return null
+                }
 
-              return (
-                <div key={widget.id} className="space-y-3 rounded-lg border p-4">
-                  <div className="flex items-start gap-4">
-                    <Checkbox
-                      id={`widget-${widget.id}`}
-                      checked={isActive}
-                      onCheckedChange={() => toggleWidget(widget.id)}
-                    />
-                    <div className="flex-1">
-                      <Label htmlFor={`widget-${widget.id}`} className="cursor-pointer font-medium">
-                        {widget.name}
-                      </Label>
-                      <p className="text-sm text-muted-foreground">{widget.description}</p>
+                if (allowedWidgetScope === 'allowlist' && !allowedWidgetSet.has(widget.id)) {
+                  return null
+                }
+
+                const isActive = safeEnabledWidgets.includes(widget.id)
+                const currentSize = resolveWidgetSize(widget.id)
+
+                return (
+                  <div key={widget.id} className="space-y-3 rounded-lg border p-4">
+                    <div className="flex items-start gap-4">
+                      <Checkbox
+                        id={`widget-${widget.id}`}
+                        checked={isActive}
+                        onCheckedChange={() => toggleWidget(widget.id)}
+                      />
+                      <div className="flex-1">
+                        <Label htmlFor={`widget-${widget.id}`} className="cursor-pointer font-medium">
+                          {widget.name}
+                        </Label>
+                        <p className="text-sm text-muted-foreground">{widget.description}</p>
+                      </div>
                     </div>
+                    <div className="flex flex-col gap-2 pl-8 sm:flex-row sm:items-center sm:justify-between">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Dimensiune
+                      </span>
+                      <Select
+                        value={currentSize}
+                        onValueChange={(value) => {
+                          const parsed = parseWidgetSize(value)
+                          if (parsed) {
+                            handleWidgetSizeChange(widget.id, parsed)
+                          }
+                        }}
+                        disabled={!isActive}
+                      >
+                        <SelectTrigger className="w-[180px]">
+                          <SelectValue placeholder="Alege dimensiunea" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {WIDGET_SIZE_ORDER.map((size) => {
+                            const isDisabledOption =
+                              GRAPHIC_WIDGET_IDS.has(widget.id) && WIDGET_SIZE_RANK[size] < WIDGET_SIZE_RANK.large
+                            return (
+                              <SelectItem key={size} value={size} disabled={isDisabledOption}>
+                                {WIDGET_SIZE_LABELS[size]}
+                              </SelectItem>
+                            )
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {GRAPHIC_WIDGET_IDS.has(widget.id) && (
+                      <p className="pl-8 text-xs text-muted-foreground">
+                        Widget-urile grafice necesită cel puțin dimensiunea „Mare” pentru claritate.
+                      </p>
+                    )}
                   </div>
-                  <div className="flex flex-col gap-2 pl-8 sm:flex-row sm:items-center sm:justify-between">
-                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      Dimensiune
-                    </span>
-                    <Select
-                      value={currentSize}
-                      onValueChange={(value) => {
-                        const parsed = parseWidgetSize(value)
-                        if (parsed) {
-                          handleWidgetSizeChange(widget.id, parsed)
-                        }
-                      }}
-                      disabled={!isActive}
-                    >
-                      <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Alege dimensiunea" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {WIDGET_SIZE_ORDER.map((size) => {
-                          const isDisabledOption = GRAPHIC_WIDGET_IDS.has(widget.id) && WIDGET_SIZE_RANK[size] < WIDGET_SIZE_RANK.large
-                          return (
-                            <SelectItem key={size} value={size} disabled={isDisabledOption}>
-                              {WIDGET_SIZE_LABELS[size]}
-                            </SelectItem>
-                          )
-                        })}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {GRAPHIC_WIDGET_IDS.has(widget.id) && (
-                    <p className="pl-8 text-xs text-muted-foreground">
-                      Widget-urile grafice necesită cel puțin dimensiunea „Mare” pentru claritate.
-                    </p>
-                  )}
-                </div>
-              )
-            })}
+                )
+              })
+            )}
           </div>
         </DialogContent>
       </Dialog>
