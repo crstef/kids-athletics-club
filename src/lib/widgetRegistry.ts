@@ -83,7 +83,7 @@ export const WIDGET_REGISTRY: Record<string, WidgetConfig> = {
   },
   'performance-chart': {
     id: 'performance-chart',
-    name: 'Evoluție Performanțe',
+    name: 'Grafic Performanță',
     component: PerformanceChartWidget,
     requiredPermission: 'results.view',
     defaultSize: 'large',
