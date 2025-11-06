@@ -517,6 +517,19 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
   const showCoachApprovalRequests = !isSuperAdmin && (hasScopedApprovalPermission || currentUser.role === 'coach')
   const showAccessRequests = !isSuperAdmin && hasAccessRequestPermission
 
+  const athleteUserMap = useMemo(() => {
+    const map = new Map<string, User>()
+    users.forEach((user) => {
+      if (user.role === 'athlete') {
+        const athleteId = (user as AthleteUser).athleteId
+        if (athleteId) {
+          map.set(athleteId, user)
+        }
+      }
+    })
+    return map
+  }, [users])
+
   const messagingUsers = useMemo(() => {
     const map = new Map<string, User>()
 
@@ -561,44 +574,93 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
     })
 
     const allOthers = Array.from(map.values())
-
-    if (!isParentUser) {
+    if (allOthers.length === 0) {
       return allOthers
     }
 
-    const coachIds = new Set<string>()
-    if (Array.isArray(athletes)) {
-      athletes
-        .filter((athlete) => athlete.parentId === currentUser.id && athlete.coachId)
-        .forEach((athlete) => {
-          if (athlete.coachId) {
-            coachIds.add(athlete.coachId)
-          }
-        })
-    }
-
-    const partnerIds = new Set<string>()
-    if (Array.isArray(messages)) {
-      messages
-        .filter((message) => message.fromUserId === currentUser.id || message.toUserId === currentUser.id)
-        .forEach((message) => {
-          const otherUserId = message.fromUserId === currentUser.id ? message.toUserId : message.fromUserId
-          if (otherUserId) {
-            partnerIds.add(otherUserId)
-          }
-        })
-    }
+    const superAdminIds = new Set<string>(users.filter((user) => user.role === 'superadmin').map((user) => user.id))
 
     const allowedIds = new Set<string>()
-    coachIds.forEach((id) => allowedIds.add(id))
-    partnerIds.forEach((id) => allowedIds.add(id))
+
+    switch (currentUser.role) {
+      case 'superadmin':
+        return allOthers
+
+      case 'coach': {
+        athletes
+          .filter((athlete) => athlete.coachId === currentUser.id)
+          .forEach((athlete) => {
+            const athleteUser = athleteUserMap.get(athlete.id)
+            if (athleteUser) {
+              allowedIds.add(athleteUser.id)
+            }
+            if (athlete.parentId) {
+              allowedIds.add(athlete.parentId)
+            }
+          })
+        break
+      }
+
+      case 'athlete': {
+        const athleteId = (currentUser as AthleteUser).athleteId
+        if (athleteId) {
+          const athleteRecord = athletes.find((athlete) => athlete.id === athleteId)
+          if (athleteRecord?.coachId) {
+            allowedIds.add(athleteRecord.coachId)
+          }
+        }
+        break
+      }
+
+      case 'parent': {
+        athletes
+          .filter((athlete) => athlete.parentId === currentUser.id)
+          .forEach((athlete) => {
+            if (athlete.coachId) {
+              allowedIds.add(athlete.coachId)
+            }
+          })
+        superAdminIds.forEach((id) => allowedIds.add(id))
+        break
+      }
+
+      default:
+        return allOthers
+    }
 
     if (allowedIds.size === 0) {
-      return allOthers
+      return []
     }
 
     return allOthers.filter((user) => allowedIds.has(user.id))
-  }, [users, currentUser.id, messages, isParentUser, athletes])
+  }, [users, currentUser.id, currentUser.role, messages, athletes, athleteUserMap])
+
+  const userManagementUsers = useMemo(() => {
+    switch (currentUser.role) {
+      case 'superadmin':
+        return users
+
+      case 'coach': {
+        const allowedIds = new Set<string>([currentUser.id])
+        athletes
+          .filter((athlete) => athlete.coachId === currentUser.id)
+          .forEach((athlete) => {
+            const athleteUser = athleteUserMap.get(athlete.id)
+            if (athleteUser) {
+              allowedIds.add(athleteUser.id)
+            }
+          })
+        return users.filter((user) => allowedIds.has(user.id))
+      }
+
+      case 'athlete':
+      case 'parent':
+        return users.filter((user) => user.id === currentUser.id)
+
+      default:
+        return users.filter((user) => user.id === currentUser.id)
+    }
+  }, [users, currentUser.id, currentUser.role, athletes, athleteUserMap])
 
   const hasAthleteResults = totalAthleteCount > 0
   const pageRangeStart = hasAthleteResults ? (athletePage - 1) * athletesPerPage + 1 : 0
@@ -1284,7 +1346,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
           {isTabVisible('users') && (
             <TabsContent value="users" className="mt-6">
               <UserManagement
-                users={users}
+                users={userManagementUsers}
                 roles={roles}
                 athletes={athletes}
                 coaches={coaches}
