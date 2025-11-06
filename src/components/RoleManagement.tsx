@@ -43,6 +43,13 @@ const PERMISSION_WIDGET_GROUP_MAP: Record<string, WidgetGroupKey> = {
   'dashboard.view.athlete': 'athlete'
 }
 
+const ROLE_PRIMARY_DASHBOARD_PERMISSION_MAP: Record<string, PermissionName> = {
+  superadmin: 'dashboard.view',
+  coach: 'dashboard.view.coach',
+  parent: 'dashboard.view.parent',
+  athlete: 'dashboard.view.athlete'
+}
+
 const determineWidgetGroup = (name: string, displayName: string): WidgetGroupKey => {
   const key = `${name} ${displayName}`.toLowerCase()
   if (key.includes('coach')) return 'coach'
@@ -581,8 +588,18 @@ export function RoleManagement({
 
                           const isSelected = formData.permissions.includes(perm.name)
                           const widgetGroup = PERMISSION_WIDGET_GROUP_MAP[perm.name]
-                          const showWidgets = Boolean(editingRole && canManageWidgets && widgetGroup)
-                          const groupWidgets = showWidgets ? (allWidgets.length > 0 ? allWidgets : widgetGroups.general) : []
+                          const primaryDashboardPermission = editingRole
+                            ? ROLE_PRIMARY_DASHBOARD_PERMISSION_MAP[editingRole.name] ?? 'dashboard.view'
+                            : 'dashboard.view'
+                          const showWidgets = Boolean(
+                            editingRole &&
+                            canManageWidgets &&
+                            widgetGroup &&
+                            perm.name === primaryDashboardPermission
+                          )
+                          const groupWidgets = showWidgets
+                            ? (allWidgets.length > 0 ? allWidgets : widgetGroups.general)
+                            : []
 
                           return (
                             <div key={perm.id} className="space-y-2">

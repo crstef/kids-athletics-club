@@ -104,6 +104,7 @@ export type PermissionName =
   | 'user_permissions.view'
   | 'requests.view.all'
   | 'requests.view.own'
+  | 'dashboard.view'
   | 'dashboard.view.superadmin'
   | 'dashboard.view.coach'
   | 'dashboard.view.parent'
