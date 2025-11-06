@@ -1,6 +1,7 @@
 # Kids Athletics Club Agent Directive
 
 ## Overview
+- **Development lock-down:** Unless the user explicitly unlocks a module, treat every area of the product as frozen. Default assumption: only the *Parent* role experience (authentication, profile, messaging, dashboard) may be touched for development or tests. Do not edit or refactor other modules, screens, APIs, or data paths without an explicit unlock callout from the user. When in doubt, ask before changing anything outside the currently unlocked surface.
 - Monorepo with Vite/React TypeScript SPA (`src/`) and Express/TypeScript API (`server/src/`).
 - PostgreSQL is the system of record; schema and seed SQL live in `server/schema.sql`, `server/init-data.sql`, and `server/migrations/`.
 - Auth is JWT based; all HTTP traffic goes through `src/lib/api-client.ts` and React context in `src/lib/auth-context.tsx`.
@@ -130,6 +131,7 @@
 3. Start dev servers: `npm run dev` (frontend) and `cd server && npm run dev`.
 4. Before push: `npm test`, `npm run build`, ensure backend postbuild commit captured, then `git pull --rebase origin main`.
 5. For permission changes, update seeds, types, and frontend guards; hit `/api/setup/initialize-data?reset_permissions=true` when reseeding.
+6. Confirm the current unlock scope with the user before touching code outside the parent-role flows; document any requested unlock in conversation so the history reflects why a module was edited.
 
 ## Contact & Ownership
 - Primary contact: KidsAthleticsServer (`admin@clubatletism.ro`); repo owner `crstef`.

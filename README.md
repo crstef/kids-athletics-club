@@ -164,6 +164,7 @@ cd server && npm start
 - Configurare probe sportive
 - Administrare permisiuni
 - Vizualizare și management atleți
+- Mesaje: poate conversa cu orice utilizator din sistem
 
 ### Antrenor (Coach)
 - Adăugare și management atleți proprii
@@ -171,17 +172,23 @@ cd server && npm start
 - Comunicare cu părinții
 - **Aprobare/respingere cereri de cont** - antrenorii aprobă înregistrări noi de părinți și atleți (creează automat profilul de atlet la aprobare)
 - Vizualizare istoric ultimele 15 cereri procesate (aprobate/respinse)
+- Mesaje: poate discuta cu atleții săi (conturi athlete) și cu părinții acelor atleți
+- Tab-ul „Utilizatori”: vede doar propriul cont și conturile atleților săi
 
 ### Părinte (Parent)
 - Vizualizare informații copil/copii
 - Solicitare acces pentru vizualizare date copil
 - Comunicare cu antrenorii
 - Vizualizare evoluție și rezultate
+- Mesaje: poate discuta cu antrenorul copilului și cu SuperAdminii
+- Tab-ul „Utilizatori”: vede doar propriul cont
 
 ### Atlet (Athlete)
 - Vizualizare propriile rezultate
 - Vizualizare evoluție personală
 - Informații despre antrenor
+- Mesaje: poate discuta doar cu propriul antrenor
+- Tab-ul „Utilizatori”: vede doar propriul cont
 
 ## 🚀 Funcționalități SuperAdmin
 
@@ -191,6 +198,7 @@ cd server && npm start
 - **Editare utilizatori** - modifică informațiile utilizatorilor existenți
 - **Ștergere utilizatori** - elimină utilizatori din sistem (cu excepția SuperAdmin)
 - **Filtrare și căutare** - găsește rapid utilizatori după nume, email sau rol
+- **Vizibilitate contextuală** - lista utilizatorilor este filtrată automat: SuperAdmin vede tot, antrenorul își vede doar contul și atleții, iar părinții și atleții își văd doar propriul profil
 
 ### Aprobare Conturi (SuperAdmin vs Coach)
 
@@ -347,6 +355,7 @@ npm run lint
 - Părinții trebuie să solicite acces pentru a vizualiza datele copiilor
 - Nu poți șterge propriul cont de SuperAdmin
 - Ștergerea unui utilizator elimină și datele asociate (mesaje, cereri, etc.)
+- Vizibilitatea în tab-urile „Mesaje” și „Utilizatori” este restricționată pe rol conform regulilor de mai sus; dacă nu vezi un contact sau un utilizator, verifică legăturile atlet ↔ părinte ↔ antrenor
 
 ## 🎯 Workflow Tipic
 

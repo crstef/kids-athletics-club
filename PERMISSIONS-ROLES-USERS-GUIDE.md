@@ -341,6 +341,13 @@ Examples:
 2. User-specific permissions (via `user_permissions`) override role permissions
 3. Role permissions (via `role_permissions`) are default for all role members
 
+### Role-Scoped Messaging & User Management
+- **SuperAdmin** → poate lista toți utilizatorii, poate conversa cu oricine
+- **Coach** → vede în tab-ul „Utilizatori” doar contul propriu și conturile atleților săi; în „Mesaje” poate discuta cu acei atleți și cu părinții lor
+- **Parent** → în „Utilizatori” își vede doar propriul cont; în „Mesaje” poate discuta cu antrenorul copilului și cu orice SuperAdmin
+- **Athlete** → în „Utilizatori” își vede doar propriul cont; în „Mesaje” poate discuta doar cu antrenorul său
+- **Fallback** → dacă un rol nu are legături valide (ex. atlet fără coach asociat), lista de contacte poate fi goală până se completează relațiile în DB
+
 ## ✅ Success Criteria
 
 You'll know the system works when:
