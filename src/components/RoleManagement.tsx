@@ -43,6 +43,20 @@ const PERMISSION_WIDGET_GROUP_MAP: Record<string, WidgetGroupKey> = {
   'dashboard.view.athlete': 'athlete'
 }
 
+const ROLE_WIDGET_GROUP_MAP: Record<string, WidgetGroupKey> = {
+  superadmin: 'admin',
+  coach: 'coach',
+  parent: 'parent',
+  athlete: 'athlete'
+}
+
+const ROLE_PRIMARY_DASHBOARD_PERMISSION_MAP: Record<string, PermissionName> = {
+  superadmin: 'dashboard.view',
+  coach: 'dashboard.view.coach',
+  parent: 'dashboard.view.parent',
+  athlete: 'dashboard.view.athlete'
+}
+
 const determineWidgetGroup = (name: string, displayName: string): WidgetGroupKey => {
   const key = `${name} ${displayName}`.toLowerCase()
   if (key.includes('coach')) return 'coach'
@@ -205,6 +219,13 @@ export function RoleManagement({
 
     return groups
   }, [widgetEntries])
+
+  const activeRoleName = editingRole?.name ?? ''
+  const preferredWidgetGroup = ROLE_WIDGET_GROUP_MAP[activeRoleName] ?? 'general'
+  const hasPreferredWidgets = (widgetGroups[preferredWidgetGroup] ?? []).length > 0
+  const effectiveWidgetGroup: WidgetGroupKey = hasPreferredWidgets ? preferredWidgetGroup : 'general'
+  const widgetsForEffectiveGroup = widgetGroups[effectiveWidgetGroup] ?? []
+  const primaryDashboardPermission = ROLE_PRIMARY_DASHBOARD_PERMISSION_MAP[activeRoleName] ?? 'dashboard.view'
 
   const handleOpenAdd = () => {
     setEditingRole(null)
@@ -577,12 +598,11 @@ export function RoleManagement({
 
                           const isSelected = formData.permissions.includes(perm.name)
                           const widgetGroup = PERMISSION_WIDGET_GROUP_MAP[perm.name]
-                          const baseWidgets = widgetGroup ? widgetGroups[widgetGroup] : []
-                          const groupWidgets =
-                            baseWidgets.length === 0 && widgetGroup && widgetGroup !== 'general'
-                              ? widgetGroups.general
-                              : baseWidgets
-                          const showWidgets = Boolean(editingRole && canManageWidgets && widgetGroup)
+                          const isPrimaryDashboardPermission = perm.name === primaryDashboardPermission
+                          const showWidgets = Boolean(editingRole && canManageWidgets && widgetGroup && isPrimaryDashboardPermission)
+                          const groupWidgets = showWidgets
+                            ? (widgetsForEffectiveGroup.length > 0 ? widgetsForEffectiveGroup : widgetGroups.general)
+                            : []
 
                           return (
                             <div key={perm.id} className="space-y-2">
