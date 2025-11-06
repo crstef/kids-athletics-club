@@ -185,13 +185,22 @@ export function PerformanceChart({ data, eventType, unit, comparisons = [] }: Pe
     return combined
   }, [data, comparisons])
 
-  const firstDataDate = useMemo(() => getFirstDataDate(allSeriesData), [allSeriesData])
+  const seriesSignature = useMemo(() => {
+    if (allSeriesData.length === 0) return 'empty'
+    return allSeriesData
+      .map(point => `${point.date}|${point.value ?? ''}|${point.unit ?? ''}`)
+      .join('::')
+  }, [allSeriesData])
+
+  const stableSeries = useMemo(() => allSeriesData, [seriesSignature])
+
+  const firstDataDate = useMemo(() => getFirstDataDate(stableSeries), [stableSeries])
 
   useEffect(() => {
     const toleranceMs = 1000
 
     setDateRange((currentRange) => {
-      const nextRange = getInitialDateRange(allSeriesData, period)
+      const nextRange = getInitialDateRange(stableSeries, period)
       const nextStartMs = nextRange.start.getTime()
       const nextEndMs = nextRange.end.getTime()
       const currentStartMs = currentRange.start.getTime()
@@ -209,7 +218,7 @@ export function PerformanceChart({ data, eventType, unit, comparisons = [] }: Pe
         end: endChanged ? new Date(nextEndMs) : currentRange.end
       }
     })
-  }, [allSeriesData, period])
+  }, [stableSeries, period])
 
   const fallbackUnit = useMemo(() => {
     if (unit) return unit
