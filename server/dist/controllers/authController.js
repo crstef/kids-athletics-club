@@ -86,6 +86,21 @@ const determineCategory = (age) => {
         return 'O18';
     return null;
 };
+const normalizeDateInput = (value) => {
+    if (!value)
+        return null;
+    const trimmed = value.trim();
+    if (!trimmed)
+        return null;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+        return trimmed;
+    }
+    const parsed = new Date(trimmed);
+    if (Number.isNaN(parsed.getTime())) {
+        return null;
+    }
+    return parsed.toISOString().slice(0, 10);
+};
 const register = async (req, res) => {
     const client = await database_1.default.connect();
     let transactionStarted = false;
@@ -99,6 +114,11 @@ const register = async (req, res) => {
         if (password.length < 6) {
             return res.status(400).json({ error: 'Password must be at least 6 characters' });
         }
+        const trimmedFirstName = String(firstName).trim();
+        const trimmedLastName = String(lastName).trim();
+        if (!trimmedFirstName || !trimmedLastName) {
+            return res.status(400).json({ error: 'Invalid name values' });
+        }
         // Check if email already exists
         const existingUser = await client.query('SELECT id FROM users WHERE email = $1', [email.toLowerCase()]);
         if (existingUser.rows.length > 0) {
@@ -111,7 +131,7 @@ const register = async (req, res) => {
         // Create user
         const result = await client.query(`INSERT INTO users (email, password, first_name, last_name, role, is_active, needs_approval)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
-       RETURNING id, email, first_name, last_name, role, is_active, needs_approval, created_at`, [email.toLowerCase(), hashedPassword, firstName, lastName, role, role === 'coach', role !== 'coach']);
+       RETURNING id, email, first_name, last_name, role, is_active, needs_approval, created_at`, [email.toLowerCase(), hashedPassword, trimmedFirstName, trimmedLastName, role, role === 'coach', role !== 'coach']);
         const user = result.rows[0];
         // If parent role and athlete selected, create access request for coach approval
         if (role === 'parent' && athleteId && coachId) {
@@ -120,8 +140,8 @@ const register = async (req, res) => {
                 ? `${athlete.rows[0].first_name} ${athlete.rows[0].last_name}`
                 : null;
             const baseMessage = athleteName
-                ? `${firstName} ${lastName} solicită acces pentru ${athleteName}`
-                : `${firstName} ${lastName} solicită acces`;
+                ? `${trimmedFirstName} ${trimmedLastName} solicită acces pentru ${athleteName}`
+                : `${trimmedFirstName} ${trimmedLastName} solicită acces`;
             const trimmedNotes = typeof approvalNotes === 'string' && approvalNotes.trim().length > 0 ? approvalNotes.trim() : null;
             const accessMessage = trimmedNotes ? `${baseMessage}\n\nMesaj: ${trimmedNotes}` : baseMessage;
             await client.query(`INSERT INTO access_requests (parent_id, athlete_id, coach_id, status, message)
@@ -141,12 +161,19 @@ const register = async (req, res) => {
                 transactionStarted = false;
                 return res.status(400).json({ error: 'Missing athlete profile data' });
             }
-            const profileDob = athleteProfile.dateOfBirth;
+            const profileDobRaw = athleteProfile.dateOfBirth;
+            const profileDob = normalizeDateInput(profileDobRaw);
             const profileGender = athleteProfile.gender;
             if (!profileDob || !profileGender) {
                 await client.query('ROLLBACK');
                 transactionStarted = false;
                 return res.status(400).json({ error: 'Athlete profile requires date of birth and gender' });
+            }
+            const duplicateAthlete = await client.query(`SELECT id FROM athletes WHERE LOWER(first_name) = $1 AND LOWER(last_name) = $2 AND date_of_birth = $3`, [trimmedFirstName.toLowerCase(), trimmedLastName.toLowerCase(), profileDob]);
+            if (duplicateAthlete.rows.length > 0) {
+                await client.query('ROLLBACK');
+                transactionStarted = false;
+                return res.status(409).json({ error: 'An athlete profile with the same name and date of birth already exists' });
             }
             const derivedAge = calculateAge(profileDob);
             const derivedCategory = determineCategory(derivedAge);
@@ -166,7 +193,7 @@ const register = async (req, res) => {
                 }
             };
             await client.query(`INSERT INTO approval_requests (user_id, coach_id, requested_role, status, child_name, approval_notes)
-         VALUES ($1, $2, $3, 'pending', $4, $5)`, [user.id, coachId, role, `${firstName} ${lastName}`, JSON.stringify(metadata)]);
+         VALUES ($1, $2, $3, 'pending', $4, $5)`, [user.id, coachId, role, `${trimmedFirstName} ${trimmedLastName}`, JSON.stringify(metadata)]);
         }
         // If coach role, create approval request for superadmin
         if (role === 'coach') {
@@ -381,7 +408,8 @@ const login = async (req, res) => {
             ],
         };
         const baseline = baselineByRole[user.role] || [];
-        if (baseline.length > 0) {
+        const shouldApplyBaseline = user.role === 'superadmin' || !hasRolePermissionsTable;
+        if (shouldApplyBaseline && baseline.length > 0) {
             permissions = [...new Set([...permissions, ...baseline])];
         }
         // Generate JWT
@@ -515,7 +543,8 @@ const getCurrentUser = async (req, res) => {
             ],
         };
         const baseline2 = baselineByRole2[user.role] || [];
-        if (baseline2.length > 0) {
+        const shouldApplyBaseline = user.role === 'superadmin' || !rolePermissionsTableExists;
+        if (shouldApplyBaseline && baseline2.length > 0) {
             permissions = [...new Set([...permissions, ...baseline2])];
         }
         // Get dashboards assigned to this role (same as login)

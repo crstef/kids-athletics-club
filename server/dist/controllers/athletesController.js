@@ -242,16 +242,36 @@ const updateAthlete = async (req, res) => {
 exports.updateAthlete = updateAthlete;
 const deleteAthlete = async (req, res) => {
     const client = await database_1.default.connect();
+    let transactionStarted = false;
     try {
         const { id } = req.params;
+        await client.query('BEGIN');
+        transactionStarted = true;
         const athlete = await client.query('SELECT id FROM athletes WHERE id = $1', [id]);
         if (athlete.rows.length === 0) {
+            await client.query('ROLLBACK');
+            transactionStarted = false;
             return res.status(404).json({ error: 'Athlete not found' });
         }
+        const userResult = await client.query('SELECT id FROM users WHERE athlete_id = $1', [id]);
+        if (userResult.rows.length > 0) {
+            const userIds = userResult.rows.map((row) => row.id);
+            await client.query('DELETE FROM users WHERE id = ANY($1::uuid[])', [userIds]);
+        }
         await client.query('DELETE FROM athletes WHERE id = $1', [id]);
+        await client.query('COMMIT');
+        transactionStarted = false;
         res.json({ message: 'Athlete deleted successfully' });
     }
     catch (error) {
+        if (transactionStarted) {
+            try {
+                await client.query('ROLLBACK');
+            }
+            catch (rollbackError) {
+                console.error('Rollback error during deleteAthlete:', rollbackError);
+            }
+        }
         console.error('Delete athlete error:', error);
         const message = error instanceof Error ? error.message : 'Internal server error';
         res.status(500).json({ error: message });
