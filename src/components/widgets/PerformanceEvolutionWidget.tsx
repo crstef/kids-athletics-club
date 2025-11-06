@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PerformanceChart } from '@/components/PerformanceChart';
@@ -7,30 +7,80 @@ import { Athlete, Result, EventType } from '@/lib/types';
 interface PerformanceEvolutionWidgetProps {
   athletes?: Athlete[];
   results?: Result[];
+  defaultAthleteId?: string;
+  defaultEventType?: EventType | null;
 }
 
-export default function PerformanceEvolutionWidget({ athletes = [], results = [] }: PerformanceEvolutionWidgetProps) {
-  const [selectedAthleteId, setSelectedAthleteId] = useState<string>('');
+export default function PerformanceEvolutionWidget({
+  athletes = [],
+  results = [],
+  defaultAthleteId,
+  defaultEventType
+}: PerformanceEvolutionWidgetProps) {
+  const safeAthletes = useMemo(() => athletes, [athletes]);
+  const safeResults = useMemo(() => results, [results]);
+
+  const [selectedAthleteId, setSelectedAthleteId] = useState<string>(() => {
+    if (defaultAthleteId && safeAthletes.some(athlete => athlete.id === defaultAthleteId)) {
+      return defaultAthleteId;
+    }
+    return safeAthletes[0]?.id ?? '';
+  });
   const [selectedEvent, setSelectedEvent] = useState<EventType | 'all'>('all');
 
-  // Removed unused selectedAthlete memo
+  useEffect(() => {
+    const validIds = new Set(safeAthletes.map(athlete => athlete.id));
+    const preferredId = defaultAthleteId && validIds.has(defaultAthleteId)
+      ? defaultAthleteId
+      : safeAthletes[0]?.id ?? '';
 
-  const athleteResults = useMemo(() => {
+    if (!preferredId) {
+      if (selectedAthleteId !== '') {
+        setSelectedAthleteId('');
+        setSelectedEvent('all');
+      }
+      return;
+    }
+
+    if (!selectedAthleteId || !validIds.has(selectedAthleteId)) {
+      setSelectedAthleteId(preferredId);
+      setSelectedEvent('all');
+    }
+  }, [safeAthletes, defaultAthleteId, selectedAthleteId]);
+
+  const selectedAthleteResults = useMemo(() => {
     if (!selectedAthleteId) return [];
-    return results.filter(r => r.athleteId === selectedAthleteId);
-  }, [results, selectedAthleteId]);
+    return safeResults.filter(result => result.athleteId === selectedAthleteId);
+  }, [safeResults, selectedAthleteId]);
 
   const uniqueEvents = useMemo(() => {
-    const events = new Set(athleteResults.map(r => r.eventType));
+    const events = new Set<EventType>(selectedAthleteResults.map(result => result.eventType));
     return Array.from(events);
-  }, [athleteResults]);
+  }, [selectedAthleteResults]);
+
+  useEffect(() => {
+    if (!selectedAthleteId || uniqueEvents.length === 0) {
+      if (selectedEvent !== 'all') {
+        setSelectedEvent('all');
+      }
+      return;
+    }
+
+    const preferredEvent = selectedAthleteId === defaultAthleteId && defaultEventType && uniqueEvents.includes(defaultEventType)
+      ? defaultEventType
+      : uniqueEvents[0];
+
+    if (preferredEvent && selectedEvent !== preferredEvent) {
+      setSelectedEvent(preferredEvent);
+    }
+  }, [uniqueEvents, selectedAthleteId, selectedEvent, defaultAthleteId, defaultEventType]);
 
   const chartData = useMemo(() => {
     if (selectedEvent === 'all') return [];
-    return athleteResults
+    return selectedAthleteResults
       .filter(r => r.eventType === selectedEvent)
       .map(r => ({ date: r.date, value: r.value, notes: r.notes }));
-  }, [athleteResults, selectedEvent]);
+  }, [selectedAthleteResults, selectedEvent]);
 
   return (
     <Card className="h-full flex flex-col">
@@ -44,7 +94,7 @@ export default function PerformanceEvolutionWidget({ athletes = [], results = []
               <SelectValue placeholder="Selectează Atlet" />
             </SelectTrigger>
             <SelectContent>
-              {athletes.map(athlete => (
+              {safeAthletes.map(athlete => (
                 <SelectItem key={athlete.id} value={athlete.id}>
                   {athlete.firstName} {athlete.lastName}
                 </SelectItem>

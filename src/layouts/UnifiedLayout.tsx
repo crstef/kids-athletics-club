@@ -1528,9 +1528,24 @@ function buildWidgetProps(widgetId: string, props: UnifiedLayoutProps, navigateT
 
     case 'performance-evolution': {
       const { athletes: scopedAthletes, results: scopedResults } = resolveRoleScopedAthleteData(props)
+      let defaultAthleteId: string | undefined
+      let defaultEventType: Result['eventType'] | undefined
+
+      if (props.currentUser.role === 'athlete') {
+        const athleteId = (props.currentUser as AthleteUser).athleteId
+        if (athleteId) {
+          defaultAthleteId = athleteId
+          const latestResult = scopedResults
+            .filter(result => result.athleteId === athleteId)
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
+          defaultEventType = latestResult?.eventType
+        }
+      }
       return {
         athletes: scopedAthletes,
-        results: scopedResults
+        results: scopedResults,
+        defaultAthleteId,
+        defaultEventType: defaultEventType ?? null
       }
     }
     
