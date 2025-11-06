@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { apiClient } from '@/lib/api-client'
 
 export interface Component {
@@ -35,7 +35,7 @@ export function useComponents() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchComponents = async () => {
+  const fetchComponents = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -149,7 +149,7 @@ export function useComponents() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   return {
     components,

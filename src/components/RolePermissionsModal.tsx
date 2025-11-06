@@ -18,6 +18,7 @@ interface RolePermissionsModalProps {
 export function RolePermissionsModal({ open, onClose, role, onSave }: RolePermissionsModalProps) {
   const [allPermissions, setAllPermissions] = useState<Permission[]>([])
   const [rolePermissions, setRolePermissions] = useState<Set<string>>(new Set())
+  const [initialRolePermissions, setInitialRolePermissions] = useState<Set<string>>(new Set())
   const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -43,6 +44,7 @@ export function RolePermissionsModal({ open, onClose, role, onSave }: RolePermis
             .map((p: any) => p.id)
         )
         setRolePermissions(permIds)
+        setInitialRolePermissions(new Set(permIds))
       } catch (error) {
         console.error('Error fetching permissions:', error)
         toast.error('Eroare la încărcarea permisiunilor')
@@ -69,19 +71,13 @@ export function RolePermissionsModal({ open, onClose, role, onSave }: RolePermis
       setSaving(true)
       
       // Get permissions to add and remove
-      const oldPerms = new Set((role.permissions as string[] || []))
-      const toAdd = Array.from(rolePermissions).filter(p => !oldPerms.has(p))
-      const toRemove = Array.from(oldPerms).filter(p => !rolePermissions.has(p))
+      const toAdd = Array.from(rolePermissions).filter((id) => !initialRolePermissions.has(id))
+      const toRemove = Array.from(initialRolePermissions).filter((id) => !rolePermissions.has(id))
 
-      // Add new permissions
-      for (const permId of toAdd) {
-        await apiClient.grantPermissionToRole(role.id, permId)
-      }
-
-      // Remove permissions
-      for (const permId of toRemove) {
-        await apiClient.revokePermissionFromRole(role.id, permId)
-      }
+      await Promise.all([
+        ...toAdd.map((permId) => apiClient.grantPermissionToRole(role.id, permId)),
+        ...toRemove.map((permId) => apiClient.revokePermissionFromRole(role.id, permId)),
+      ])
 
       toast.success('Permisiuni actualizate cu succes!')
   // Optional: trigger clients to reload capabilities; UI uses hasPermission from auth context

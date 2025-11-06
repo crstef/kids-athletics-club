@@ -4,6 +4,7 @@ import { defineConfig } from "vite";
 import { resolve } from 'path'
 
 const projectRoot = process.env.PROJECT_ROOT || process.cwd()
+const proxyTarget = process.env.VITE_DEV_PROXY_TARGET || process.env.VITE_API_URL || 'http://localhost:3001'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -44,8 +45,9 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: process.env.VITE_API_URL || 'http://localhost:3001',
+        target: proxyTarget,
         changeOrigin: true,
+        secure: false,
         rewrite: (path: string) => path.replace(/^\/api/, '')
       }
     }
