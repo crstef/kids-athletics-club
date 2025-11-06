@@ -17,14 +17,17 @@ export function RecentResultsWidget({ athletes, results }: RecentResultsWidgetPr
   )
 
   useEffect(() => {
-    const nextRange = getInitialDateRange(results, period)
-    if (
-      dateRange.start.getTime() !== nextRange.start.getTime() ||
-      dateRange.end.getTime() !== nextRange.end.getTime()
-    ) {
-      setDateRange(nextRange)
-    }
-  }, [period, results, dateRange])
+    setDateRange(prevRange => {
+      const nextRange = getInitialDateRange(results, period)
+      if (
+        prevRange.start.getTime() === nextRange.start.getTime() &&
+        prevRange.end.getTime() === nextRange.end.getTime()
+      ) {
+        return prevRange
+      }
+      return nextRange
+    })
+  }, [period, results])
 
   const filteredResults = useMemo(() => {
     return getFilteredResults(results, period, dateRange)
