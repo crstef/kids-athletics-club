@@ -197,7 +197,7 @@ export function PerformanceChart({ data, eventType, unit, comparisons = [] }: Pe
       const currentStartMs = currentRange.start.getTime()
       const currentEndMs = currentRange.end.getTime()
 
-      const startChanged = currentStartMs !== nextStartMs
+      const startChanged = Math.abs(currentStartMs - nextStartMs) > toleranceMs
       const endChanged = Math.abs(currentEndMs - nextEndMs) > toleranceMs
 
       if (!startChanged && !endChanged) {

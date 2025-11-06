@@ -720,12 +720,16 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
         // Intentionally avoid falling back to DEFAULT_WIDGET_IDS when the role has no widget assignments.
 
         const allowedArray = Array.from(allowedSet)
+        const adminOverride = currentUser.role === 'superadmin' || hasPermission('dashboards.assign')
+        const hasAnyComponentMetadata = sawWidgetComponent || (Array.isArray(rawComponents) && rawComponents.length > 0)
         const nextScope: AllowedWidgetScope =
           allowedSet.size > 0
             ? 'allowlist'
-            : sawWidgetComponent
-              ? 'denyall'
-              : 'unrestricted'
+            : adminOverride
+              ? 'unrestricted'
+              : hasAnyComponentMetadata
+                ? 'denyall'
+                : 'denyall'
 
         setAllowedWidgetScope(nextScope)
         console.log('[debug] loadWidgets allowedWidgetIds', allowedArray)
