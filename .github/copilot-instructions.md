@@ -1,5 +1,7 @@
 ## Kids Athletics Copilot Playbook
 
+- **Development Lockdown**: Treat every feature as frozen unless the user explicitly unlocks it. By default only the Parent-role experience (auth, profile, dashboard, messaging) is open for modification or testing. Do not touch other modules—backend endpoints, other role dashboards, unrelated UI—without the user granting a temporary unlock in the conversation. Confirm the active scope before making changes and call out any requests that go beyond it.
+
 - **Architecture & Deploy**: React 19 + Vite + TypeScript lives under `src/`, Express/TypeScript API sits in `server/src/`, and PostgreSQL backs the data; production serves through `app.cjs`/`app.js` with committed `dist/` and `server/dist/` bundles.
   Deploy scripts expect hashed assets copied into the repo root, so never delete `index-*.js/css` or vendor chunks without replacing them via the build pipeline.
 
