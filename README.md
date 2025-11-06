@@ -186,7 +186,8 @@ cd server && npm start
 ## 🚀 Funcționalități SuperAdmin
 
 ### Management Utilizatori
-- **Creare utilizatori** - adaugă noi utilizatori în sistem cu orice rol
+- **Creare utilizatori** - formular adaptiv care cere aceleași câmpuri ca procesul public de înregistrare
+- **Paritate cu înregistrarea publică** - pentru rolurile *Athlete* și *Parent* se solicită antrenorul, copilul și profilul sportiv; salvarea creează automat profilul de atlet și legătura părinte ↔ copil ↔ antrenor
 - **Editare utilizatori** - modifică informațiile utilizatorilor existenți
 - **Ștergere utilizatori** - elimină utilizatori din sistem (cu excepția SuperAdmin)
 - **Filtrare și căutare** - găsește rapid utilizatori după nume, email sau rol
@@ -340,6 +341,7 @@ npm run lint
 
 ## 💡 Tips
 
+- Conturile create de SuperAdmin înainte de 06.11.2025 nu includ noul profil de atlet/legături părinte; recreează-le din tab-ul "Utilizatori" pentru date corecte
 - SuperAdmin poate vedea și gestiona toți atleții din sistem
 - Fiecare antrenor vede doar atleții săi (cu excepția SuperAdmin)
 - Părinții trebuie să solicite acces pentru a vizualiza datele copiilor

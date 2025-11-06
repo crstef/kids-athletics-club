@@ -56,6 +56,51 @@ const hashPassword = (password: string): string => {
   return crypto.createHash('sha256').update(password).digest('hex');
 };
 
+const normalizeDateInput = (value: string | null | undefined): string | null => {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return trimmed;
+  }
+
+  const parsed = new Date(trimmed);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  return parsed.toISOString().slice(0, 10);
+};
+
+const calculateAge = (dateOfBirth: string | null): number | null => {
+  if (!dateOfBirth) return null;
+  const birthDate = new Date(dateOfBirth);
+  if (Number.isNaN(birthDate.getTime())) return null;
+
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+
+  return age;
+};
+
+const determineCategory = (age: number | null): string | null => {
+  if (age === null || age < 0) return null;
+  if (age < 6) return 'U6';
+  if (age < 8) return 'U8';
+  if (age < 10) return 'U10';
+  if (age < 12) return 'U12';
+  if (age < 14) return 'U14';
+  if (age < 16) return 'U16';
+  if (age < 18) return 'U18';
+  if (age <= 60) return 'O18';
+  return null;
+};
+
 export const getAllUsers = async (req: AuthRequest, res: Response) => {
   const client = await pool.connect();
   const { user: currentUser } = req;
@@ -145,52 +190,233 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
 
 export const createUser = async (req: AuthRequest, res: Response) => {
   const client = await pool.connect();
-  
+  let transactionStarted = false;
+
   try {
-    const { email, password, firstName, lastName, role, isActive, needsApproval, roleId } = req.body;
+    const {
+      email,
+      password,
+      firstName,
+      lastName,
+      role,
+      isActive,
+      needsApproval,
+      roleId,
+      specialization,
+      coachId,
+      linkedAthleteId,
+      approvalNotes,
+      athleteProfile,
+    } = req.body as Record<string, any>;
 
     if (!email || !password || !firstName || !lastName || !role) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    if (password.length < 6) {
+    if (typeof password !== 'string' || password.length < 6) {
       return res.status(400).json({ error: 'Password must be at least 6 characters' });
     }
 
-    const existingUser = await client.query(
-      'SELECT id FROM users WHERE email = $1',
-      [email.toLowerCase()]
-    );
+    const trimmedEmail = String(email).trim().toLowerCase();
+    const trimmedFirstName = String(firstName).trim();
+    const trimmedLastName = String(lastName).trim();
+    const normalizedRole = String(role).trim().toLowerCase();
 
+    if (!trimmedEmail || !trimmedFirstName || !trimmedLastName || !normalizedRole) {
+      return res.status(400).json({ error: 'Invalid payload values' });
+    }
+
+    await client.query('BEGIN');
+    transactionStarted = true;
+
+    const existingUser = await client.query('SELECT id FROM users WHERE email = $1', [trimmedEmail]);
     if (existingUser.rows.length > 0) {
+      await client.query('ROLLBACK');
+      transactionStarted = false;
       return res.status(400).json({ error: 'Email already exists' });
     }
 
+    let normalizedCoachId: string | null = typeof coachId === 'string' && coachId.trim() ? coachId : null;
+    let normalizedLinkedAthleteId: string | null = typeof linkedAthleteId === 'string' && linkedAthleteId.trim() ? linkedAthleteId : null;
+
+    let normalizedDob: string | null = null;
+    let derivedAge: number | null = null;
+    let derivedCategory: string | null = null;
+    let normalizedGender: 'M' | 'F' | null = null;
+
+    if (normalizedRole === 'athlete') {
+      if (!athleteProfile || typeof athleteProfile !== 'object') {
+        await client.query('ROLLBACK');
+        transactionStarted = false;
+        return res.status(400).json({ error: 'Athlete profile data is required' });
+      }
+
+      normalizedDob = normalizeDateInput((athleteProfile as any).dateOfBirth);
+      if (!normalizedDob) {
+        await client.query('ROLLBACK');
+        transactionStarted = false;
+        return res.status(400).json({ error: 'Athlete profile requires a valid date of birth' });
+      }
+
+      const rawGender = typeof (athleteProfile as any).gender === 'string'
+        ? (athleteProfile as any).gender.trim().toUpperCase()
+        : '';
+      normalizedGender = rawGender === 'F' ? 'F' : 'M';
+
+      if (typeof (athleteProfile as any).age === 'number') {
+        derivedAge = (athleteProfile as any).age;
+      } else {
+        derivedAge = calculateAge(normalizedDob);
+      }
+
+      const rawCategory = typeof (athleteProfile as any).category === 'string'
+        ? (athleteProfile as any).category.trim().toUpperCase()
+        : '';
+      derivedCategory = rawCategory || determineCategory(derivedAge);
+
+      if (derivedAge === null || Number.isNaN(derivedAge)) {
+        derivedAge = calculateAge(normalizedDob);
+      }
+
+      if (derivedAge === null || derivedAge < 4 || derivedAge > 60) {
+        await client.query('ROLLBACK');
+        transactionStarted = false;
+        return res.status(400).json({ error: 'Athlete age must be between 4 and 60 years' });
+      }
+
+      if (!derivedCategory) {
+        await client.query('ROLLBACK');
+        transactionStarted = false;
+        return res.status(400).json({ error: 'Unable to determine athlete age category' });
+      }
+
+      if (!normalizedCoachId) {
+        await client.query('ROLLBACK');
+        transactionStarted = false;
+        return res.status(400).json({ error: 'Athlete accounts must be assigned to a coach' });
+      }
+
+      const duplicateAthlete = await client.query(
+        `SELECT id FROM athletes WHERE LOWER(first_name) = $1 AND LOWER(last_name) = $2 AND date_of_birth = $3`,
+        [trimmedFirstName.toLowerCase(), trimmedLastName.toLowerCase(), normalizedDob]
+      );
+      if (duplicateAthlete.rows.length > 0) {
+        await client.query('ROLLBACK');
+        transactionStarted = false;
+        return res.status(409).json({ error: 'An athlete profile with the same name and date of birth already exists' });
+      }
+    }
+
+    let parentAthleteCoachId: string | null = null;
+    if (normalizedRole === 'parent') {
+      if (!normalizedLinkedAthleteId) {
+        await client.query('ROLLBACK');
+        transactionStarted = false;
+        return res.status(400).json({ error: 'Parent accounts must select an athlete' });
+      }
+
+      const athleteRow = await client.query('SELECT coach_id, parent_id FROM athletes WHERE id = $1', [normalizedLinkedAthleteId]);
+      if (athleteRow.rows.length === 0) {
+        await client.query('ROLLBACK');
+        transactionStarted = false;
+        return res.status(400).json({ error: 'Selected athlete does not exist' });
+      }
+
+      parentAthleteCoachId = athleteRow.rows[0].coach_id ?? null;
+      const existingParentId = athleteRow.rows[0].parent_id as string | null;
+      if (existingParentId) {
+        await client.query('ROLLBACK');
+        transactionStarted = false;
+        return res.status(409).json({ error: 'This athlete is already linked to a parent account' });
+      }
+
+      if (normalizedCoachId && parentAthleteCoachId && normalizedCoachId !== parentAthleteCoachId) {
+        await client.query('ROLLBACK');
+        transactionStarted = false;
+        return res.status(400).json({ error: 'Selected coach does not match the athlete coach' });
+      }
+
+      if (!normalizedCoachId && parentAthleteCoachId) {
+        normalizedCoachId = parentAthleteCoachId;
+      }
+    }
+
+    void specialization; // Specializations handled elsewhere
+
     const hashedPassword = hashPassword(password);
 
-    const result = await client.query(
-      `INSERT INTO users (email, password, first_name, last_name, role, role_id, is_active, needs_approval)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-       RETURNING id, email, first_name, last_name, role, role_id, is_active, needs_approval, avatar, created_at`,
-      [email.toLowerCase(), hashedPassword, firstName, lastName, role, roleId || null,
-       isActive ?? true, needsApproval ?? false]
+    const insertResult = await client.query(
+      `INSERT INTO users (email, password, first_name, last_name, role, role_id, is_active, needs_approval, athlete_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NULL)
+       RETURNING id, email, first_name, last_name, role, role_id, is_active, needs_approval, created_at`,
+      [
+        trimmedEmail,
+        hashedPassword,
+        trimmedFirstName,
+        trimmedLastName,
+        normalizedRole,
+        roleId || null,
+        typeof isActive === 'boolean' ? isActive : true,
+        typeof needsApproval === 'boolean' ? needsApproval : false,
+      ]
     );
 
-    const user = result.rows[0];
+    const newUser = insertResult.rows[0];
+    const newUserId: string = newUser.id;
+
+    if (normalizedRole === 'athlete' && normalizedDob && derivedAge !== null && derivedCategory && normalizedGender) {
+      const nowIso = new Date().toISOString();
+      const notesValue = typeof approvalNotes === 'string' && approvalNotes.trim().length > 0 ? approvalNotes.trim() : null;
+
+      const athleteInsert = await client.query(
+        `INSERT INTO athletes (first_name, last_name, age, category, gender, date_of_birth, date_joined, coach_id, parent_id, notes)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+         RETURNING id`,
+        [
+          trimmedFirstName,
+          trimmedLastName,
+          derivedAge,
+          derivedCategory,
+          normalizedGender,
+          normalizedDob,
+          nowIso,
+          normalizedCoachId,
+          null,
+          notesValue,
+        ]
+      );
+
+      const athleteId: string = athleteInsert.rows[0].id;
+      await client.query('UPDATE users SET athlete_id = $1 WHERE id = $2', [athleteId, newUserId]);
+      normalizedLinkedAthleteId = athleteId;
+    }
+
+    if (normalizedRole === 'parent' && normalizedLinkedAthleteId) {
+      await client.query('UPDATE athletes SET parent_id = $1 WHERE id = $2', [newUserId, normalizedLinkedAthleteId]);
+    }
+
+    await client.query('COMMIT');
+    transactionStarted = false;
 
     res.status(201).json({
-      id: user.id,
-      email: user.email,
-      firstName: user.first_name,
-      lastName: user.last_name,
-      role: user.role,
-      roleId: user.role_id,
-      isActive: user.is_active,
-      needsApproval: user.needs_approval,
-      createdAt: user.created_at,
-      avatar: user.avatar
+      id: newUser.id,
+      email: newUser.email,
+      firstName: newUser.first_name,
+      lastName: newUser.last_name,
+      role: newUser.role,
+      roleId: newUser.role_id,
+      isActive: newUser.is_active,
+      needsApproval: newUser.needs_approval,
+      createdAt: newUser.created_at,
     });
   } catch (error) {
+    if (transactionStarted) {
+      try {
+        await client.query('ROLLBACK');
+      } catch (rollbackError) {
+        console.error('Rollback error during createUser:', rollbackError);
+      }
+    }
     console.error('Create user error:', error);
     res.status(500).json({ error: 'Internal server error' });
   } finally {
@@ -464,23 +690,47 @@ export const uploadUserAvatar = async (req: AuthRequest, res: Response) => {
 
 export const deleteUser = async (req: AuthRequest, res: Response) => {
   const client = await pool.connect();
+  let transactionStarted = false;
   
   try {
     const { id } = req.params;
 
-    const user = await client.query('SELECT role FROM users WHERE id = $1', [id]);
-    if (user.rows.length === 0) {
+    await client.query('BEGIN');
+    transactionStarted = true;
+
+    const userResult = await client.query('SELECT role, athlete_id FROM users WHERE id = $1', [id]);
+    if (userResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      transactionStarted = false;
       return res.status(404).json({ error: 'User not found' });
     }
 
-    if (user.rows[0].role === 'superadmin') {
+    const userRow = userResult.rows[0] as { role: string; athlete_id: string | null };
+
+    if (userRow.role === 'superadmin') {
+      await client.query('ROLLBACK');
+      transactionStarted = false;
       return res.status(403).json({ error: 'Cannot delete superadmin user' });
     }
 
     await client.query('DELETE FROM users WHERE id = $1', [id]);
 
+    if (userRow.athlete_id) {
+      await client.query('DELETE FROM athletes WHERE id = $1', [userRow.athlete_id]);
+    }
+
+    await client.query('COMMIT');
+    transactionStarted = false;
+
     res.json({ message: 'User deleted successfully' });
   } catch (error) {
+    if (transactionStarted) {
+      try {
+        await client.query('ROLLBACK');
+      } catch (rollbackError) {
+        console.error('Rollback error during deleteUser:', rollbackError);
+      }
+    }
     console.error('Delete user error:', error);
     res.status(500).json({ error: 'Internal server error' });
   } finally {

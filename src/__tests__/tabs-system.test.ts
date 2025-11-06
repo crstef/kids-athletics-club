@@ -153,12 +153,13 @@ describe('Permission to Tab Mapping System', () => {
       expect(tabIds).toContain('events')
     })
 
-    it('should return empty array for user with no permissions (except dashboard)', () => {
+    it('should only return dashboard for user with no permissions', () => {
       const permissions: string[] = []
       const tabs = generateTabsFromPermissions(permissions)
       
-      // Should return empty array for user with no permissions
-      expect(tabs.length).toBe(0)
+      // Dashboard remains available even without explicit permissions
+      expect(tabs).toHaveLength(1)
+      expect(tabs[0].id).toBe('dashboard')
     })
   })
 

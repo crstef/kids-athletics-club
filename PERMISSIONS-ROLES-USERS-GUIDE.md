@@ -27,7 +27,7 @@ Permissions → Role Permissions → Roles → Users
 - ✅ Login returns user with `permissions` array
 
 ### 3. **Frontend Components** (Partially Complete)
-- ✅ `UserManagement.tsx` - Full user CRUD interface
+- ✅ `UserManagement.tsx` - Full user CRUD interface, cu formular adaptiv care oglindește flow-ul public de înregistrare (coach selector, profil atlet, atașare copil pentru părinți)
 - ✅ `RoleManagement.tsx` - Role CRUD with permission selection
 - ⚠️ `PermissionsManagement.tsx` - **Empty stub** (needs implementation)
 - ✅ `SystemManagement.tsx` - Parent component that combines all three
