@@ -975,7 +975,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
 
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleWidgetDragEnd}>
           <SortableContext items={widgetsToRender} strategy={rectSortingStrategy}>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-6 xl:grid-cols-12 auto-rows-[minmax(0,1fr)] [grid-auto-flow:dense]">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-6 xl:grid-cols-12 auto-rows-auto [grid-auto-flow:dense]">
               {widgetsToRender.map(widgetId => {
                 console.log('[debug] rendering widget', widgetId)
                 const widgetConfig = WIDGET_REGISTRY[widgetId]
