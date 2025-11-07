@@ -66,6 +66,7 @@ export function RecentResultsWidget({ athletes, results }: RecentResultsWidgetPr
             const leftLabel = [
               athlete ? `${athlete.firstName} ${athlete.lastName}` : 'Atlet necunoscut',
               result.eventType,
+              dateLabel,
               note ? `La concurs: ${note}` : null
             ].filter(Boolean).join(' • ')
             return (
@@ -81,11 +82,6 @@ export function RecentResultsWidget({ athletes, results }: RecentResultsWidgetPr
                     {formatResultValue(result.value, result.unit)}
                   </span>
                 </div>
-                {dateLabel && (
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    {dateLabel}
-                  </p>
-                )}
               </li>
             )
           })}

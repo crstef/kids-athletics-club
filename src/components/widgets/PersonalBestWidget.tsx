@@ -70,12 +70,12 @@ export default function PersonalBestWidget({ athletes, results, onViewAthleteDet
   const top = recentPBs.slice(0, 8)
 
   return (
-    <Card className="h-full flex flex-col">
+    <Card className="flex flex-col">
       <CardHeader className="pb-2">
         <CardTitle className="text-lg font-semibold">Recorduri Personale Recente</CardTitle>
         <p className="text-sm text-muted-foreground">Ultimele îmbunătățiri ale atleților pe probele preferate</p>
       </CardHeader>
-      <CardContent className="grow">
+      <CardContent>
         {top.length === 0 ? (
           <div className="text-sm text-muted-foreground text-center py-8">Nu există recorduri personale recente</div>
         ) : (
@@ -92,6 +92,8 @@ export default function PersonalBestWidget({ athletes, results, onViewAthleteDet
                 ? `${improvement > 0 ? (lowerIsBetter ? '-' : '+') : (lowerIsBetter ? '+' : '-')}${Math.abs(improvement).toFixed(2)} ${getUnitDisplayLabel(pb.unit)}`
                 : null
               const ArrowIcon = lowerIsBetter ? ArrowDownRight : ArrowUpRight
+              const athleteName = athlete ? `${athlete.firstName} ${athlete.lastName}` : 'Atlet'
+              const metaLabel = `${pb.eventType} • ${formatDateToDisplay(pb.date)}`
               return (
                 <li
                   key={pb.id}
@@ -102,11 +104,9 @@ export default function PersonalBestWidget({ athletes, results, onViewAthleteDet
                   onClick={() => athlete && onViewAthleteDetails?.(athlete)}
                 >
                   <div className="min-w-0">
-                    <div className="text-sm font-medium truncate">
-                      {athlete ? `${athlete.firstName} ${athlete.lastName}` : 'Atlet'}
-                    </div>
-                    <div className="text-xs text-muted-foreground truncate">
-                      {pb.eventType} • {formatDateToDisplay(pb.date)}
+                    <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-foreground">
+                      <span className="min-w-0 truncate" title={athleteName}>{athleteName}</span>
+                      <span className="text-muted-foreground" title={metaLabel}>{metaLabel}</span>
                     </div>
                   </div>
                   <div className="text-right">
