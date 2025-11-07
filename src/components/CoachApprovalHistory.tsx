@@ -9,15 +9,21 @@ interface CoachApprovalHistoryProps {
   users: User[]
   athletes: Athlete[]
   approvalRequests: AccountApprovalRequest[]
+  requestsOverride?: AccountApprovalRequest[]
 }
 
 export function CoachApprovalHistory({
   coachId,
   users,
   athletes,
-  approvalRequests
+  approvalRequests,
+  requestsOverride
 }: CoachApprovalHistoryProps) {
   const processedRequests = useMemo(() => {
+    if (requestsOverride) {
+      return requestsOverride
+    }
+
     return approvalRequests
       .filter((request) => {
         if (request.status === 'pending') return false
@@ -29,7 +35,7 @@ export function CoachApprovalHistory({
         return dateB - dateA
       })
       .slice(0, 15)
-  }, [approvalRequests, coachId])
+  }, [approvalRequests, coachId, requestsOverride])
 
   const getAthleteName = (athleteId?: string, fallbackName?: string | null) => {
     if (athleteId) {
