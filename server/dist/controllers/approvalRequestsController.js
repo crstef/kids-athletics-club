@@ -248,6 +248,19 @@ const approveRequest = async (req, res) => {
                             approvalMetadata.message ?? request.effective_approval_notes ?? null
                         ]);
                     }
+                    const athleteLock = await client.query('SELECT parent_id FROM athletes WHERE id = $1 FOR UPDATE', [effectiveAthleteId]);
+                    if (athleteLock.rows.length === 0) {
+                        await client.query('ROLLBACK');
+                        return res.status(404).json({ error: 'Athlete not found for approval request' });
+                    }
+                    const currentParentId = athleteLock.rows[0].parent_id;
+                    if (currentParentId && currentParentId !== request.user_id) {
+                        await client.query('ROLLBACK');
+                        return res.status(409).json({ error: 'Athlete already linked to another parent account' });
+                    }
+                    await client.query(`UPDATE athletes
+             SET parent_id = $1, updated_at = CURRENT_TIMESTAMP
+             WHERE id = $2`, [request.user_id, effectiveAthleteId]);
                 }
                 break;
             }
