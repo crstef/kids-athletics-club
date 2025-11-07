@@ -186,11 +186,7 @@ function AppContent() {
   const [activeTab, setActiveTab] = useState('dashboard')
 
   const isSuperAdminUser = currentUser?.role === 'superadmin'
-  const canViewAccessRequests = currentUser ? hasPermission('access_requests.view') : false
-  const canViewOwnRequests = currentUser ? hasPermission('requests.view.own') : false
-  const canViewAllRequests = currentUser ? hasPermission('requests.view.all') : false
   const showApprovalRequests = currentUser ? currentUser.role === 'superadmin' : false
-  const showAccessRequests = !isSuperAdminUser && (canViewAccessRequests || canViewOwnRequests)
   const canSeeCoachApprovalRequests = !isSuperAdminUser && (
     currentUser?.role === 'coach' ||
     hasPermission('approval_requests.view') ||
@@ -1348,32 +1344,19 @@ function AppContent() {
   const pendingRequestsCount = useMemo(() => {
     if (!currentUser) return 0
 
-    let pending = 0
-
     if (showApprovalRequests) {
-      pending += (approvalRequests || []).filter(r => r.status === 'pending').length
+      return (approvalRequests || []).filter(r => r.status === 'pending').length
     }
 
     if (canSeeCoachApprovalRequests) {
-      pending += (approvalRequests || []).filter((r) => {
-        if (r.status !== 'pending') return false
-        if (isSuperAdminUser) return true
-        return !r.coachId || r.coachId === currentUser.id
+      return (approvalRequests || []).filter((request) => {
+        if (request.status !== 'pending') return false
+        return request.coachId === currentUser.id && (request.requestedRole === 'parent' || request.requestedRole === 'athlete')
       }).length
     }
 
-    if (showAccessRequests) {
-      if (canViewAllRequests) {
-        pending += (accessRequests || []).filter(r => r.status === 'pending').length
-      } else if (canViewOwnRequests) {
-        pending += (accessRequests || []).filter(
-          r => r.coachId === currentUser.id && r.status === 'pending'
-        ).length
-      }
-    }
-
-    return pending
-  }, [accessRequests, approvalRequests, currentUser, showApprovalRequests, showAccessRequests, canViewAllRequests, canViewOwnRequests, canSeeCoachApprovalRequests, isSuperAdminUser])
+    return 0
+  }, [approvalRequests, currentUser, showApprovalRequests, canSeeCoachApprovalRequests])
 
   const currentAthlete = useMemo(() => {
     if (!currentUser) return null
