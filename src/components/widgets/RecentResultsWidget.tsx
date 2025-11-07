@@ -55,6 +55,14 @@ export function RecentResultsWidget({ athletes, results }: RecentResultsWidgetPr
           {filteredResults.slice(0, 10).map(result => {
             const athlete = athletes.find(a => a.id === result.athleteId)
             const note = result.notes?.trim()
+            const eventDate = new Date(result.date)
+            const dateLabel = Number.isNaN(eventDate.getTime())
+              ? null
+              : eventDate.toLocaleDateString('ro-RO', {
+                  day: '2-digit',
+                  month: 'long',
+                  year: 'numeric'
+                })
             const leftLabel = [
               athlete ? `${athlete.firstName} ${athlete.lastName}` : 'Atlet necunoscut',
               result.eventType,
@@ -73,6 +81,11 @@ export function RecentResultsWidget({ athletes, results }: RecentResultsWidgetPr
                     {formatResultValue(result.value, result.unit)}
                   </span>
                 </div>
+                {dateLabel && (
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {dateLabel}
+                  </p>
+                )}
               </li>
             )
           })}
