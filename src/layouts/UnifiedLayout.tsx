@@ -30,9 +30,7 @@ import { PermissionsSystem } from '@/components/PermissionsSystem'
 import { AgeCategoryManagement } from '@/components/AgeCategoryManagement'
 import { ProbeManagement } from '@/components/ProbeManagement'
 import { MessagingPanel } from '@/components/MessagingPanel'
-import { CoachAccessRequests } from '@/components/CoachAccessRequests'
 import { CoachApprovalRequests } from '@/components/CoachApprovalRequests'
-import { CoachApprovalHistory } from '@/components/CoachApprovalHistory'
 import { UserPermissionsManagement } from '@/components/UserPermissionsManagement'
 import { AddAthleteDialog } from '@/components/AddAthleteDialog'
 import { AthleteCard } from '@/components/AthleteCard'
@@ -290,8 +288,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
     probes,
     permissions,
     roles,
-    ageCategories,
-    accessRequests,
+  ageCategories,
     approvalRequests,
     messages,
     results,
@@ -335,11 +332,10 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
     setDeleteAthleteId,
     deleteAthleteName,
     athleteResultsCount,
-    confirmDeleteAthlete,
-    handleApproveAccount,
-    handleRejectAccount,
-    handleDeleteApprovalRequest,
-    handleUpdateAccessRequest,
+  confirmDeleteAthlete,
+  handleApproveAccount,
+  handleRejectAccount,
+  handleDeleteApprovalRequest,
     handleSendMessage,
     handleMarkAsRead
   } = props
@@ -505,17 +501,8 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
     )
   ), [hasGlobalApprovalPermission, rawPermissions])
 
-  const hasAccessRequestPermission = useMemo(() => (
-    rawPermissions.some((perm) =>
-      perm === 'access_requests.view' ||
-      perm === 'access_requests.edit' ||
-      perm === 'requests.view.own'
-    )
-  ), [rawPermissions])
-
   const showAdminApprovalRequests = isSuperAdmin
   const showCoachApprovalRequests = !isSuperAdmin && (hasScopedApprovalPermission || currentUser.role === 'coach')
-  const showAccessRequests = !isSuperAdmin && hasAccessRequestPermission
 
   const athleteUserMap = useMemo(() => {
     const map = new Map<string, User>()
@@ -1271,44 +1258,24 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
               ) : (
                 <div className="space-y-6">
                   {showCoachApprovalRequests && (
-                    <>
-                      <section className="space-y-4">
-                        <header className="space-y-1">
-                          <h2 className="text-lg font-semibold">Cereri de aprobare cont</h2>
-                          <p className="text-sm text-muted-foreground">
-                            Gestionarea cererilor noi de cont trimise de părinții și atleții tăi.
-                          </p>
-                        </header>
-                        <CoachApprovalRequests
-                          coachId={currentUser.id}
-                          users={users}
-                          athletes={athletes}
-                          approvalRequests={approvalRequests}
-                          onApproveAccount={handleApproveAccount}
-                          onRejectAccount={handleRejectAccount}
-                        />
-                      </section>
-                      <section className="space-y-4">
-                        <CoachApprovalHistory
-                          coachId={currentUser.id}
-                          users={users}
-                          athletes={athletes}
-                          approvalRequests={approvalRequests}
-                        />
-                      </section>
-                    </>
+                    <section className="space-y-4">
+                      <header className="space-y-1">
+                        <h2 className="text-lg font-semibold">Cereri de aprobare cont</h2>
+                        <p className="text-sm text-muted-foreground">
+                          Gestionarea cererilor noi de cont trimise de părinții și atleții tăi.
+                        </p>
+                      </header>
+                      <CoachApprovalRequests
+                        coachId={currentUser.id}
+                        users={users}
+                        athletes={athletes}
+                        approvalRequests={approvalRequests}
+                        onApproveAccount={handleApproveAccount}
+                        onRejectAccount={handleRejectAccount}
+                      />
+                    </section>
                   )}
-                  {showAccessRequests && (
-                    <CoachAccessRequests
-                      coachId={currentUser.id}
-                      users={users}
-                      athletes={athletes}
-                      parents={parents}
-                      accessRequests={accessRequests}
-                      onUpdateRequest={handleUpdateAccessRequest}
-                    />
-                  )}
-                  {!showCoachApprovalRequests && !showAccessRequests && (
+                  {!showCoachApprovalRequests && (
                     <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
                       Nu ai permisiuni pentru a gestiona cereri de aprobare sau acces.
                     </div>
