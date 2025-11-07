@@ -12,8 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { MagnifyingGlass, Plus, PencilSimple, Trash, Eye, EyeSlash, CheckCircle } from '@phosphor-icons/react'
 import { toast } from 'sonner'
-import type { AdminCreateUserPayload, Athlete, Role, User, UserRole } from '@/lib/types'
-import type { Gender } from '@/lib/types'
+import type { AdminCreateUserPayload, AdminUpdateUserPayload, Athlete, AthleteUser, Role, User, UserRole, Gender } from '@/lib/types'
 import { resolveMediaUrl } from '@/lib/media'
 import { getAvatarColor, getInitials } from '@/lib/constants'
 import { AvatarUploadControl, type AvatarUploadChangePayload } from './AvatarUploadControl'
@@ -26,7 +25,7 @@ interface UserManagementProps {
   coaches: User[]
   currentUserId: string
   onAddUser: (userData: AdminCreateUserPayload & { avatarDataUrl?: string }) => void
-  onUpdateUser: (userId: string, userData: Partial<User> & { avatarDataUrl?: string; currentPassword?: string }) => void
+  onUpdateUser: (userId: string, userData: AdminUpdateUserPayload) => void
   onDeleteUser: (userId: string) => void
 }
 
@@ -87,6 +86,17 @@ export function UserManagement({ users, roles, athletes, coaches, currentUserId,
     if (age < 18) return 'U18'
     if (age <= 60) return 'O18'
     return null
+  }
+
+  const normalizeDateValue = (value?: string | null): string => {
+    if (!value) return ''
+    const str = String(value)
+    if (str.length >= 10) return str.slice(0, 10)
+    try {
+      return new Date(str).toISOString().slice(0, 10)
+    } catch {
+      return ''
+    }
   }
 
   const athleteAge = useMemo(() => {
@@ -197,6 +207,31 @@ export function UserManagement({ users, roles, athletes, coaches, currentUserId,
     setAvatarDataUrl(null)
     setAvatarPreview(user.avatar ? resolveMediaUrl(user.avatar) : null)
     setDeleteAvatar(false)
+
+    const userAthleteId = (user as Partial<AthleteUser>).athleteId
+
+    if (user.role === 'athlete') {
+      const athleteProfile = userAthleteId ? athletes.find((athlete) => athlete.id === userAthleteId) : undefined
+      setSelectedCoachId(athleteProfile?.coachId ?? '')
+      setSelectedAthleteId(athleteProfile?.id ?? '')
+      setAthleteDateOfBirth(normalizeDateValue(athleteProfile?.dateOfBirth))
+      setAthleteGender(athleteProfile?.gender ?? 'M')
+      setApprovalNotes(athleteProfile?.notes ?? '')
+    } else if (user.role === 'parent') {
+      const linkedAthlete = athletes.find((athlete) => athlete.parentId === user.id)
+      setSelectedCoachId(linkedAthlete?.coachId ?? '')
+      setSelectedAthleteId(linkedAthlete?.id ?? '')
+      setAthleteDateOfBirth('')
+      setAthleteGender('M')
+      setApprovalNotes('')
+    } else {
+      setSelectedCoachId('')
+      setSelectedAthleteId('')
+      setAthleteDateOfBirth('')
+      setAthleteGender('M')
+      setApprovalNotes('')
+    }
+
     setEditDialogOpen(true)
   }
 
@@ -326,14 +361,51 @@ export function UserManagement({ users, roles, athletes, coaches, currentUserId,
       return
     }
 
-    const payload: Partial<User> & { avatarDataUrl?: string; currentPassword?: string } = {
-      email: email.trim(),
-      firstName: firstName.trim(),
-      lastName: lastName.trim()
+    if (role === 'athlete') {
+      if (!selectedCoachId) {
+        toast.error('Selectează antrenorul atletului')
+        return
+      }
+      if (!athleteDateOfBirth) {
+        toast.error('Selectează data nașterii atletului')
+        return
+      }
+      if (athleteAge === null || athleteAge < 4 || athleteAge > 60) {
+        toast.error('Vârsta atletului trebuie să fie între 4 și 60 de ani')
+        return
+      }
+      if (!athleteCategory) {
+        toast.error('Nu am putut determina categoria atletului')
+        return
+      }
+    }
+
+    if (role === 'parent') {
+      if (!selectedCoachId) {
+        toast.error('Selectează antrenorul copilului')
+        return
+      }
+      if (!selectedAthleteId) {
+        toast.error('Selectează copilul din listă')
+        return
+      }
+    }
+
+    const trimmedEmail = email.trim()
+    const trimmedFirstName = firstName.trim()
+    const trimmedLastName = lastName.trim()
+    const trimmedNotes = approvalNotes.trim()
+    const matchedRole = roles.find((r) => r.name === role)
+
+    const payload: AdminUpdateUserPayload = {
+      email: trimmedEmail,
+      firstName: trimmedFirstName,
+      lastName: trimmedLastName
     }
 
     if (isSuperAdmin) {
       payload.role = role
+      payload.roleId = matchedRole?.id ?? null
       payload.isActive = isActive
       payload.needsApproval = needsApproval
     }
@@ -352,6 +424,22 @@ export function UserManagement({ users, roles, athletes, coaches, currentUserId,
 
     if (role === 'coach') {
       ;(payload as any).specialization = specialization.trim() || undefined
+    }
+
+    if (role === 'athlete') {
+      payload.coachId = selectedCoachId || null
+      payload.athleteProfile = {
+        dateOfBirth: athleteDateOfBirth,
+        gender: athleteGender,
+        age: athleteAge ?? undefined,
+        category: athleteCategory ?? undefined
+      }
+      payload.approvalNotes = trimmedNotes ? trimmedNotes : null
+    }
+
+    if (role === 'parent') {
+      payload.coachId = selectedCoachId || null
+      payload.linkedAthleteId = selectedAthleteId || null
     }
 
     if (avatarDataUrl) {
@@ -998,7 +1086,17 @@ export function UserManagement({ users, roles, athletes, coaches, currentUserId,
               <Label htmlFor="edit-role">Rol *</Label>
               <Select
                 value={role}
-                onValueChange={(value) => setRole(value as UserRole)}
+                onValueChange={(value) => {
+                  const nextRole = value as UserRole
+                  if (nextRole !== role) {
+                    setSelectedCoachId('')
+                    setSelectedAthleteId('')
+                    setAthleteDateOfBirth('')
+                    setAthleteGender('M')
+                    setApprovalNotes('')
+                  }
+                  setRole(nextRole)
+                }}
                 disabled={
                   !isSuperAdmin || (selectedUser?.role === 'superadmin' && selectedUser?.id !== currentUserId)
                 }
@@ -1017,6 +1115,146 @@ export function UserManagement({ users, roles, athletes, coaches, currentUserId,
                 </SelectContent>
               </Select>
             </div>
+            {role === 'athlete' && (
+              <div className="space-y-3 rounded-lg border border-primary/20 bg-primary/5 p-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-athlete-coach">Selectează Antrenorul *</Label>
+                  <Select value={selectedCoachId} onValueChange={setSelectedCoachId}>
+                    <SelectTrigger id="edit-athlete-coach">
+                      <SelectValue placeholder="Alege antrenorul" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableCoaches.length === 0 ? (
+                        <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                          Nu există antrenori disponibili
+                        </div>
+                      ) : (
+                        availableCoaches.map((coach) => (
+                          <SelectItem key={coach.id} value={coach.id}>
+                            {coach.label}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-athlete-dob">Data nașterii *</Label>
+                    <DateSelector
+                      id="edit-athlete-dob"
+                      value={athleteDateOfBirth}
+                      onChange={setAthleteDateOfBirth}
+                      minYear={currentYear - 60}
+                      maxYear={currentYear - 4}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-athlete-gender">Gen *</Label>
+                    <Select value={athleteGender} onValueChange={(value) => setAthleteGender(value as Gender)}>
+                      <SelectTrigger id="edit-athlete-gender">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="M">Băiat</SelectItem>
+                        <SelectItem value="F">Fatǎ</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {athleteAge !== null && (
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-1">
+                      <Label>Vârstă estimată</Label>
+                      <Input value={`${athleteAge} ani`} disabled className="bg-muted" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label>Categorie recomandată</Label>
+                      <Input value={athleteCategory ?? ''} disabled className="bg-muted" />
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-athlete-notes">Mesaj pentru antrenor (opțional)</Label>
+                  <Input
+                    id="edit-athlete-notes"
+                    value={approvalNotes}
+                    onChange={(event) => setApprovalNotes(event.target.value)}
+                    placeholder="Note interne pentru antrenor"
+                  />
+                </div>
+              </div>
+            )}
+
+            {role === 'parent' && (
+              <div className="space-y-3 rounded-lg border border-accent/30 bg-accent/5 p-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-parent-coach">Selectează Antrenorul *</Label>
+                  <Select
+                    value={selectedCoachId}
+                    onValueChange={(value) => {
+                      setSelectedCoachId(value)
+                      setSelectedAthleteId('')
+                    }}
+                  >
+                    <SelectTrigger id="edit-parent-coach">
+                      <SelectValue placeholder="Alege antrenorul" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableCoaches.length === 0 ? (
+                        <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                          Nu există antrenori disponibili
+                        </div>
+                      ) : (
+                        availableCoaches.map((coach) => (
+                          <SelectItem key={coach.id} value={coach.id}>
+                            {coach.label}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {selectedCoachId && (
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-parent-athlete">Selectează Copilul *</Label>
+                    <Select value={selectedAthleteId} onValueChange={setSelectedAthleteId}>
+                      <SelectTrigger id="edit-parent-athlete">
+                        <SelectValue placeholder="Alege copilul" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {athletesByCoach.length === 0 ? (
+                          <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                            Acest antrenor nu are atleți înregistrați
+                          </div>
+                        ) : (
+                          athletesByCoach.map((athlete) => (
+                            <SelectItem key={athlete.id} value={athlete.id}>
+                              {`${athlete.firstName} ${athlete.lastName} (${athlete.category})`}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-parent-notes">Mesaj pentru antrenor (opțional)</Label>
+                  <Input
+                    id="edit-parent-notes"
+                    value={approvalNotes}
+                    onChange={(event) => setApprovalNotes(event.target.value)}
+                    placeholder="ex: Doresc acces la progresul copilului"
+                  />
+                </div>
+              </div>
+            )}
+
             {role === 'coach' && (
               <div className="space-y-2">
                 <Label htmlFor="edit-specialization">Specializare</Label>

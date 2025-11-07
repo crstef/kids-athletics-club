@@ -10,7 +10,7 @@ import { useComponents } from '@/hooks/use-components'
 import { useInactivityLogout } from '@/hooks/use-inactivity-logout'
 import { hashPassword } from './lib/auth';
 import { DEFAULT_PERMISSIONS, DEFAULT_ROLES } from './lib/defaults'
-import type { Athlete, Result, AgeCategory, User, AccessRequest, Message, EventTypeCustom, Permission, UserPermission, Role, AgeCategoryCustom, AccountApprovalRequest, AdminCreateUserPayload } from '@/lib/types'
+import type { Athlete, Result, AgeCategory, User, AccessRequest, Message, EventTypeCustom, Permission, UserPermission, Role, AgeCategoryCustom, AccountApprovalRequest, AdminCreateUserPayload, AdminUpdateUserPayload } from '@/lib/types'
 import { getDashboardComponent, FALLBACK_DASHBOARD } from '@/lib/dashboardRegistry';
 import { generateTabsFromPermissions, getPermissionForTab, hasPermissionFromList } from '@/lib/permission-tab-mapping'
 
@@ -1137,6 +1137,26 @@ function AppContent() {
 
 
 
+  const uploadUserAvatarFromDataUrl = async (userId: string, dataUrl: string) => {
+    try {
+      const response = await fetch(dataUrl)
+      if (!response.ok) {
+        throw new Error('Nu am putut prelua imaginea locală')
+      }
+
+      const blob = await response.blob()
+      const mime = blob.type || 'image/png'
+      const extension = mime.split('/')[1] || 'png'
+      const fileName = `avatar-${Date.now()}.${extension}`
+      const avatarFile = new File([blob], fileName, { type: mime })
+
+      await apiClient.uploadUserAvatar(userId, avatarFile)
+    } catch (error) {
+      console.error('Error uploading user avatar:', error)
+      throw error
+    }
+  }
+
   const handleAddUser = async (userData: AdminCreateUserPayload & { avatarDataUrl?: string }) => {
     try {
       const { avatarDataUrl, ...basePayload } = userData
@@ -1161,11 +1181,16 @@ function AppContent() {
         payload.athleteProfile = undefined
       }
 
-      if (avatarDataUrl) {
-        payload.avatarDataUrl = avatarDataUrl
+      const createdUser = await apiClient.createUser(payload)
+
+      if (avatarDataUrl && createdUser?.id) {
+        try {
+          await uploadUserAvatarFromDataUrl(createdUser.id, avatarDataUrl)
+        } catch (error: any) {
+          toast.error(error?.message || 'Avatarul nu a putut fi încărcat')
+        }
       }
 
-      await apiClient.createUser(payload)
       await Promise.allSettled([
         refetchUsers(),
         refetchAthletes(),
@@ -1179,10 +1204,26 @@ function AppContent() {
     }
   }
 
-  const handleUpdateUser = async (userId: string, userData: Partial<User> & { currentPassword?: string }) => {
+  const handleUpdateUser = async (userId: string, userData: AdminUpdateUserPayload) => {
     try {
-      await apiClient.updateUser(userId, userData)
-      await refetchUsers()
+      const { avatarDataUrl, ...payload } = userData
+
+      await apiClient.updateUser(userId, payload)
+
+      if (avatarDataUrl) {
+        try {
+          await uploadUserAvatarFromDataUrl(userId, avatarDataUrl)
+        } catch (error: any) {
+          toast.error(error?.message || 'Avatarul nu a putut fi încărcat')
+        }
+      }
+
+      await Promise.allSettled([
+        refetchUsers(),
+        refetchAthletes(),
+        refetchAccessRequests(),
+        refetchApprovalRequests()
+      ])
       toast.success('Utilizator actualizat cu succes!')
     } catch (error: any) {
       toast.error(error.message || 'Eroare la actualizarea utilizatorului')

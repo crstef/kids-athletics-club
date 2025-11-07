@@ -101,6 +101,17 @@ const determineCategory = (age: number | null): string | null => {
   return null;
 };
 
+const normalizeOptionalId = (value: unknown): string | null | undefined => {
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+  if (value === null) {
+    return null;
+  }
+  return undefined;
+};
+
 export const getAllUsers = async (req: AuthRequest, res: Response) => {
   const client = await pool.connect();
   const { user: currentUser } = req;
@@ -426,6 +437,7 @@ export const createUser = async (req: AuthRequest, res: Response) => {
 
 export const updateUser = async (req: AuthRequest, res: Response) => {
   const client = await pool.connect();
+  let transactionStarted = false;
   
   try {
     const { id } = req.params;
@@ -453,8 +465,15 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
       isActive,
       needsApproval,
       athleteId,
-      avatar
-    } = req.body;
+      avatar,
+      coachId,
+      linkedAthleteId,
+      athleteProfile,
+      approvalNotes,
+      avatarDataUrl
+    } = req.body as Record<string, any>;
+
+    void avatarDataUrl;
 
     if (!isSuperadmin) {
       const forbiddenFields: Array<[string, unknown]> = [
@@ -462,7 +481,11 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
         ['roleId', roleId],
         ['isActive', isActive],
         ['needsApproval', needsApproval],
-        ['athleteId', athleteId]
+        ['athleteId', athleteId],
+        ['coachId', coachId],
+        ['linkedAthleteId', linkedAthleteId],
+        ['athleteProfile', athleteProfile],
+        ['approvalNotes', approvalNotes]
       ];
 
       const attemptedRestrictedUpdate = forbiddenFields.some(([, value]) => typeof value !== 'undefined');
@@ -472,7 +495,8 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
     }
 
     const userResult = await client.query(
-      'SELECT id, email, password FROM users WHERE id = $1',
+      `SELECT id, email, password, first_name, last_name, role, role_id, is_active, needs_approval, athlete_id, avatar, created_at
+       FROM users WHERE id = $1`,
       [id]
     );
 
@@ -480,7 +504,20 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    const existingUser = userResult.rows[0] as { id: string; email: string; password: string };
+    const existingUser = userResult.rows[0] as {
+      id: string;
+      email: string;
+      password: string;
+      first_name: string;
+      last_name: string;
+      role: string;
+      role_id: string | null;
+      is_active: boolean;
+      needs_approval: boolean;
+      athlete_id: string | null;
+      avatar: string | null;
+      created_at: string;
+    };
 
     const updates: string[] = [];
     const values: any[] = [];
@@ -540,7 +577,7 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
     if (isSuperadmin) {
       if (typeof role === 'string') {
         updates.push(`role = $${paramCount++}`);
-        values.push(role);
+        values.push(role.trim());
       }
 
       if (typeof roleId !== 'undefined') {
@@ -569,33 +606,292 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
       values.push(avatar === '' ? null : avatar);
     }
 
-    if (updates.length === 0) {
+    const targetRole = typeof role === 'string' && role.trim() ? role.trim() : existingUser.role;
+    const normalizedCoachIdInput = normalizeOptionalId(coachId);
+    const normalizedLinkedAthleteIdInput = normalizeOptionalId(linkedAthleteId);
+
+    const hasUserFieldUpdates = updates.length > 0;
+    const wantsAthleteUpdate = targetRole === 'athlete' && (
+      typeof normalizedCoachIdInput !== 'undefined' ||
+      typeof athleteProfile !== 'undefined' ||
+      typeof approvalNotes === 'string' ||
+      typeof firstName === 'string' ||
+      typeof lastName === 'string' ||
+      existingUser.athlete_id === null
+    );
+    const wantsParentUpdate = targetRole === 'parent' && (
+      typeof normalizedLinkedAthleteIdInput !== 'undefined' ||
+      typeof normalizedCoachIdInput !== 'undefined'
+    );
+
+    if (!hasUserFieldUpdates && !wantsAthleteUpdate && !wantsParentUpdate) {
       return res.status(400).json({ error: 'Nu există câmpuri de actualizat' });
     }
 
-    values.push(id);
-    const result = await client.query(
-      `UPDATE users SET ${updates.join(', ')} WHERE id = $${paramCount}
-       RETURNING id, email, first_name, last_name, role, role_id, is_active, needs_approval, athlete_id, avatar, created_at`,
-      values
+    await client.query('BEGIN');
+    transactionStarted = true;
+
+    let currentAthleteId: string | null = existingUser.athlete_id;
+
+    if (hasUserFieldUpdates) {
+      values.push(id);
+      const result = await client.query(
+        `UPDATE users SET ${updates.join(', ')} WHERE id = $${paramCount}
+         RETURNING athlete_id`,
+        values
+      );
+
+      if (result.rows.length === 0) {
+        await client.query('ROLLBACK');
+        transactionStarted = false;
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      currentAthleteId = result.rows[0].athlete_id ?? null;
+    }
+
+    const effectiveFirstName = typeof firstName === 'string' ? firstName.trim() : existingUser.first_name;
+    const effectiveLastName = typeof lastName === 'string' ? lastName.trim() : existingUser.last_name;
+
+    if (wantsAthleteUpdate) {
+      const profileInput = (athleteProfile && typeof athleteProfile === 'object') ? athleteProfile : undefined;
+
+      let athleteIdToUse = currentAthleteId;
+      let existingAthleteRow: {
+        coach_id: string | null;
+        parent_id: string | null;
+        age: number | null;
+        category: string | null;
+        gender: string | null;
+        date_of_birth: string | null;
+        notes: string | null;
+      } | null = null;
+
+      if (athleteIdToUse) {
+        const athleteResult = await client.query(
+          `SELECT coach_id, parent_id, age, category, gender, date_of_birth, notes
+           FROM athletes WHERE id = $1`,
+          [athleteIdToUse]
+        );
+        existingAthleteRow = athleteResult.rows[0] ?? null;
+      }
+
+      const coachIdToApply = typeof normalizedCoachIdInput !== 'undefined'
+        ? normalizedCoachIdInput
+        : (existingAthleteRow?.coach_id ?? null);
+
+      if (!coachIdToApply) {
+        await client.query('ROLLBACK');
+        transactionStarted = false;
+        return res.status(400).json({ error: 'Athlete accounts must be assigned to a coach' });
+      }
+
+      const dobFromPayload = profileInput?.dateOfBirth ? normalizeDateInput(profileInput.dateOfBirth) : null;
+      const existingDob = existingAthleteRow?.date_of_birth ? normalizeDateInput(String(existingAthleteRow.date_of_birth)) : null;
+      const finalDob = dobFromPayload || existingDob;
+
+      if (!finalDob) {
+        await client.query('ROLLBACK');
+        transactionStarted = false;
+        return res.status(400).json({ error: 'Athlete profile requires a valid date of birth' });
+      }
+
+      const genderFromPayload = typeof profileInput?.gender === 'string' ? profileInput.gender.trim().toUpperCase() : '';
+      let normalizedGender: 'M' | 'F' | null = null;
+      if (genderFromPayload === 'F' || genderFromPayload === 'M') {
+        normalizedGender = genderFromPayload as 'M' | 'F';
+      } else if (existingAthleteRow?.gender) {
+        const existingGender = String(existingAthleteRow.gender).trim().toUpperCase();
+        normalizedGender = existingGender === 'F' ? 'F' : existingGender === 'M' ? 'M' : null;
+      }
+
+      if (!normalizedGender) {
+        await client.query('ROLLBACK');
+        transactionStarted = false;
+        return res.status(400).json({ error: 'Athlete profile requires a valid gender' });
+      }
+
+      const derivedAge = calculateAge(finalDob);
+      if (derivedAge === null || derivedAge < 4 || derivedAge > 60) {
+        await client.query('ROLLBACK');
+        transactionStarted = false;
+        return res.status(400).json({ error: 'Athlete age must be between 4 and 60 years' });
+      }
+
+      const categoryFromPayload = typeof profileInput?.category === 'string' ? profileInput.category.trim().toUpperCase() : '';
+      const existingCategory = existingAthleteRow?.category ? String(existingAthleteRow.category).trim().toUpperCase() : null;
+      const derivedCategory = categoryFromPayload || existingCategory || determineCategory(derivedAge);
+
+      if (!derivedCategory) {
+        await client.query('ROLLBACK');
+        transactionStarted = false;
+        return res.status(400).json({ error: 'Unable to determine athlete age category' });
+      }
+
+      let notesValue: string | null;
+      if (typeof approvalNotes === 'string') {
+        const noteTrimmed = approvalNotes.trim();
+        notesValue = noteTrimmed.length > 0 ? noteTrimmed : null;
+      } else {
+        notesValue = existingAthleteRow?.notes ?? null;
+      }
+
+      if (athleteIdToUse) {
+        await client.query(
+          `UPDATE athletes
+             SET first_name = $1,
+                 last_name = $2,
+                 age = $3,
+                 category = $4,
+                 gender = $5,
+                 date_of_birth = $6,
+                 coach_id = $7,
+                 notes = $8
+           WHERE id = $9`,
+          [
+            effectiveFirstName,
+            effectiveLastName,
+            derivedAge,
+            derivedCategory,
+            normalizedGender,
+            finalDob,
+            coachIdToApply,
+            notesValue,
+            athleteIdToUse,
+          ]
+        );
+      } else {
+        if (!profileInput) {
+          await client.query('ROLLBACK');
+          transactionStarted = false;
+          return res.status(400).json({ error: 'Athlete profile data is required' });
+        }
+
+        const nowIso = new Date().toISOString();
+        const insertResult = await client.query(
+          `INSERT INTO athletes (first_name, last_name, age, category, gender, date_of_birth, date_joined, coach_id, parent_id, notes)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+           RETURNING id`,
+          [
+            effectiveFirstName,
+            effectiveLastName,
+            derivedAge,
+            derivedCategory,
+            normalizedGender,
+            finalDob,
+            nowIso,
+            coachIdToApply,
+            null,
+            notesValue,
+          ]
+        );
+
+        athleteIdToUse = insertResult.rows[0].id;
+        currentAthleteId = athleteIdToUse;
+        await client.query('UPDATE users SET athlete_id = $1 WHERE id = $2', [athleteIdToUse, id]);
+      }
+    }
+
+    if (wantsParentUpdate) {
+      const previousAssignments = await client.query('SELECT id FROM athletes WHERE parent_id = $1', [id]);
+
+      if (normalizedLinkedAthleteIdInput === null) {
+        for (const row of previousAssignments.rows) {
+          await client.query('UPDATE athletes SET parent_id = NULL WHERE id = $1', [row.id]);
+        }
+      } else if (typeof normalizedLinkedAthleteIdInput === 'string') {
+        const athleteRes = await client.query(
+          'SELECT id, coach_id, parent_id FROM athletes WHERE id = $1',
+          [normalizedLinkedAthleteIdInput]
+        );
+
+        if (athleteRes.rows.length === 0) {
+          await client.query('ROLLBACK');
+          transactionStarted = false;
+          return res.status(400).json({ error: 'Selected athlete does not exist' });
+        }
+
+        const athleteRow = athleteRes.rows[0] as { coach_id: string | null; parent_id: string | null };
+        const athleteCoachId = athleteRow.coach_id ?? null;
+        const existingParentId = athleteRow.parent_id ?? null;
+
+        if (existingParentId && existingParentId !== id) {
+          await client.query('ROLLBACK');
+          transactionStarted = false;
+          return res.status(409).json({ error: 'This athlete is already linked to a different parent' });
+        }
+
+        let coachIdToApply: string | null;
+        if (typeof normalizedCoachIdInput !== 'undefined') {
+          coachIdToApply = normalizedCoachIdInput;
+        } else {
+          coachIdToApply = athleteCoachId;
+        }
+
+        if (!coachIdToApply) {
+          await client.query('ROLLBACK');
+          transactionStarted = false;
+          return res.status(400).json({ error: 'Conturile de părinte trebuie să asocieze un atlet care are antrenor' });
+        }
+
+        if (normalizedCoachIdInput && athleteCoachId && normalizedCoachIdInput !== athleteCoachId) {
+          await client.query('ROLLBACK');
+          transactionStarted = false;
+          return res.status(400).json({ error: 'Selected coach does not match the athlete coach' });
+        }
+
+        for (const row of previousAssignments.rows) {
+          if (row.id !== normalizedLinkedAthleteIdInput) {
+            await client.query('UPDATE athletes SET parent_id = NULL WHERE id = $1', [row.id]);
+          }
+        }
+
+        await client.query('UPDATE athletes SET parent_id = $1 WHERE id = $2', [id, normalizedLinkedAthleteIdInput]);
+
+        if (coachIdToApply && (!athleteCoachId || coachIdToApply !== athleteCoachId)) {
+          await client.query('UPDATE athletes SET coach_id = $1 WHERE id = $2', [coachIdToApply, normalizedLinkedAthleteIdInput]);
+        }
+      }
+    }
+
+    const finalUserResult = await client.query(
+      `SELECT id, email, first_name, last_name, role, role_id, is_active, needs_approval, athlete_id, avatar, created_at
+       FROM users WHERE id = $1`,
+      [id]
     );
 
-    const updatedUser = result.rows[0];
+    if (finalUserResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      transactionStarted = false;
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    await client.query('COMMIT');
+    transactionStarted = false;
+
+    const finalUser = finalUserResult.rows[0];
 
     res.json({
-      id: updatedUser.id,
-      email: updatedUser.email,
-      firstName: updatedUser.first_name,
-      lastName: updatedUser.last_name,
-      role: updatedUser.role,
-      roleId: updatedUser.role_id,
-      isActive: updatedUser.is_active,
-      needsApproval: updatedUser.needs_approval,
-      athleteId: updatedUser.athlete_id,
-      createdAt: updatedUser.created_at,
-      avatar: updatedUser.avatar
+      id: finalUser.id,
+      email: finalUser.email,
+      firstName: finalUser.first_name,
+      lastName: finalUser.last_name,
+      role: finalUser.role,
+      roleId: finalUser.role_id,
+      isActive: finalUser.is_active,
+      needsApproval: finalUser.needs_approval,
+      athleteId: finalUser.athlete_id,
+      createdAt: finalUser.created_at,
+      avatar: finalUser.avatar
     });
   } catch (error) {
+    if (transactionStarted) {
+      try {
+        await client.query('ROLLBACK');
+      } catch (rollbackError) {
+        console.error('Rollback error during updateUser:', rollbackError);
+      }
+    }
     console.error('Update user error:', error);
     res.status(500).json({ error: 'Internal server error' });
   } finally {

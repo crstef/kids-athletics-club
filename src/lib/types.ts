@@ -349,6 +349,17 @@ export interface AdminCreateUserPayload {
   athleteProfile?: AthleteProfileInput
 }
 
+export interface AdminUpdateUserPayload extends Partial<Omit<User, 'roleId' | 'athleteId'>> {
+  roleId?: string | null
+  athleteId?: string | null
+  avatar?: string | null
+  currentPassword?: string
+  avatarDataUrl?: string
+  coachId?: string | null
+  linkedAthleteId?: string | null
+  approvalNotes?: string | null
+  athleteProfile?: AthleteProfileInput
+}
 export interface RolePermission {
   roleId: string
   permissionId: string

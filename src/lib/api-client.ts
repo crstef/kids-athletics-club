@@ -1,4 +1,4 @@
-import type { AdminCreateUserPayload } from '@/lib/types'
+import type { AdminCreateUserPayload, AdminUpdateUserPayload } from '@/lib/types'
 
 const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || (typeof window !== 'undefined' && window.location.hostname !== 'localhost' ? '/api' : 'http://localhost:3001/api');
 
@@ -125,13 +125,13 @@ class ApiClient {
   }
 
   async createUser(data: AdminCreateUserPayload) {
-    return this.request('/users', {
+    return this.request<{ id: string }>('/users', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
-  async updateUser(id: string, data: any) {
+  async updateUser(id: string, data: AdminUpdateUserPayload) {
     return this.request(`/users/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),

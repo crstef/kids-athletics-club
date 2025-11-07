@@ -45,7 +45,7 @@ import { apiClient } from '@/lib/api-client'
 import { cn } from '@/lib/utils'
 
 // Types
-import { User, Role, Permission, AgeCategoryCustom, EventTypeCustom, Result, Athlete, AthleteUser, AccessRequest, Message, AccountApprovalRequest, UserPermission, AdminCreateUserPayload } from '@/lib/types'
+import { User, Role, Permission, AgeCategoryCustom, EventTypeCustom, Result, Athlete, AthleteUser, AccessRequest, Message, AccountApprovalRequest, UserPermission, AdminCreateUserPayload, AdminUpdateUserPayload } from '@/lib/types'
 
 interface DashboardWidget {
   id: string
@@ -208,7 +208,7 @@ interface UnifiedLayoutProps {
   
   // Action handlers
   handleAddUser: (userData: AdminCreateUserPayload & { avatarDataUrl?: string }) => Promise<void>
-  handleUpdateUser: (userId: string, userData: Partial<User> & { currentPassword?: string }) => Promise<void>
+  handleUpdateUser: (userId: string, userData: AdminUpdateUserPayload) => Promise<void>
   handleDeleteUser: (userId: string) => Promise<void>
   handleAddRole: (roleData: Omit<Role, 'id' | 'createdAt' | 'createdBy'>) => Promise<void>
   handleUpdateRole: (roleId: string, updates: Partial<Role>) => Promise<void>

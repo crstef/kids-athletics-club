@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Trash, MagnifyingGlass, Check, X, Clock, Warning } from '@phosphor-icons/react'
 import { toast } from 'sonner'
-import type { User, Permission, UserPermission, Athlete, AccountApprovalRequest } from '@/lib/types'
+import type { User, Permission, UserPermission, Athlete, AccountApprovalRequest, AdminUpdateUserPayload } from '@/lib/types'
 
 interface UserPermissionsManagementProps {
   users: User[]
@@ -23,7 +23,7 @@ interface UserPermissionsManagementProps {
   onRevokePermission: (id: string) => void
   onApproveAccount: (requestId: string) => Promise<void>
   onRejectAccount: (requestId: string, reason?: string) => Promise<void>
-  onUpdateUser: (userId: string, updates: Partial<User> & { currentPassword?: string }) => void
+  onUpdateUser: (userId: string, updates: AdminUpdateUserPayload) => void
   onDeleteRequest?: (requestId: string) => Promise<void>
 }
 
@@ -166,7 +166,7 @@ export function UserPermissionsManagement({
 
     onUpdateUser(selectedAthleteUser.id, {
       athleteId: selectedAthleteId
-    } as any)
+    })
 
     toast.success('Atlet asociat cu succes')
     setAssociateDialogOpen(false)
