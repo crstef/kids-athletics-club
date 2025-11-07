@@ -156,8 +156,14 @@ const getAllUsers = async (req, res) => {
             queryParams.push(currentUser.userId);
         }
         else if (currentUser?.role === 'parent') {
-            // Parents can only see themselves
-            query += ` WHERE u.id = $1`;
+            // Parents can see themselves, their child's coach(es), and superadmins for support
+            query += ` WHERE (
+        u.id = $1
+        OR u.id IN (
+          SELECT DISTINCT coach_id FROM athletes WHERE parent_id = $1 AND coach_id IS NOT NULL
+        )
+        OR u.role = 'superadmin'
+      )`;
             queryParams.push(currentUser.userId);
         }
         if (hasCreatedAtColumn) {
