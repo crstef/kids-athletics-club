@@ -1029,7 +1029,7 @@ function AppContent() {
       }
 
       if (isParentRequest) {
-        followUps.push(refetchAccessRequests())
+        followUps.push(refetchAccessRequests(), refetchAthletes())
       }
 
       await Promise.allSettled(followUps)
@@ -1054,7 +1054,7 @@ function AppContent() {
       }
 
       if (isParentRequest) {
-        rollbackTasks.push(refetchAccessRequests())
+        rollbackTasks.push(refetchAccessRequests(), refetchAthletes())
       }
 
       await Promise.allSettled(rollbackTasks)
