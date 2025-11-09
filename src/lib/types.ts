@@ -51,6 +51,7 @@ export type ResourceType =
   | 'approval_requests'
   | 'age_categories'
   | 'user_permissions'
+  | 'social_links'
 
 export type PermissionName = 
   | 'athletes.create'
@@ -109,6 +110,8 @@ export type PermissionName =
   | 'dashboard.view.coach'
   | 'dashboard.view.parent'
   | 'dashboard.view.athlete'
+  | 'social_links.view'
+  | 'social_links.manage'
 
 export interface User {
   id: string
@@ -365,4 +368,27 @@ export interface RolePermission {
   permissionId: string
   grantedAt: string
   grantedBy: string
+}
+
+export type SocialPlatform = 'facebook' | 'instagram'
+
+export interface SocialLink {
+  id: string
+  platform: SocialPlatform
+  url: string | null
+  isActive: boolean
+  updatedAt?: string
+  updatedBy?: string | null
+}
+
+export type SocialLinksMap = Partial<Record<SocialPlatform, { url: string | null; isActive: boolean }>>
+
+export interface SocialLinkUpdateInput {
+  platform: SocialPlatform
+  url?: string | null
+  isActive?: boolean
+}
+
+export interface SocialLinksResponse {
+  links: SocialLink[]
 }

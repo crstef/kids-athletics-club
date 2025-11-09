@@ -137,7 +137,14 @@ export const initializeData = async (req: Request, res: Response) => {
       ('requests.view.own', 'Poate vizualiza doar cererile proprii', NOW(), NOW())
       ON CONFLICT (name) DO NOTHING
     `);
-  results.permissions = 50;
+
+    await client.query(`
+      INSERT INTO permissions (name, description, created_at, updated_at) VALUES
+      ('social_links.view', 'Poate vizualiza link-urile sociale ale clubului', NOW(), NOW()),
+      ('social_links.manage', 'Poate gestiona link-urile sociale ale clubului', NOW(), NOW())
+      ON CONFLICT (name) DO NOTHING
+    `);
+  results.permissions = 52;
 
     // 3. Associate all permissions to superadmin role
     const superadminPerms = await client.query(`
@@ -1606,6 +1613,13 @@ export const resetDatabase = async (req: Request, res: Response) => {
       ('dashboard.view.coach', 'View coach dashboard', true, NOW(), NOW()),
       ('dashboard.view.parent', 'View parent dashboard', true, NOW(), NOW()),
       ('dashboard.view.athlete', 'View athlete dashboard', true, NOW(), NOW())
+    `);
+
+    await client.query(`
+      INSERT INTO permissions (name, description, is_active, created_at, updated_at) VALUES
+      ('social_links.view', 'View social links', true, NOW(), NOW()),
+      ('social_links.manage', 'Manage social links', true, NOW(), NOW())
+      ON CONFLICT (name) DO NOTHING
     `);
     console.log('Permissions inserted');
 

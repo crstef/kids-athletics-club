@@ -386,6 +386,20 @@ CREATE TABLE IF NOT EXISTS coach_probes (
     FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
 );
 
+-- Social links table
+CREATE TABLE IF NOT EXISTS social_links (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    platform TEXT NOT NULL UNIQUE,
+    url TEXT,
+    is_active BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    CONSTRAINT social_links_supported_platform CHECK (platform IN ('facebook', 'instagram'))
+);
+
+CREATE INDEX IF NOT EXISTS social_links_active_idx ON social_links(is_active);
+
 -- Reset user table foreign keys to allow reruns
 ALTER TABLE users DROP CONSTRAINT IF EXISTS fk_users_role;
 ALTER TABLE users DROP CONSTRAINT IF EXISTS fk_users_probe;

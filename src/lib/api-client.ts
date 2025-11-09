@@ -1,4 +1,4 @@
-import type { AdminCreateUserPayload, AdminUpdateUserPayload } from '@/lib/types'
+import type { AdminCreateUserPayload, AdminUpdateUserPayload, SocialLinksResponse, SocialLinkUpdateInput } from '@/lib/types'
 
 const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || (typeof window !== 'undefined' && window.location.hostname !== 'localhost' ? '/api' : 'http://localhost:3001/api');
 
@@ -117,6 +117,10 @@ class ApiClient {
 
   async getPublicAthletes(coachId: string) {
     return this.request<any[]>(`/public/athletes/${coachId}`);
+  }
+
+  async getPublicSocialLinks() {
+    return this.request<SocialLinksResponse>('/public/social-links');
   }
 
   // Users
@@ -284,6 +288,18 @@ class ApiClient {
 
   async deletePermission(id: string) {
     return this.request(`/permissions/${id}`, { method: 'DELETE' });
+  }
+
+  // Social Links
+  async getSocialLinks() {
+    return this.request<SocialLinksResponse>('/social-links');
+  }
+
+  async updateSocialLinks(links: SocialLinkUpdateInput[]) {
+    return this.request<SocialLinksResponse>('/social-links', {
+      method: 'PUT',
+      body: JSON.stringify({ links })
+    });
   }
 
   // Roles

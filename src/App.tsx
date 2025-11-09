@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { Toaster, toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Trophy, UserCircle } from '@phosphor-icons/react'
@@ -10,9 +10,10 @@ import { useComponents } from '@/hooks/use-components'
 import { useInactivityLogout } from '@/hooks/use-inactivity-logout'
 import { hashPassword } from './lib/auth';
 import { DEFAULT_PERMISSIONS, DEFAULT_ROLES } from './lib/defaults'
-import type { Athlete, Result, AgeCategory, User, AccessRequest, Message, EventTypeCustom, Permission, UserPermission, Role, AgeCategoryCustom, AccountApprovalRequest, AdminCreateUserPayload, AdminUpdateUserPayload } from '@/lib/types'
+import type { Athlete, Result, AgeCategory, User, AccessRequest, Message, EventTypeCustom, Permission, UserPermission, Role, AgeCategoryCustom, AccountApprovalRequest, AdminCreateUserPayload, AdminUpdateUserPayload, SocialLinksMap, SocialLinkUpdateInput, SocialLinksResponse, SocialPlatform } from '@/lib/types'
 import { getDashboardComponent, FALLBACK_DASHBOARD } from '@/lib/dashboardRegistry';
 import { generateTabsFromPermissions, getPermissionForTab, hasPermissionFromList } from '@/lib/permission-tab-mapping'
+import { SocialLinkIcons } from '@/components/SocialLinkIcons'
 
 // TAB_CONFIGS is now generated dynamically from user permissions via generateTabsFromPermissions()
 
@@ -109,6 +110,32 @@ const KNOWN_TAB_IDS = new Set([
   'permissions'
 ])
 
+const SOCIAL_PLATFORMS: SocialPlatform[] = ['facebook', 'instagram']
+
+const mapSocialLinksResponseToMap = (payload?: SocialLinksResponse | null): SocialLinksMap => {
+  const base: SocialLinksMap = {
+    facebook: { url: null, isActive: false },
+    instagram: { url: null, isActive: false }
+  }
+
+  if (!payload?.links) {
+    return base
+  }
+
+  for (const link of payload.links) {
+    if (!SOCIAL_PLATFORMS.includes(link.platform)) {
+      continue
+    }
+
+    base[link.platform] = {
+      url: link.url ?? null,
+      isActive: !!link.isActive
+    }
+  }
+
+  return base
+}
+
 const sanitizeVisibleTabs = (tabs: VisibleTabDescriptor[]): VisibleTabDescriptor[] => {
   const unique = new Map<string, VisibleTabDescriptor>()
 
@@ -182,8 +209,37 @@ function AppContent() {
   const [athletePage, setAthletePage] = useState(1)
   const ATHLETES_PER_PAGE = 6
   const [authDialogOpen, setAuthDialogOpen] = useState(false)
+  const [socialLinks, setSocialLinks] = useState<SocialLinksMap>(mapSocialLinksResponseToMap())
+  const [socialLinksLoading, setSocialLinksLoading] = useState(false)
   
   const [activeTab, setActiveTab] = useState('dashboard')
+
+  const loadSocialLinks = useCallback(async () => {
+    setSocialLinksLoading(true)
+    try {
+      let response: SocialLinksResponse | null = null
+      const canUsePrivate = !!currentUser && (hasPermission('social_links.manage') || hasPermission('social_links.view'))
+
+      if (canUsePrivate) {
+        try {
+          response = await apiClient.getSocialLinks()
+        } catch (error) {
+          console.warn('Eroare la încărcarea link-urilor sociale private. Se încearcă varianta publică.', error)
+        }
+      }
+
+      if (!response) {
+        response = await apiClient.getPublicSocialLinks()
+      }
+
+      setSocialLinks(mapSocialLinksResponseToMap(response))
+    } catch (error) {
+      console.error('loadSocialLinks error:', error)
+      setSocialLinks(mapSocialLinksResponseToMap())
+    } finally {
+      setSocialLinksLoading(false)
+    }
+  }, [currentUser, hasPermission])
 
   const isSuperAdminUser = currentUser?.role === 'superadmin'
   const showApprovalRequests = currentUser ? currentUser.role === 'superadmin' : false
@@ -288,12 +344,24 @@ function AppContent() {
     }
   }, [visibleTabs, currentUser])
 
+  const hasActiveSocialLinks = useMemo(() => {
+    return Object.values(socialLinks).some((link) => !!link && !!link.url && link.isActive)
+  }, [socialLinks])
+
   // Fetch components when user logs in
   useEffect(() => {
     if (currentUser && !authLoading) {
       fetchComponents()
     }
   }, [currentUser, authLoading])
+
+  useEffect(() => {
+    if (authLoading) {
+      return
+    }
+
+    loadSocialLinks()
+  }, [authLoading, currentUser, loadSocialLinks])
 
   // Also refetch components on explicit refresh events (after admin saves widgets)
   useEffect(() => {
@@ -632,6 +700,18 @@ function AppContent() {
     // Filter users who have the parent role ID
     return (users || []).filter(u => u.roleId === parentRole.id || u.role === 'parent')
   }, [users, roles])
+
+  const handleSaveSocialLinks = useCallback(async (linksPayload: SocialLinkUpdateInput[]) => {
+    try {
+      const response = await apiClient.updateSocialLinks(linksPayload)
+      setSocialLinks(mapSocialLinksResponseToMap(response))
+      toast.success('Link-urile sociale au fost actualizate')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Nu am putut salva link-urile sociale'
+      toast.error(message)
+      throw (error instanceof Error ? error : new Error(message))
+    }
+  }, [])
 
   const handleAddAthlete = async (athleteData: Omit<Athlete, 'id' | 'avatar'>, file?: File | null) => {
     try {
@@ -1434,6 +1514,7 @@ function AppContent() {
         accessRequests: accessRequests || [],
         messages: messages || [],
         userPermissions: userPermissions || [],
+  socialLinks,
         approvalRequests: approvalRequests || [],
         myAthletes,
         myResults,
@@ -1516,6 +1597,7 @@ function AppContent() {
         handleUpdateUser,
         handleDeleteUser,
         onNavigateToTab: setActiveTab,
+        onUpdateSocialLinks: handleSaveSocialLinks,
       };
       return <Component {...props} />;
     }
@@ -1560,6 +1642,14 @@ function AppContent() {
             </span>
             <div className="absolute inset-0 bg-linear-to-r from-primary to-accent opacity-0 group-hover:opacity-100 transition-opacity" />
           </Button>
+          {!socialLinksLoading && hasActiveSocialLinks && (
+            <SocialLinkIcons
+              links={socialLinks}
+              size={26}
+              variant="landing"
+              className="justify-center"
+            />
+          )}
         </div>
         <AuthDialog
           open={authDialogOpen}

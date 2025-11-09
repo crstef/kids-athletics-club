@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import pool from '../config/database';
+import { getPublicSocialLinks } from '../controllers/socialLinksController';
 
 const router = Router();
 
@@ -52,5 +53,7 @@ router.get('/athletes/:coachId', async (req, res) => {
     client.release();
   }
 });
+
+router.get('/social-links', getPublicSocialLinks);
 
 export default router;

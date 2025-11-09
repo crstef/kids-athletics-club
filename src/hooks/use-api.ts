@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { apiClient } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
+import type { SocialLinksResponse } from "@/lib/types";
 
 const EMPTY_ARRAY: any[] = [];
 
@@ -108,6 +109,9 @@ export function useApi<T>(
           break;
         case "permissions":
           result = await apiClient.getPermissions();
+          break;
+        case "social-links":
+          result = await apiClient.getSocialLinks();
           break;
         case "roles":
           result = await apiClient.getRoles();
@@ -346,6 +350,18 @@ export function useUserPermissions(options: UseApiOptions = {}) {
     {
       autoFetch: true,
       requiredPermissions: ['user_permissions.view'],
+      ...options
+    }
+  );
+}
+
+export function useSocialLinks(options: UseApiOptions = {}) {
+  return useApi<SocialLinksResponse>(
+    'social-links',
+    { links: [] },
+    {
+      autoFetch: true,
+      requiredPermissions: ['social_links.view', 'social_links.manage'],
       ...options
     }
   );

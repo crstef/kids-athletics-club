@@ -35,6 +35,8 @@ import { UserPermissionsManagement } from '@/components/UserPermissionsManagemen
 import { AddAthleteDialog } from '@/components/AddAthleteDialog'
 import { AthleteCard } from '@/components/AthleteCard'
 import { AthleteDetailsDialog } from '@/components/AthleteDetailsDialog'
+import { SocialLinkIcons } from '@/components/SocialLinkIcons'
+import { SocialLinksDialog } from '@/components/SocialLinksDialog'
 
 // Widget system
 import { WIDGET_REGISTRY, userCanAccessWidget } from '@/lib/widgetRegistry'
@@ -43,7 +45,7 @@ import { apiClient } from '@/lib/api-client'
 import { cn } from '@/lib/utils'
 
 // Types
-import { User, Role, Permission, AgeCategoryCustom, EventTypeCustom, Result, Athlete, AthleteUser, AccessRequest, Message, AccountApprovalRequest, UserPermission, AdminCreateUserPayload, AdminUpdateUserPayload } from '@/lib/types'
+import { User, Role, Permission, AgeCategoryCustom, EventTypeCustom, Result, Athlete, AthleteUser, AccessRequest, Message, AccountApprovalRequest, UserPermission, AdminCreateUserPayload, AdminUpdateUserPayload, SocialLinksMap, SocialLinkUpdateInput } from '@/lib/types'
 
 interface DashboardWidget {
   id: string
@@ -200,6 +202,7 @@ interface UnifiedLayoutProps {
   messages: Message[]
   results: Result[]
   userPermissions: UserPermission[]
+  socialLinks: SocialLinksMap
   
   // User widgets (from role_dashboards)
   userWidgets?: DashboardWidget[]
@@ -238,6 +241,7 @@ interface UnifiedLayoutProps {
   handleApproveAccount: (requestId: string) => Promise<void>
   handleRejectAccount: (requestId: string, reason?: string) => Promise<void>
   handleDeleteApprovalRequest: (requestId: string) => Promise<void>
+  onUpdateSocialLinks: (links: SocialLinkUpdateInput[]) => Promise<void>
   
   // Athlete search/filter
   searchQuery: string
@@ -293,6 +297,7 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
     messages,
     results,
   userPermissions = [],
+    socialLinks,
     parents,
     coaches,
     handleAddUser,
@@ -337,12 +342,15 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
   handleRejectAccount,
   handleDeleteApprovalRequest,
     handleSendMessage,
-    handleMarkAsRead
+    handleMarkAsRead,
+    onUpdateSocialLinks
   } = props
 
   const { hasPermission } = useAuth()
   const [customizeOpen, setCustomizeOpen] = useState(false)
   const [enabledWidgets, setEnabledWidgets] = useState<string[]>([])
+  const [socialLinksOpen, setSocialLinksOpen] = useState(false)
+  const [savingSocialLinks, setSavingSocialLinks] = useState(false)
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 8 }
@@ -360,6 +368,17 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
       return arrayMove(prev, oldIndex, newIndex)
     })
   }, [])
+
+  const handleSocialLinksSubmit = useCallback(async (linksPayload: SocialLinkUpdateInput[]) => {
+    setSavingSocialLinks(true)
+    try {
+      await onUpdateSocialLinks(linksPayload)
+      setSavingSocialLinks(false)
+    } catch (error) {
+      setSavingSocialLinks(false)
+      throw error
+    }
+  }, [onUpdateSocialLinks])
 
   const [widgetsLoaded, setWidgetsLoaded] = useState(false)
   const [allowedWidgetIds, setAllowedWidgetIds] = useState<string[]>([])
@@ -1045,14 +1064,28 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
             </div>
           </div>
 
-          <Button
-            variant="ghost"
-            onClick={logout}
-            className="gap-2"
-          >
-            <SignOut size={20} />
-            Deconectare
-          </Button>
+          <div className="flex items-center gap-3">
+            <SocialLinkIcons links={socialLinks} size={20} />
+            {hasPermission('social_links.manage') && (
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Gestionează link-urile sociale"
+                onClick={() => setSocialLinksOpen(true)}
+                className="text-muted-foreground hover:text-primary"
+              >
+                <Gear size={20} />
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              onClick={logout}
+              className="gap-2"
+            >
+              <SignOut size={20} />
+              Deconectare
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -1440,6 +1473,14 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
           </div>
         </DialogContent>
       </Dialog>
+
+      <SocialLinksDialog
+        open={socialLinksOpen}
+        onOpenChange={setSocialLinksOpen}
+        links={socialLinks}
+        onSave={handleSocialLinksSubmit}
+        saving={savingSocialLinks}
+      />
 
       {/* Athlete Details Dialog */}
       {selectedAthlete && (

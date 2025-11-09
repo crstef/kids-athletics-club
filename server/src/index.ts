@@ -18,6 +18,7 @@ import eventsRoutes from './routes/events';
 import userPermissionsRoutes from './routes/userPermissions';
 import dashboardsRoutes from './routes/dashboards';
 import componentsRoutes from './routes/components';
+import socialLinksRoutes from './routes/socialLinks';
 import { createAdminUser, initializeData, addSampleData, fixAdminRole, addGenderColumn, fixUserRoles, addModernDashboards, addCategoryToPermissions, populateRoleDashboards, seedComponentWidgets, completeSetup, resetDatabase, fixRoleDashboardsSchema, createUserWidgetsTable } from './routes/setup';
 
 dotenv.config();
@@ -108,6 +109,7 @@ app.use('/api/events', eventsRoutes);
 app.use('/api/user-permissions', userPermissionsRoutes);
 app.use('/api/dashboards', dashboardsRoutes);
 app.use('/api/components', componentsRoutes);
+app.use('/api/social-links', socialLinksRoutes);
 
 // Setup endpoints (for initial deployment)
 app.post('/api/setup/create-admin', createAdminUser);
