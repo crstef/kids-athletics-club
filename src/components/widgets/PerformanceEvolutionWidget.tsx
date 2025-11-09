@@ -54,8 +54,8 @@ export default function PerformanceEvolutionWidget({
   }, [safeResults, selectedAthleteId]);
 
   const uniqueEvents = useMemo(() => {
-    const events = new Set<EventType>(selectedAthleteResults.map(result => result.eventType));
-    return Array.from(events);
+    const events = new Set(selectedAthleteResults.map(result => result.eventType));
+    return Array.from(events) as EventType[];
   }, [selectedAthleteResults]);
 
   useEffect(() => {
@@ -76,11 +76,16 @@ export default function PerformanceEvolutionWidget({
   }, [uniqueEvents, selectedAthleteId, selectedEvent, defaultAthleteId, defaultEventType]);
 
   const chartData = useMemo(() => {
-    if (selectedEvent === 'all') return [];
+    if (selectedEvent === 'all') return []
     return selectedAthleteResults
       .filter(r => r.eventType === selectedEvent)
-      .map(r => ({ date: r.date, value: r.value, notes: r.notes }));
-  }, [selectedAthleteResults, selectedEvent]);
+      .map(r => ({
+        date: r.date,
+        value: r.value,
+        unit: r.unit ?? undefined,
+        notes: r.notes
+      }))
+  }, [selectedAthleteResults, selectedEvent])
 
   return (
     <Card className="h-full flex flex-col">
