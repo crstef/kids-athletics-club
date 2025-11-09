@@ -1051,8 +1051,8 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
       
       {/* Header */}
       <header className="sticky top-0 z-40 w-full border-b backdrop-blur-md bg-background/80">
-        <div className="container mx-auto px-4 flex h-16 items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="container mx-auto px-4 flex h-16 items-center justify-between gap-6">
+          <div className="flex items-center gap-6">
             <div className="flex items-center gap-2">
               <ShieldCheck size={32} weight="fill" className="text-primary" />
               <div>
@@ -1062,10 +1062,10 @@ const UnifiedLayout: React.FC<UnifiedLayoutProps> = (props) => {
                 </p>
               </div>
             </div>
+            <SocialLinkIcons links={socialLinks} size={26} className="ml-6" />
           </div>
 
           <div className="flex items-center gap-3">
-            <SocialLinkIcons links={socialLinks} size={20} />
             {hasPermission('social_links.manage') && (
               <Button
                 variant="ghost"

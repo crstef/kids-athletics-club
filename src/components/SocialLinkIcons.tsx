@@ -56,10 +56,10 @@ export const SocialLinkIcons: React.FC<SocialLinkIconsProps> = ({
             rel="noreferrer noopener"
             aria-label={label}
             className={cn(
-              'inline-flex items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary',
+              'inline-flex items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary shadow-sm',
               variant === 'landing'
                 ? 'bg-white/90 p-2 text-primary hover:bg-white'
-                : 'text-muted-foreground hover:text-primary'
+                : 'bg-muted/80 p-2 text-primary hover:bg-primary hover:text-primary-foreground'
             )}
           >
             <IconComponent size={size} weight="fill" />
