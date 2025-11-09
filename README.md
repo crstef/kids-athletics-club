@@ -238,6 +238,11 @@ cd server && npm start
 - Configurează categorii de vârstă
 - Administrează permisiuni granulare
 
+### Branding & Link-uri Sociale
+- **Configurează iconițele Facebook și Instagram** din dashboard pentru a actualiza instant butoanele vizibile în antet și pe pagina publică de autentificare.
+- **Permisiuni dedicate:** `social_links.manage` pentru actualizare și `social_links.view` pentru vizualizare internă.
+- **Endpoint public securizat:** `/api/public/social-links` expune doar link-urile active (fără token), în timp ce panoul privat folosește `/api/social-links` cu audit complet.
+
 ## 📊 Structura Datelor
 
 Toate datele sunt persistate în baza de date PostgreSQL:
@@ -250,6 +255,7 @@ Toate datele sunt persistate în baza de date PostgreSQL:
 - `messages` - mesajele între utilizatori
 - `roles` - rolurile personalizate
 - `age_categories` - categoriile de vârstă
+- `social_links` - configurările oficiale pentru Facebook și Instagram
 
 Vezi `server/schema.sql` pentru schema completă.
 

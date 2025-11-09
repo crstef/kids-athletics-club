@@ -6,14 +6,20 @@ Your app has a **database-driven RBAC (Role-Based Access Control)** system with 
 
 ```
 Permissions → Role Permissions → Roles → Users
-     ↓              ↓              ↓       ↓
- (43 perms)   (many-to-many)   (4 roles) (N users)
+   ↓              ↓              ↓       ↓
+ (52 perms)   (many-to-many)   (4 roles) (N users)
 ```
 
 ## ✅ What's Already Working
 
+### 2025-11 Update – Social Link Permissions
+- ✅ Nou set de permisiuni: `social_links.view` (vizualizare internă) și `social_links.manage` (administrare) pentru controlul iconițelor Facebook/Instagram din platformă.
+- ✅ Endpoint-uri API dedicate: `GET /api/social-links` (privat, necesită una dintre permisiuni) și `PUT /api/social-links` (necesită `social_links.manage`), plus `GET /api/public/social-links` pentru landing page anonim.
+- ✅ Migrare nouă: `server/migrations/006_add_social_links.sql` creează tabela `social_links` și populează valorile implicite; rulează-o înainte de a folosi permisiunile.
+- ✅ Scriptul `initialize-data?reset_permissions=true` inserează automat permisiunile noi și le atașează SuperAdminului.
+
 ### 1. **Database Schema** (Complete)
-- ✅ `permissions` table - 43 granular permissions
+- ✅ `permissions` table - 52 granular permissions
 - ✅ `roles` table - Dynamic roles (superadmin, coach, parent, athlete)
 - ✅ `role_permissions` table - Many-to-many mapping
 - ✅ `user_permissions` table - Individual user overrides
@@ -178,7 +184,7 @@ cat src/components/UserPermissionsManagement.tsx | head -50
    ```bash
    npm run dev
    # Navigate to SuperAdmin → System → Permissions tab
-   # Verify you can see all 43 permissions
+  # Verify you can see all 52 permissions
    ```
 
 ### Phase 2: Enhance Role Management (30 mins - optional)
@@ -352,7 +358,7 @@ Examples:
 
 You'll know the system works when:
 
-- [x] All 43 permissions are visible in PermissionsManagement
+- [x] All 52 permissions are visible in PermissionsManagement
 - [x] Creating a new role and assigning permissions works
 - [x] Assigning role to user grants correct UI access
 - [x] API endpoints respect permission checks

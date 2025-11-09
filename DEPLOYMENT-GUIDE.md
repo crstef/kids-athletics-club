@@ -359,6 +359,8 @@ psql -U jmwclpii_kids_athletic -d jmwclpii_kids_athletic -f migrations/XXX_migra
 cd ..
 ```
 
+> **Update noiembrie 2025:** Noua funcționalitate de link-uri sociale necesită rularea `server/migrations/006_add_social_links.sql` (creează tabela `social_links` și setările implicite) urmată de `curl "https://kidsathletic.hardweb.ro/api/setup/initialize-data?reset_permissions=true"` pentru a înregistra permisiunile `social_links.view` și `social_links.manage`.
+
 ### Step 6: Reset Permissions (if schema changed)
 
 ```bash

@@ -17,6 +17,8 @@
 - **Permission Lifecycle**: Seeded defaults live in `server/src/routes/setup.ts`; when introducing a new permission, update those inserts, hit `/api/setup/initialize-data?reset_permissions=true`, and extend the `PermissionName` union in `src/lib/types.ts`.
   Mirror the change in frontend guards (`PermissionGate`, `generateTabsFromPermissions`) so permission strings stay aligned across DB, API, and UI.
 
+- **Social Links Feature**: Facebook/Instagram icons are powered by `server/migrations/006_add_social_links.sql`, backend routes `server/src/routes/socialLinks.ts` & `server/src/routes/public.ts`, controller `server/src/controllers/socialLinksController.ts`, and frontend UI in `src/components/SocialLinkIcons.tsx`, `src/components/SocialLinksDialog.tsx`, `src/App.tsx`, and `src/layouts/UnifiedLayout.tsx`. Ensure both new permissions (`social_links.view` / `social_links.manage`) stay seeded via `setup.ts`, documented in `README.md`, and reflected in `src/lib/types.ts` plus `api-client`/hooks.
+
 - **Tabs & Dashboards**: Navigation is computed from `PERMISSION_TO_TAB_MAP` (`src/lib/permission-tab-mapping.ts`) merged with component metadata returned by `useComponents` (`src/hooks/use-components.ts`).
   Add tabs by updating that mapping (and aliases/equivalents for fallback permissions) plus ensuring the backend exposes matching component records or seeded permissions.
 
