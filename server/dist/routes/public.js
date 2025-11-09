@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const database_1 = __importDefault(require("../config/database"));
+const socialLinksController_1 = require("../controllers/socialLinksController");
 const router = (0, express_1.Router)();
 // GET /api/public/coaches
 router.get('/coaches', async (req, res) => {
@@ -53,4 +54,5 @@ router.get('/athletes/:coachId', async (req, res) => {
         client.release();
     }
 });
+router.get('/social-links', socialLinksController_1.getPublicSocialLinks);
 exports.default = router;

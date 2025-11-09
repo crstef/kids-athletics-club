@@ -23,6 +23,7 @@ const events_1 = __importDefault(require("./routes/events"));
 const userPermissions_1 = __importDefault(require("./routes/userPermissions"));
 const dashboards_1 = __importDefault(require("./routes/dashboards"));
 const components_1 = __importDefault(require("./routes/components"));
+const socialLinks_1 = __importDefault(require("./routes/socialLinks"));
 const setup_1 = require("./routes/setup");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
@@ -102,6 +103,7 @@ app.use('/api/events', events_1.default);
 app.use('/api/user-permissions', userPermissions_1.default);
 app.use('/api/dashboards', dashboards_1.default);
 app.use('/api/components', components_1.default);
+app.use('/api/social-links', socialLinks_1.default);
 // Setup endpoints (for initial deployment)
 app.post('/api/setup/create-admin', setup_1.createAdminUser);
 app.get('/api/setup/initialize-data', setup_1.initializeData);
