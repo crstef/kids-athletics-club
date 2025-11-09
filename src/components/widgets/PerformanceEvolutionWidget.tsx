@@ -88,11 +88,11 @@ export default function PerformanceEvolutionWidget({
   }, [selectedAthleteResults, selectedEvent])
 
   return (
-    <Card className="h-full flex flex-col">
+    <Card className="h-full flex flex-col overflow-hidden">
       <CardHeader>
         <CardTitle>Evoluție Performanțe</CardTitle>
       </CardHeader>
-      <CardContent className="grow flex flex-col gap-4">
+      <CardContent className="grow flex flex-col gap-4 pt-6">
         <div className="flex flex-col sm:flex-row gap-2">
           <Select value={selectedAthleteId} onValueChange={setSelectedAthleteId}>
             <SelectTrigger>
@@ -118,7 +118,7 @@ export default function PerformanceEvolutionWidget({
             </SelectContent>
           </Select>
         </div>
-        <div className="grow flex items-center justify-center">
+        <div className="grow w-full">
           {selectedEvent !== 'all' && chartData.length > 0 ? (
             <PerformanceChart data={chartData} eventType={selectedEvent} />
           ) : (
