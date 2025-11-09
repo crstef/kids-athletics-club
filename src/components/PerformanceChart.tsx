@@ -79,12 +79,29 @@ function buildChartData(series: ChartSeries[]): ChartDatum[] {
   return Array.from(pointMap.values()).sort((a, b) => a.timestamp - b.timestamp)
 }
 
-function getAxisDomain(values: number[], paddingFactor = 0.12): [number, number] {
+interface AxisDomainOptions {
+  paddingFactor?: number
+  minRange?: number
+}
+
+function getAxisDomain(values: number[], options: AxisDomainOptions = {}): [number, number] {
+  const { paddingFactor = 0.12, minRange = 0 } = options
+
   if (values.length === 0) return [0, 1]
-  const minValue = Math.min(...values)
-  const maxValue = Math.max(...values)
+
+  let minValue = Math.min(...values)
+  let maxValue = Math.max(...values)
   const spread = maxValue - minValue
-  const padding = spread === 0 ? Math.abs(maxValue || 1) * paddingFactor : spread * paddingFactor
+  const targetSpread = Math.max(spread, minRange)
+
+  if (targetSpread > spread) {
+    const midPoint = (maxValue + minValue) / 2
+    const halfRange = targetSpread / 2
+    minValue = midPoint - halfRange
+    maxValue = midPoint + halfRange
+  }
+
+  const padding = targetSpread === 0 ? Math.abs(maxValue || 1) * paddingFactor : targetSpread * paddingFactor
   return [minValue - padding, maxValue + padding]
 }
 
@@ -307,7 +324,25 @@ export function PerformanceChart({ data, eventType, unit, comparisons = [] }: Pe
     return vals
   }, [plottedSeries])
 
-  const [yMin, yMax] = useMemo(() => getAxisDomain(yValues), [yValues])
+  const canonicalUnit = useMemo(() => normalizeUnit(fallbackUnit), [fallbackUnit])
+
+  const yAxisMinRange = useMemo(() => {
+    switch (canonicalUnit) {
+      case 'seconds':
+        return 0.6
+      case 'meters':
+        return 0.5
+      case 'points':
+        return 20
+      default:
+        return 0
+    }
+  }, [canonicalUnit])
+
+  const [yMin, yMax] = useMemo(
+    () => getAxisDomain(yValues, { minRange: yAxisMinRange }),
+    [yValues, yAxisMinRange]
+  )
 
   const xDomain = useMemo<[number, number]>(() => {
     if (useOrdinalAxis) {
